@@ -241,7 +241,7 @@ function firstIndexForLetter(list, letter) {
   return list.findIndex((game) => gameLetter(game.title) === letter);
 }
 
-function jumpLetter(dir) {
+function jumpLetter(dir, opts) {
   const list = currentGames();
   if (list.length < 2) return;
   const present = [...lettersIn(list)];
@@ -253,8 +253,9 @@ function jumpLetter(dir) {
   const index = firstIndexForLetter(list, next);
   if (index < 0 || index === state.gameIndex) return;
   state.gameIndex = index;
+  if (opts && opts.skipRender) return;
   renderGames();
-  sfx("move");
+  if (!opts || !opts.silent) sfx("move");
 }
 
 function currentGames() {
@@ -310,45 +311,28 @@ function renderHome() {
     .join("");
 }
 
-function renderGames() {
-  const system = currentSystem();
-  const list = currentGames();
-  if (!system) return;
-  $("games-chip").textContent = system.short;
-  $("games-chip").style.color = system.accent;
-  setMarquee("games-marquee", `${system.emulator}  ·  klasöre at, listelenir`);
+let letterRailKey = "";
 
-  if (!list.length) {
-    $("rom-count").textContent = "0";
-    $("letter-rail").hidden = true;
-    $("letter-rail").innerHTML = "";
-    $("game-list").innerHTML = "";
-    $("game-stage").innerHTML = `
-      <div class="stage-body">
-        <p class="eyebrow">${system.name}</p>
-        <h2>${state.catalogReady ? "KLASÖR BOŞ" : "TARANIYOR"}</h2>
-        <p class="warn">${state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at. Adı menüde görünür.` : "USB’deki oyun listesi hazırlanıyor…"}</p>
-      </div>`;
+function paintLetterRail(list, activeLetter, rebuild) {
+  const rail = $("letter-rail");
+  const key = `${currentSystem()?.id || ""}:${list.length}`;
+  rail.hidden = list.length < 12;
+  if (rebuild || letterRailKey !== key || !rail.children.length) {
+    letterRailKey = key;
+    const present = lettersIn(list);
+    rail.innerHTML = LETTERS.map((letter) => {
+      const has = present.has(letter);
+      const on = letter === activeLetter;
+      return `<button type="button" class="${on ? "on" : ""} ${has ? "has" : "empty"}" data-letter="${letter}" ${has ? "" : "tabindex='-1'"}>${letter}</button>`;
+    }).join("");
     return;
   }
-  if (state.gameIndex >= list.length) state.gameIndex = 0;
-  const game = list[state.gameIndex];
-  const ready = list.filter((item) => item.installed).length;
+  rail.querySelectorAll("button").forEach((btn) => {
+    btn.classList.toggle("on", btn.dataset.letter === activeLetter);
+  });
+}
 
-  $("games-chip").textContent = system.short;
-  $("games-chip").style.color = system.accent;
-  $("rom-count").textContent = `${state.gameIndex + 1} / ${list.length}`;
-  setMarquee("games-marquee", `${system.emulator}  ·  ${list.length} oyun  ·  sol-sag harf`);
-
-  const present = lettersIn(list);
-  const activeLetter = gameLetter(game.title);
-  $("letter-rail").hidden = list.length < 12;
-  $("letter-rail").innerHTML = LETTERS.map((letter) => {
-    const has = present.has(letter);
-    const on = letter === activeLetter;
-    return `<button type="button" class="${on ? "on" : ""} ${has ? "has" : "empty"}" data-letter="${letter}" ${has ? "" : "tabindex='-1'"}>${letter}</button>`;
-  }).join("");
-
+function paintGameWindow(list, game) {
   const page = 12;
   const start = Math.max(0, Math.min(state.gameIndex - 5, Math.max(0, list.length - page)));
   const visible = list.slice(start, start + page);
@@ -361,7 +345,43 @@ function renderGames() {
       </li>`;
     })
     .join("");
+}
 
+function renderGames(opts) {
+  const light = opts && opts.light;
+  const system = currentSystem();
+  const list = currentGames();
+  if (!system) return;
+  $("games-chip").textContent = system.short;
+  $("games-chip").style.color = system.accent;
+
+  if (!list.length) {
+    $("rom-count").textContent = "0";
+    $("letter-rail").hidden = true;
+    $("letter-rail").innerHTML = "";
+    letterRailKey = "";
+    $("game-list").innerHTML = "";
+    $("game-stage").innerHTML = `
+      <div class="stage-body">
+        <p class="eyebrow">${system.name}</p>
+        <h2>${state.catalogReady ? "KLASÖR BOŞ" : "TARANIYOR"}</h2>
+        <p class="warn">${state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at. Adı menüde görünür.` : "USB’deki oyun listesi hazırlanıyor…"}</p>
+      </div>`;
+    return;
+  }
+  if (state.gameIndex >= list.length) state.gameIndex = 0;
+  const game = list[state.gameIndex];
+  $("rom-count").textContent = `${state.gameIndex + 1} / ${list.length}`;
+  paintLetterRail(list, gameLetter(game.title), false);
+  paintGameWindow(list, game);
+
+  if (light) {
+    const title = $("game-stage") && $("game-stage").querySelector("h2");
+    if (title) title.textContent = game.title;
+    return;
+  }
+
+  setMarquee("games-marquee", `${system.emulator}  ·  ${list.length} oyun  ·  sol-sag harf`);
   const bios = state.bios[system.id] || { ok: true };
   const canPlay = game.installed && bios.ok && state.config.retroarchExists;
   let warn = "";
@@ -473,19 +493,23 @@ async function pollExit() {
   window.setTimeout(tick, 900);
 }
 
-function move(delta, silent) {
+function move(delta, opts) {
   if (!delta) return;
+  const silent = opts === true || (opts && opts.silent);
+  const skip = opts && opts.skipRender;
   if (state.view === "home") {
     const total = state.systems.length;
+    if (!total) return;
     state.systemIndex = (state.systemIndex + delta + total) % total;
-    renderHome();
+    if (!skip) renderHome();
     if (!silent) sfx("move");
     return;
   }
   if (state.view === "games") {
     const total = currentGames().length;
-    state.gameIndex = (state.gameIndex + delta + total) % total;
-    renderGames();
+    if (!total) return;
+    state.gameIndex = (state.gameIndex + delta % total + total) % total;
+    if (!skip) renderGames();
     if (!silent) sfx("move");
   }
 }
@@ -652,8 +676,57 @@ function paintHeld() {
   if (pill) pill.textContent = state.padName ? "USB PAD" : "USB —";
 }
 
+const HOLD = { timer: 0, started: 0 };
+
+function stopHold(refresh) {
+  if (HOLD.timer) window.clearTimeout(HOLD.timer);
+  HOLD.timer = 0;
+  if (refresh && state.view === "games") renderGames();
+}
+
+function tickHold() {
+  const action = ["up", "down", "left", "right"].find((id) => state.held[id]);
+  if (!action || state.view === "boot" || state.view === "launch") {
+    stopHold(true);
+    return;
+  }
+  const elapsed = Date.now() - HOLD.started;
+  let step = 1;
+  let wait = 80;
+  if (elapsed > 1500) {
+    step = 6;
+    wait = 28;
+  } else if (elapsed > 800) {
+    step = 3;
+    wait = 42;
+  } else if (elapsed > 400) {
+    step = 2;
+    wait = 55;
+  }
+  if (state.view === "games") {
+    if (action === "up") move(-step, { silent: true, skipRender: true });
+    else if (action === "down") move(step, { silent: true, skipRender: true });
+    else if (action === "left") jumpLetter(-1, { silent: true, skipRender: true });
+    else if (action === "right") jumpLetter(1, { silent: true, skipRender: true });
+    renderGames({ light: true });
+  } else if (state.view === "home" && (action === "left" || action === "right")) {
+    move(action === "right" ? 1 : -1, { silent: true });
+  } else if (state.view === "service") {
+    handleService(action);
+  }
+  HOLD.timer = window.setTimeout(tickHold, wait);
+}
+
+function startHold(action) {
+  if (!["up", "down", "left", "right"].includes(action)) return;
+  if (HOLD.timer) window.clearTimeout(HOLD.timer);
+  HOLD.started = Date.now();
+  HOLD.timer = window.setTimeout(tickHold, 220);
+}
+
 function fireAction(action) {
   state.idle = 0;
+  if (["ok", "back", "service"].includes(action)) stopHold(false);
   if (state.view === "boot" || state.view === "launch") return;
   if (action === "service") {
     if (state.view === "service") return;
@@ -767,7 +840,12 @@ function ingest(token, down) {
   paintHeld();
   if (down) {
     const hit = ACTIONS.find((item) => (state.controls[item.id] || []).includes(token));
-    if (hit) fireAction(hit.id);
+    if (hit) {
+      fireAction(hit.id);
+      startHold(hit.id);
+    }
+  } else if (["up", "down", "left", "right"].some((id) => (state.controls[id] || []).includes(token))) {
+    stopHold(true);
   }
 }
 
@@ -906,6 +984,7 @@ async function boot() {
 }
 
 window.addEventListener("resize", scaleStage);
+window.addEventListener("blur", () => stopHold(true));
 window.addEventListener("keydown", onKey);
 window.addEventListener("keyup", onKeyUp);
 window.addEventListener("gamepadconnected", () => toast("USB encoder bulundu."));
