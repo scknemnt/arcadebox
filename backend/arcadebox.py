@@ -8,10 +8,12 @@ import json
 import mimetypes
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -268,6 +270,59 @@ def arcade_display_year(stem: str) -> str:
     return ""
 
 
+_FBNEO_REVERSE = None
+_FBNEO_SKIP = re.compile(
+    r"(unity|cqi|boot|hack|dd$|dg$|eb$|fd$|ki$|lw$|sc$|zh$|h$)",
+    re.I,
+)
+
+
+def fbneo_short_name(stem: str) -> str | None:
+    raw = Path(stem).stem.lower()
+    if re.fullmatch(r"[a-z0-9]+", raw):
+        return raw
+    load_arcade_db()
+    global _FBNEO_REVERSE
+    if _FBNEO_REVERSE is None:
+        index: dict[str, list[str]] = {}
+        for key, title in (_ARCADE_TITLES or {}).items():
+            index.setdefault(normalize(str(title)), []).append(key)
+        _FBNEO_REVERSE = index
+    want = normalize(pretty_title(stem))
+    keys = list(_FBNEO_REVERSE.get(want) or [])
+    if not keys:
+        for title_key, names in _FBNEO_REVERSE.items():
+            if want == title_key or want.startswith(title_key + " ") or title_key.startswith(want + " "):
+                keys.extend(names)
+    if not keys:
+        return None
+    keys = list(dict.fromkeys(keys))
+    keys.sort(key=lambda k: (0 if not _FBNEO_SKIP.search(k) else 1, len(k), k))
+    return keys[0]
+
+
+def fbneo_alias_rom(rom: Path, system: dict) -> Path:
+    if system["id"] not in {"arcade", "neogeo"}:
+        return rom
+    short = fbneo_short_name(rom.stem)
+    if not short or short == rom.stem.lower():
+        return rom
+    dest = Path("/tmp/arcadebox-cache/fbneo") if os.name != "nt" else Path(os.environ.get("TEMP", ".")) / "arcadebox-fbneo"
+    dest.mkdir(parents=True, exist_ok=True)
+    aliased = dest / f"{short}{rom.suffix.lower()}"
+    try:
+        if aliased.exists() or aliased.is_symlink():
+            aliased.unlink()
+        os.symlink(rom.resolve(), aliased)
+        return aliased
+    except OSError:
+        try:
+            shutil.copy2(rom, aliased)
+            return aliased
+        except OSError:
+            return rom
+
+
 def catalog_with_folder_roms() -> list:
     catalog = games()
     rows = []
@@ -450,11 +505,24 @@ def _archive_extract_cmd(archive: Path, dest: Path) -> list[str] | None:
     for bin_name in ("7z", "7za", "7zr"):
         found = which(bin_name)
         if found:
-            return [found, "x", "-y", f"-o{dest}", str(archive)]
+            return [found, "e", "-y", f"-o{dest}", str(archive)]
     found = which("bsdtar")
     if found:
         return [found, "-xf", str(archive), "-C", str(dest)]
     return []
+
+
+def _sibling_unpacked(archive: Path, system: dict) -> Path | None:
+    inner = [
+        ext.lower()
+        for ext in system.get("extensions", [])
+        if ext.lower() not in {".7z", ".zip"}
+    ]
+    for ext in inner:
+        candidate = archive.with_suffix(ext)
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def unpack_rom(rom: Path, system: dict) -> Path:
@@ -462,6 +530,9 @@ def unpack_rom(rom: Path, system: dict) -> Path:
     ext = rom.suffix.lower()
     if ext not in {".7z", ".zip"}:
         return rom
+    sibling = _sibling_unpacked(rom, system)
+    if sibling:
+        return sibling
     inner_exts = tuple(e.lower() for e in system.get("extensions", []) if e.lower() not in {".7z", ".zip"})
     if not inner_exts:
         inner_exts = (".bin", ".a26", ".rom", ".nes", ".unf", ".sfc", ".smc", ".md", ".gen")
@@ -570,6 +641,9 @@ def find_core(system: dict) -> Path | None:
         stem = Path(name).stem
         if stem not in stems:
             stems.append(stem)
+    if os.name != "nt" and system.get("id") == "atari2600":
+        preferred = [s for s in stems if "2014" in s]
+        stems = preferred + [s for s in stems if s not in preferred]
     exts = _core_exts()
     for folder in core_search_dirs():
         if not folder.is_dir():
@@ -579,6 +653,21 @@ def find_core(system: dict) -> Path | None:
                 candidate = folder / f"{stem}{ext}"
                 if candidate.is_file():
                     return candidate
+    for folder in core_search_dirs():
+        if not folder.is_dir():
+            continue
+        keys = []
+        if system.get("id") == "atari2600":
+            keys = ["stella2014", "stella"]
+        else:
+            keys = [stem.replace("_libretro", "").split("_")[0] for stem in stems]
+        for key in keys:
+            if len(key) < 3:
+                continue
+            for ext in exts:
+                hits = sorted(folder.glob(f"*{key}*{ext}"))
+                if hits:
+                    return hits[0]
     return None
 
 
@@ -649,6 +738,12 @@ def launch_game(game_id: str) -> dict:
             "folder": str(ROMS / system["romDir"]),
         }
     rom = unpack_rom(rom, system)
+    if rom.suffix.lower() in {".7z", ".zip"} and system["id"] == "atari2600":
+        return {
+            "ok": False,
+            "error": "Atari 7z açılamadı. SSH: sudo apt-get install -y p7zip-full",
+        }
+    rom = fbneo_alias_rom(rom, system)
 
     bios = bios_status(system)
     if bios["needed"] and not bios["ok"]:
@@ -667,7 +762,10 @@ def launch_game(game_id: str) -> dict:
 
     override = ROOT / "config" / "runtime.cfg"
     override.parent.mkdir(parents=True, exist_ok=True)
-    bios_psx = (BIOS / "psx").as_posix()
+    if system["id"] == "psx":
+        sysdir = (BIOS / "psx").as_posix()
+    else:
+        sysdir = rom.parent.as_posix()
     lines = [
         'rgui_show_start_screen = "false"',
         'quit_press_twice = "false"',
@@ -696,7 +794,8 @@ def launch_game(game_id: str) -> dict:
         'aspect_ratio_index = "0"',
         'custom_viewport_width = "800"',
         'custom_viewport_height = "600"',
-        f'system_directory = "{bios_psx}"',
+        f'system_directory = "{sysdir}"',
+        f'rgui_browser_directory = "{sysdir}"',
     ]
     if os.name != "nt":
         cache = Path("/tmp/arcadebox-cache")
@@ -704,29 +803,38 @@ def launch_game(game_id: str) -> dict:
         lines.extend(
             [
                 'video_driver = "gl"',
-                'audio_driver = "sdl2"',
+                'audio_driver = "alsa"',
                 f'cache_directory = "{cache.as_posix()}"',
             ]
         )
     override.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    args = [str(exe), "-L", str(core), str(rom), "-f", "--appendconfig", str(override)]
+    args = [str(exe), "--verbose", "-L", str(core), "-f", "--appendconfig", str(override), str(rom)]
     creationflags = 0
     popen_env = os.environ.copy()
-    if os.name != "nt":
-        popen_env["vblank_mode"] = "2"
-        popen_env["mesa_glthread"] = "false"
+    popen_env.pop("vblank_mode", None)
     if os.name == "nt":
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    log_path = Path("/tmp/arcadebox-launch.log") if os.name != "nt" else ROOT / "config" / "launch.log"
+    try:
+        log_handle = log_path.open("ab", buffering=0)
+        log_handle.write(f"\n--- {game['title']} core={core} rom={rom}\n".encode("utf-8", "replace"))
+    except OSError:
+        log_handle = subprocess.DEVNULL
 
     try:
         process = subprocess.Popen(
             args,
-            cwd=str(exe.parent),
+            cwd=str(ROOT),
             creationflags=creationflags,
             env=popen_env,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
         )
     except OSError as exc:
+        if hasattr(log_handle, "close"):
+            log_handle.close()
         with _LOCK:
             _STATE["busy"] = False
             _STATE["gameId"] = None
@@ -735,12 +843,30 @@ def launch_game(game_id: str) -> dict:
 
     with _LOCK:
         _STATE["process"] = process
-    pause_kiosk_browser(True)
+
+    def _pause_later() -> None:
+        time.sleep(4)
+        if process.poll() is None:
+            pause_kiosk_browser(True)
+
+    threading.Thread(target=_pause_later, daemon=True).start()
+    started = time.time()
 
     def watch() -> None:
-        process.wait()
+        code = process.wait()
         pause_kiosk_browser(False)
+        if hasattr(log_handle, "close"):
+            try:
+                log_handle.close()
+            except OSError:
+                pass
+        elapsed = time.time() - started
         with _LOCK:
+            if elapsed < 8:
+                _STATE["lastError"] = (
+                    f"{system['name']} {elapsed:.1f}sn içinde kapandı (kod {code}). "
+                    "2 Pak deneme; Pac-Man dene. Log: /tmp/arcadebox-launch.log"
+                )
             _STATE["busy"] = False
             _STATE["gameId"] = None
             _STATE["process"] = None
@@ -792,6 +918,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "status": status_payload(),
                 "bios": {item["id"]: bios_status(item) for item in systems()},
                 "config": {
+                    "pi": Path("/sys/firmware/devicetree/base/model").exists(),
                     "retroarchExists": retroarch_exe() is not None,
                     "idleDemoSeconds": config().get("idleDemoSeconds", 40),
                     "controls": config().get("controls", {}),
@@ -898,26 +1025,33 @@ def find_browser() -> list[str] | None:
                 "--disable-features=Translate,TranslateUI",
             ]
             if Path("/sys/firmware/devicetree/base/model").exists():
-                flags.extend(["--ozone-platform=x11", "--start-fullscreen"])
+                flags.extend(
+                    [
+                        "--ozone-platform=x11",
+                        "--start-fullscreen",
+                        "--disable-background-networking",
+                        "--disable-component-update",
+                        "--disable-sync",
+                        "--num-raster-threads=1",
+                        "--enable-low-end-device-mode",
+                        "--disable-gpu-rasterization",
+                    ]
+                )
             return [found, *flags]
     return None
 
 
 def pause_kiosk_browser(pause: bool) -> None:
-    if os.name == "nt":
+    if os.name == "nt" or _BROWSER_PROC is None or _BROWSER_PROC.poll() is not None:
         return
     sig = signal.SIGSTOP if pause else signal.SIGCONT
-    if _BROWSER_PROC is not None and _BROWSER_PROC.poll() is None:
+    try:
+        os.killpg(_BROWSER_PROC.pid, sig)
+    except OSError:
         try:
             os.kill(_BROWSER_PROC.pid, sig)
         except OSError:
             pass
-    subprocess.run(
-        ["pkill", f"-{sig}", "-f", "chromium"],
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
 
 
 def open_kiosk(url: str) -> None:
@@ -926,7 +1060,7 @@ def open_kiosk(url: str) -> None:
     if not command:
         webbrowser.open(url)
         return
-    _BROWSER_PROC = subprocess.Popen(command + [url], cwd=str(ROOT))
+    _BROWSER_PROC = subprocess.Popen(command + [url], cwd=str(ROOT), start_new_session=True)
 
 
 def main() -> None:

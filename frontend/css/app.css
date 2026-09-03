@@ -161,6 +161,18 @@ kbd {
   100% { opacity: 0; }
 }
 
+body.pi-kiosk #stage {
+  animation: none;
+}
+body.pi-kiosk .flicker,
+body.pi-kiosk .raster {
+  animation: none;
+  display: none;
+}
+body.pi-kiosk .stars span {
+  animation: none;
+}
+
 .view {
   position: absolute;
   inset: 0;

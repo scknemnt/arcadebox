@@ -167,11 +167,14 @@ function scaleStage() {
 function stars() {
   const root = $("stars");
   root.innerHTML = "";
-  const layers = [
-    { count: 22, size: 1, dur: [32, 48], op: [0.16, 0.36], dx: 6 },
-    { count: 18, size: 2, dur: [18, 28], op: [0.3, 0.58], dx: 12 },
-    { count: 10, size: 2, dur: [10, 16], op: [0.48, 0.85], dx: 18 },
-  ];
+  const light = Boolean(state.config.pi);
+  const layers = light
+    ? [{ count: 12, size: 1, dur: [40, 60], op: [0.2, 0.45], dx: 4 }]
+    : [
+        { count: 22, size: 1, dur: [32, 48], op: [0.16, 0.36], dx: 6 },
+        { count: 18, size: 2, dur: [18, 28], op: [0.3, 0.58], dx: 12 },
+        { count: 10, size: 2, dur: [10, 16], op: [0.48, 0.85], dx: 18 },
+      ];
   layers.forEach((layer, depth) => {
     for (let i = 0; i < layer.count; i += 1) {
       const dot = document.createElement("span");
@@ -387,6 +390,10 @@ async function loadCatalog() {
   state.config = data.config;
   if (data.config.controls) state.controls = { ...state.controls, ...data.config.controls };
   if (data.config.crtFx) state.crtFx = { ...state.crtFx, ...data.config.crtFx };
+  if (data.config.pi) {
+    document.body.classList.add("pi-kiosk");
+    stars();
+  }
   state.music = data.music || [];
   applyCrt();
 }
@@ -433,6 +440,7 @@ async function pollExit() {
         state.launching = false;
         show("games");
         renderGames();
+        if (status.lastError) toast(status.lastError);
         return;
       }
     } catch (_error) {

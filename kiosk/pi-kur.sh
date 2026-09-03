@@ -27,6 +27,7 @@ echo "Kullanici:       $USER_NAME"
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3 \
+  p7zip-full \
   xserver-xorg \
   xinit \
   x11-xserver-utils \
@@ -121,6 +122,7 @@ hdmi_group=1
 hdmi_mode=31
 hdmi_group:1=1
 hdmi_mode:1=31
+arm_boost=0
 EOF
 fi
 
