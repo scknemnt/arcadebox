@@ -602,16 +602,15 @@ def retroarch_exe() -> Path | None:
 
 def core_search_dirs() -> list[Path]:
     cfg = config().get("retroarch", {})
-    candidates = []
+    home = Path.home() / ".config" / "retroarch" / "cores"
+    candidates = [home]
     if cfg.get("cores"):
         candidates.append(resolve_path(cfg["cores"]))
     exe = retroarch_exe()
     if exe:
         candidates.append(exe.parent / "cores")
-    home = Path.home() / ".config" / "retroarch" / "cores"
     candidates.extend(
         [
-            home,
             Path("/usr/lib/aarch64-linux-gnu/libretro"),
             Path("/usr/lib/arm-linux-gnueabihf/libretro"),
             Path("/usr/lib/x86_64-linux-gnu/libretro"),
