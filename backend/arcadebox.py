@@ -527,6 +527,8 @@ def _sibling_unpacked(archive: Path, system: dict) -> Path | None:
 
 def unpack_rom(rom: Path, system: dict) -> Path:
     """Stella (and some cores) cannot load .7z; extract a raw dump first."""
+    if system.get("id") in {"arcade", "neogeo"}:
+        return rom
     ext = rom.suffix.lower()
     if ext not in {".7z", ".zip"}:
         return rom
@@ -535,7 +537,7 @@ def unpack_rom(rom: Path, system: dict) -> Path:
         return sibling
     inner_exts = tuple(e.lower() for e in system.get("extensions", []) if e.lower() not in {".7z", ".zip"})
     if not inner_exts:
-        inner_exts = (".bin", ".a26", ".rom", ".nes", ".unf", ".sfc", ".smc", ".md", ".gen")
+        return rom
     cache = Path("/tmp/arcadebox-cache") if os.name != "nt" else Path(os.environ.get("TEMP", ".") ) / "arcadebox-cache"
     dest = cache / "unpacked" / system.get("id", "rom") / rom.stem
     if dest.exists():
@@ -634,6 +636,21 @@ def cores_dir() -> Path:
     return EMULATORS / "cores"
 
 
+def _core_arch_ok(path: Path) -> bool:
+    if os.name == "nt":
+        return True
+    try:
+        with path.open("rb") as handle:
+            header = handle.read(5)
+    except OSError:
+        return False
+    if header[:4] != b"\x7fELF":
+        return True
+    machine = os.uname().machine
+    want_64 = machine in {"aarch64", "x86_64", "amd64"}
+    return (header[4] == 2) == want_64
+
+
 def find_core(system: dict) -> Path | None:
     stems = []
     for name in system.get("cores", []):
@@ -650,7 +667,7 @@ def find_core(system: dict) -> Path | None:
         for stem in stems:
             for ext in exts:
                 candidate = folder / f"{stem}{ext}"
-                if candidate.is_file():
+                if candidate.is_file() and _core_arch_ok(candidate):
                     return candidate
     for folder in core_search_dirs():
         if not folder.is_dir():
@@ -664,7 +681,7 @@ def find_core(system: dict) -> Path | None:
             if len(key) < 3:
                 continue
             for ext in exts:
-                hits = sorted(folder.glob(f"*{key}*{ext}"))
+                hits = [hit for hit in sorted(folder.glob(f"*{key}*{ext}")) if _core_arch_ok(hit)]
                 if hits:
                     return hits[0]
     return None
@@ -723,9 +740,12 @@ def launch_game(game_id: str) -> dict:
     if not core:
         ext = _core_exts()[0]
         wanted = ", ".join(f"{Path(name).stem}{ext}" for name in system.get("cores", []))
+        extra = ""
+        if os.name != "nt" and system["id"] in {"arcade", "neogeo"}:
+            extra = " 64-bit FBNeo: sh kiosk/pi-cores.sh"
         return {
             "ok": False,
-            "error": f"{system['name']} core yok. Beklenen: {wanted}",
+            "error": f"{system['name']} core yok. Beklenen: {wanted}.{extra}",
         }
 
     rom = find_rom(game, system)

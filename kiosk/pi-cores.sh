@@ -7,7 +7,14 @@ USER_NAME="${SUDO_USER:-$USER}"
 HOME_DIR="$(getent passwd "$USER_NAME" | cut -d: -f6)"
 [ -n "$HOME_DIR" ] || HOME_DIR="${HOME:-/home/$USER_NAME}"
 DEST="$HOME_DIR/.config/retroarch/cores"
-BASE="https://buildbot.libretro.com/nightly/linux/aarch64/latest"
+MACHINE="$(uname -m)"
+case "$MACHINE" in
+  aarch64) BASE="https://buildbot.libretro.com/nightly/linux/aarch64/latest" ;;
+  armv7l|armv6l) BASE="https://buildbot.libretro.com/nightly/linux/armhf/latest" ;;
+  x86_64) BASE="https://buildbot.libretro.com/nightly/linux/x86_64/latest" ;;
+  *) BASE="https://buildbot.libretro.com/nightly/linux/aarch64/latest" ;;
+esac
+echo "Mimari: $MACHINE  ->  $BASE"
 mkdir -p "$DEST"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
