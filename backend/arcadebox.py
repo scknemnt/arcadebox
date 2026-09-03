@@ -792,6 +792,25 @@ def _crt_output() -> bool:
     return str(disp.get("output", "hdmi")).lower() == "crt"
 
 
+def joypad_autoconfig_dir() -> Path:
+    return Path.home() / ".config" / "retroarch" / "autoconfig"
+
+
+def install_joypad_profiles() -> Path:
+    dest_root = joypad_autoconfig_dir()
+    bundled = ROOT / "kiosk" / "autoconfig"
+    if os.name == "nt" or not bundled.is_dir():
+        return dest_root
+    for driver in ("udev", "linuxraw"):
+        folder = dest_root / driver
+        folder.mkdir(parents=True, exist_ok=True)
+        for src in bundled.glob("*.cfg"):
+            text = src.read_text(encoding="utf-8", errors="replace")
+            text = text.replace('input_driver = "udev"', f'input_driver = "{driver}"')
+            (folder / src.name).write_text(text, encoding="utf-8")
+    return dest_root
+
+
 def _shader_file() -> Path | None:
     names = [
         Path.home() / ".config/retroarch/shaders/shaders_slang/interpolation/sharp-bilinear.slangp",
@@ -917,6 +936,20 @@ def launch_game(game_id: str) -> dict:
         f'system_directory = "{sysdir}"',
         f'rgui_browser_directory = "{sysdir}"',
     ]
+    if os.name != "nt":
+        pads = install_joypad_profiles()
+        analog = "0" if system["id"] == "psx" else "1"
+        lines.extend(
+            [
+                'input_driver = "x"',
+                'input_joypad_driver = "linuxraw"',
+                'input_autodetect_enable = "true"',
+                f'joypad_autoconfig_dir = "{pads.as_posix()}"',
+                'input_max_users = "2"',
+                f'input_player1_analog_dpad_mode = "{analog}"',
+                f'input_player2_analog_dpad_mode = "{analog}"',
+            ]
+        )
     if _crt_output():
         lines.extend(
             [
@@ -971,7 +1004,7 @@ def launch_game(game_id: str) -> dict:
     try:
         log_handle = log_path.open("ab", buffering=0)
         log_handle.write(
-            f"\n--- {game['title']} core={core} cwd={launch_cwd} rom={rom_arg} full={rom}\n".encode(
+            f"\n--- {game['title']} core={core} cwd={launch_cwd} rom={rom_arg} full={rom} pads={joypad_autoconfig_dir()}\n".encode(
                 "utf-8", "replace"
             )
         )
@@ -1230,6 +1263,8 @@ def main() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
     kick_catalog_build()
+    if os.name != "nt":
+        install_joypad_profiles()
     print("Arcade Box OS  ->  " + url)
     print("ROM klasoru    ->  " + str(ROMS))
     print("Emulator       ->  " + str(retroarch_exe() or (EMULATORS / "retroarch")))

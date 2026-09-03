@@ -35,6 +35,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   unclutter \
   chromium \
   retroarch \
+  joystick \
   || DEBIAN_FRONTEND=noninteractive apt-get install -y chromium-browser python3 xserver-xorg xinit openbox unclutter retroarch
 
 # Core paketleri distroya gore degisir; olanlari al, kalani RetroArch Online Updater.
@@ -49,6 +50,12 @@ apt-get install -y \
   libretro-pcsx-rearmed \
   libretro-mesen \
   2>/dev/null || true
+
+usermod -aG input,plugdev,video,audio,render "$USER_NAME" 2>/dev/null || true
+cat > /etc/udev/rules.d/99-arcadebox-pads.rules <<'EOF'
+KERNEL=="js[0-9]*", MODE="0666"
+SUBSYSTEM=="input", ATTRS{idVendor}=="054c", MODE="0666"
+EOF
 
 # Konsol otomatik giris (HDMI tty1). raspi-config yoksa da yaz.
 if command -v raspi-config >/dev/null 2>&1; then
