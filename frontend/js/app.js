@@ -20,7 +20,7 @@ const state = {
     hotkey: ["Gamepad8"],
     exit: ["Gamepad9"],
   },
-  crtFx: { scanlines: 0.55, flicker: true, rgb: true, sound: true },
+  crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
   serviceTab: 0,
   serviceIndex: 0,
   listening: null,
@@ -289,24 +289,29 @@ function setMarquee(id, text) {
 function renderHome() {
   const system = currentSystem();
   if (!system) return;
+  const count = gamesFor(system.id).length;
   $("home-title").textContent = system.name;
   $("home-title").style.color = system.accent;
   $("home-blurb").textContent = system.blurb;
-  $("core-pill").textContent = `${state.systems.length} SİSTEM`;
-  setMarquee("home-marquee", `${system.emulator}  —  ${gamesFor(system.id).length} OYUN  —  CRT 4:3  —  INSERT COIN`);
+  $("home-era").textContent = `${system.era} · ${system.bits}`;
+  $("home-count").textContent = !state.catalogReady && !count ? "SCAN…" : `${count} GAMES`;
+  $("home-core").textContent = system.emulator.replace("RetroArch → ", "");
+  $("core-pill").textContent = `${state.systems.length} SYSTEM`;
+  const glow = $("home-glow");
+  if (glow) glow.style.background = system.accent;
+  $("home-preview").style.setProperty("--card-accent", system.accent);
 
   $("system-row").innerHTML = state.systems
     .map((item, index) => {
-      const count = gamesFor(item.id).length;
+      const n = gamesFor(item.id).length;
+      const meta = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
+      const num = String(index + 1).padStart(2, "0");
       return `
-        <article class="sys-card ${index === state.systemIndex ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
-          <div>
-            <div class="sys-era">${item.era} · ${item.bits}</div>
-            <div class="sys-short">${item.short}</div>
-            <h3>${item.name}</h3>
-          </div>
-          <div class="sys-meta">${!state.catalogReady && !count ? "taranıyor…" : count ? count + " oyun" : "klasör boş"}<br>${item.emulator.replace("RetroArch → ", "")}</div>
-        </article>`;
+        <li class="${index === state.systemIndex ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
+          <b>${num}</b>
+          <span>${item.name}</span>
+          <em>${meta}</em>
+        </li>`;
     })
     .join("");
 }
@@ -563,10 +568,14 @@ function prettyToken(token) {
 
 function applyCrt() {
   document.documentElement.style.setProperty("--scanline-opacity", String(state.crtFx.scanlines));
+  const heavy = state.crtFx.scanlines > 0.2 || state.crtFx.flicker || state.crtFx.rgb;
+  document.body.classList.toggle("lcd-menu", !heavy);
   const flicker = $("flicker");
   const rgb = document.querySelector(".rgb-mask");
+  const scan = document.querySelector(".scanlines");
   if (flicker) flicker.style.display = state.crtFx.flicker ? "" : "none";
   if (rgb) rgb.style.display = state.crtFx.rgb ? "" : "none";
+  if (scan) scan.style.display = state.crtFx.scanlines > 0 ? "" : "none";
 }
 
 async function saveSettings() {
@@ -709,8 +718,9 @@ function tickHold() {
     else if (action === "left") jumpLetter(-1, { silent: true, skipRender: true });
     else if (action === "right") jumpLetter(1, { silent: true, skipRender: true });
     renderGames({ light: true });
-  } else if (state.view === "home" && (action === "left" || action === "right")) {
-    move(action === "right" ? 1 : -1, { silent: true });
+  } else if (state.view === "home") {
+    if (action === "left" || action === "up") move(-1, { silent: true });
+    else if (action === "right" || action === "down") move(1, { silent: true });
   } else if (state.view === "service") {
     handleService(action);
   }
@@ -745,8 +755,8 @@ function fireAction(action) {
     if (state.view === "home") move(1);
     if (state.view === "games") jumpLetter(1);
   }
-  if (action === "up") move(state.view === "games" ? -1 : 0);
-  if (action === "down") move(state.view === "games" ? 1 : 0);
+  if (action === "up") move(state.view === "games" || state.view === "home" ? -1 : 0);
+  if (action === "down") move(state.view === "games" || state.view === "home" ? 1 : 0);
   if (action === "ok") confirm();
   if (action === "back") back();
 }
@@ -899,7 +909,7 @@ function pollPad() {
 
 function bindClicks() {
   $("system-row").addEventListener("click", (event) => {
-    const card = event.target.closest(".sys-card");
+    const card = event.target.closest("[data-index]");
     if (!card) return;
     state.systemIndex = Number(card.dataset.index);
     renderHome();

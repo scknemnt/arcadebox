@@ -59,9 +59,9 @@
     ]
   },
   "crtFx": {
-    "scanlines": 0.78,
-    "flicker": true,
-    "rgb": true,
+    "scanlines": 0,
+    "flicker": false,
+    "rgb": false,
     "sound": true
   }
 }
