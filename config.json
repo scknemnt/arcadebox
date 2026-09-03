@@ -6,6 +6,7 @@
     "width": 800,
     "height": 600,
     "aspect": "4:3",
+    "output": "hdmi",
     "crt": true
   },
   "retroarch": {

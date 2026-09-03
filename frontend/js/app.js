@@ -26,6 +26,7 @@ const state = {
   lastPad: {},
   padName: "",
   lastSignal: "—",
+  catalogReady: false,
 };
 
 const ACTIONS = [
@@ -262,7 +263,7 @@ function currentGame() {
 
 function posterHtml(game, system) {
   if (game.cover) {
-    return `<div class="poster art" aria-hidden="true"><img src="${game.cover}" alt=""></div>`;
+    return `<div class="poster art" aria-hidden="true"><img src="${game.cover}" alt="" onerror="this.parentNode.style.display='none'"></div>`;
   }
   const seed = [...(game.title + system.id)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
   const a = system.accent;
@@ -299,7 +300,7 @@ function renderHome() {
             <div class="sys-short">${item.short}</div>
             <h3>${item.name}</h3>
           </div>
-          <div class="sys-meta">${count ? count + " oyun" : "klasör boş"}<br>${item.emulator.replace("RetroArch → ", "")}</div>
+          <div class="sys-meta">${!state.catalogReady && !count ? "taranıyor…" : count ? count + " oyun" : "klasör boş"}<br>${item.emulator.replace("RetroArch → ", "")}</div>
         </article>`;
     })
     .join("");
@@ -321,8 +322,8 @@ function renderGames() {
     $("game-stage").innerHTML = `
       <div class="stage-body">
         <p class="eyebrow">${system.name}</p>
-        <h2>KLASÖR BOŞ</h2>
-        <p class="warn">ROM’ları roms/${system.romDir}/ içine at. Adı menüde görünür.</p>
+        <h2>${state.catalogReady ? "KLASÖR BOŞ" : "TARANIYOR"}</h2>
+        <p class="warn">${state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at. Adı menüde görünür.` : "USB’deki oyun listesi hazırlanıyor…"}</p>
       </div>`;
     return;
   }
@@ -386,6 +387,7 @@ async function loadCatalog() {
   const data = await response.json();
   state.systems = data.systems;
   state.games = data.games;
+  state.catalogReady = !!data.catalogReady;
   state.bios = data.bios;
   state.config = data.config;
   if (data.config.controls) state.controls = { ...state.controls, ...data.config.controls };
@@ -396,6 +398,20 @@ async function loadCatalog() {
   }
   state.music = data.music || [];
   applyCrt();
+}
+
+function pollCatalog() {
+  if (state.catalogReady || state.launching) return;
+  window.setTimeout(async () => {
+    try {
+      await loadCatalog();
+      if (state.view === "home") renderHome();
+      if (state.view === "games") renderGames();
+    } catch (_error) {
+      /* keep last list */
+    }
+    pollCatalog();
+  }, 350);
 }
 
 async function launchCurrent() {
@@ -475,9 +491,12 @@ function confirm() {
     sfx("ok");
     state.gameIndex = 0;
     show("games");
-    loadCatalog()
-      .then(() => renderGames())
-      .catch(() => renderGames());
+    renderGames();
+    if (!state.catalogReady) {
+      loadCatalog()
+        .then(() => renderGames())
+        .catch(() => renderGames());
+    }
     return;
   }
   if (state.view === "games") {
@@ -861,15 +880,17 @@ async function boot() {
   stars();
   scaleStage();
   applyCrt();
+  const catalogPromise = loadCatalog();
   const fill = $("boot-fill");
   const steps = ["Tüp ısınması", "Stella", "Mesen", "Snes9x", "Genesis Plus GX", "FBNeo", "SwanStation"];
+  const stepMs = 80;
   for (let i = 0; i < steps.length; i += 1) {
     $("boot-status").textContent = `${steps[i]} hazırlanıyor…`;
     fill.style.width = `${((i + 1) / steps.length) * 100}%`;
-    await new Promise((resolve) => window.setTimeout(resolve, 220));
+    await new Promise((resolve) => window.setTimeout(resolve, stepMs));
   }
   try {
-    await loadCatalog();
+    await catalogPromise;
   } catch (_error) {
     $("boot-status").textContent = "start.bat ile aç. Launcher kapalı.";
     return;
@@ -877,6 +898,7 @@ async function boot() {
   show("home");
   renderHome();
   sfx("boot");
+  pollCatalog();
 }
 
 window.addEventListener("resize", scaleStage);

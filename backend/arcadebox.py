@@ -38,6 +38,12 @@ _STATE = {
 }
 _LOCK = threading.Lock()
 _BROWSER_PROC: subprocess.Popen | None = None
+_JSON_MEMO: dict[str, object] = {}
+_CATALOG_LOCK = threading.Lock()
+_CATALOG_GAMES: list | None = None
+_CATALOG_READY = False
+_CATALOG_BUILDING = False
+_COVER_LOCK = threading.Lock()
 
 
 def load_json(path: Path):
@@ -47,6 +53,19 @@ def load_json(path: Path):
 
 def save_json(path: Path, payload) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    key = str(path.resolve())
+    if key in _JSON_MEMO:
+        _JSON_MEMO[key] = payload
+
+
+def _memo_json(path: Path):
+    key = str(path.resolve())
+    cached = _JSON_MEMO.get(key)
+    if cached is not None:
+        return cached
+    data = load_json(path)
+    _JSON_MEMO[key] = data
+    return data
 
 
 def config() -> dict:
@@ -54,11 +73,11 @@ def config() -> dict:
 
 
 def systems() -> list:
-    return load_json(DATA / "systems.json")
+    return _memo_json(DATA / "systems.json")
 
 
 def games() -> list:
-    return load_json(DATA / "games.json")
+    return _memo_json(DATA / "games.json")
 
 
 def pretty_title(stem: str) -> str:
@@ -100,6 +119,8 @@ COVER_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 MUSIC_EXTS = {".mp3", ".ogg", ".wav", ".m4a", ".flac"}
 PSX_DISC_EXTS = {".chd", ".cue", ".bin", ".iso", ".img", ".pbp", ".mdf"}
 _COVER_INDEX: dict[str, dict] = {}
+
+
 def music_tracks() -> list[str]:
     if not MUSIC.is_dir():
         return []
@@ -142,41 +163,48 @@ def iter_rom_files(system: dict):
     extensions = tuple(ext.lower() for ext in system.get("extensions", []))
     skip = {"oku.txt", "neogeo.zip"}
     junk = {".txt", ".dat", ".xml", ".nfo", ".jpg", ".png", ".gif", ".md"}
-    for path in folder.rglob("*"):
-        if not path.is_file():
-            continue
-        rel_parts = path.relative_to(folder).parts[:-1]
-        if any(part.lower() in SKIP_ROM_DIRS for part in rel_parts):
-            continue
-        if path.name.lower() in skip:
-            continue
-        if path.suffix.lower() in junk:
-            continue
-        if path.suffix.lower() not in extensions:
-            continue
-        if system["id"] == "psx" and path.suffix.lower() == ".zip" and not psx_archive_playable(path):
-            continue
-        yield path
+    for dirpath, dirnames, filenames in os.walk(folder):
+        dirnames[:] = [name for name in dirnames if name.lower() not in SKIP_ROM_DIRS]
+        for name in filenames:
+            path = Path(dirpath) / name
+            if path.name.lower() in skip:
+                continue
+            if path.suffix.lower() in junk:
+                continue
+            if path.suffix.lower() not in extensions:
+                continue
+            if system["id"] == "psx" and path.suffix.lower() == ".zip" and not psx_archive_playable(path):
+                continue
+            yield path
 
 
 def cover_index(system: dict) -> dict:
-    cached = _COVER_INDEX.get(system["id"])
-    if cached is not None:
-        return cached
-    exact: dict[str, Path] = {}
-    core: dict[str, list[Path]] = {}
-    folder = ROMS / system["romDir"]
-    if folder.is_dir():
-        for path in folder.rglob("*"):
+    with _COVER_LOCK:
+        cached = _COVER_INDEX.get(system["id"])
+        if cached is not None:
+            return cached
+        exact: dict[str, Path] = {}
+        core: dict[str, list[Path]] = {}
+        folder = ROMS / system["romDir"]
+
+        def _add(path: Path) -> None:
             if not path.is_file() or path.suffix.lower() not in COVER_EXTS:
-                continue
+                return
             exact[path.stem.lower()] = path
             key = normalize(path.stem)
             if key:
                 core.setdefault(key, []).append(path)
-    payload = {"exact": exact, "core": core}
-    _COVER_INDEX[system["id"]] = payload
-    return payload
+
+        if folder.is_dir():
+            for path in folder.iterdir():
+                if path.is_file():
+                    _add(path)
+                elif path.is_dir() and path.name.lower() in SKIP_ROM_DIRS:
+                    for art in path.rglob("*"):
+                        _add(art)
+        payload = {"exact": exact, "core": core}
+        _COVER_INDEX[system["id"]] = payload
+        return payload
 
 
 def _stem_prefix_hit(short: str, long: str) -> bool:
@@ -214,8 +242,6 @@ def match_cover(system: dict, rom_stem: str) -> Path | None:
 
 
 def cover_url(system: dict, rom_name: str) -> str | None:
-    if not match_cover(system, Path(rom_name).stem):
-        return None
     return f"/api/cover?system={quote(system['id'])}&rom={quote(rom_name)}"
 
 
@@ -376,6 +402,46 @@ def catalog_with_folder_roms() -> list:
     return rows
 
 
+def kick_catalog_build() -> None:
+    global _CATALOG_BUILDING
+    with _CATALOG_LOCK:
+        if _CATALOG_BUILDING or _CATALOG_READY:
+            return
+        _CATALOG_BUILDING = True
+    threading.Thread(target=_catalog_worker, daemon=True).start()
+
+
+def _catalog_worker() -> None:
+    global _CATALOG_GAMES, _CATALOG_READY, _CATALOG_BUILDING
+    try:
+        rows = catalog_with_folder_roms()
+        with _CATALOG_LOCK:
+            _CATALOG_GAMES = rows
+            _CATALOG_READY = True
+    finally:
+        with _CATALOG_LOCK:
+            _CATALOG_BUILDING = False
+
+
+def cached_catalog(wait: bool = False) -> list:
+    kick_catalog_build()
+    deadline = time.time() + (25 if wait else 0)
+    while True:
+        with _CATALOG_LOCK:
+            ready = _CATALOG_READY
+            games_list = _CATALOG_GAMES
+        if ready and games_list is not None:
+            return list(games_list)
+        if not wait or time.time() >= deadline:
+            return list(games_list or [])
+        time.sleep(0.05)
+
+
+def catalog_ready() -> bool:
+    with _CATALOG_LOCK:
+        return _CATALOG_READY
+
+
 def _catalog_match(catalog: list, system: dict, path: Path) -> dict | None:
     best = None
     best_score = -1
@@ -409,7 +475,7 @@ def _launch_id_key(game_id: str) -> str:
 
 
 def game_by_id(game_id: str) -> dict | None:
-    library = catalog_with_folder_roms()
+    library = cached_catalog(wait=True)
     for item in library:
         if item["id"] == game_id:
             return item
@@ -721,6 +787,45 @@ def rom_inventory() -> dict[str, bool]:
     return present
 
 
+def _crt_output() -> bool:
+    disp = config().get("display") or {}
+    return str(disp.get("output", "hdmi")).lower() == "crt"
+
+
+def _shader_file() -> Path | None:
+    names = [
+        Path.home() / ".config/retroarch/shaders/shaders_slang/interpolation/sharp-bilinear.slangp",
+        Path("/usr/share/libretro/shaders/shaders_slang/interpolation/sharp-bilinear.slangp"),
+        Path("/usr/share/retroarch/shaders/shaders_slang/interpolation/sharp-bilinear.slangp"),
+        Path("/usr/share/libretro/shaders/shaders_glsl/interpolation/sharp-bilinear.glslp"),
+    ]
+    for path in names:
+        if path.is_file():
+            return path
+    return None
+
+
+def _core_option_lines(system: dict, core: Path) -> list[str]:
+    stem = core.stem.lower()
+    lines: list[str] = []
+    if system["id"] == "psx":
+        lines.extend(
+            [
+                'pcsx_rearmed_neon_enhancement_enable = "enabled"',
+                'pcsx_rearmed_neon_enhancement_no_main = "disabled"',
+                'pcsx_rearmed_dithering = "enabled"',
+                'pcsx_rearmed_frameskip = "0"',
+                'swanstation_GPU_Renderer = "Software"',
+                'swanstation_GPU_ResolutionScale = "2"',
+                'duckstation_GPU.Renderer = "Software"',
+                'duckstation_GPU.ResolutionScale = "2"',
+            ]
+        )
+    if "stella" in stem:
+        lines.append('stella_crop_hoverscan = "enabled"')
+    return lines
+
+
 def launch_game(game_id: str) -> dict:
     game = game_by_id(game_id)
     if not game:
@@ -808,14 +913,38 @@ def launch_game(game_id: str) -> dict:
         'input_toggle_slowmotion = "nul"',
         'input_hold_slowmotion = "nul"',
         'rewind_enable = "false"',
-        'video_smooth = "false"',
-        'video_scale_integer = "false"',
         'aspect_ratio_index = "0"',
-        'custom_viewport_width = "800"',
-        'custom_viewport_height = "600"',
         f'system_directory = "{sysdir}"',
         f'rgui_browser_directory = "{sysdir}"',
     ]
+    if _crt_output():
+        lines.extend(
+            [
+                'video_smooth = "false"',
+                'video_scale_integer = "true"',
+                'custom_viewport_width = "800"',
+                'custom_viewport_height = "600"',
+            ]
+        )
+    else:
+        shader = None if system["id"] == "psx" else _shader_file()
+        if shader:
+            lines.extend(
+                [
+                    'video_smooth = "false"',
+                    'video_scale_integer = "false"',
+                    'video_shader_enable = "true"',
+                    f'video_shader = "{shader.as_posix()}"',
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    'video_smooth = "true"',
+                    'video_scale_integer = "false"',
+                    'video_shader_enable = "false"',
+                ]
+            )
     if os.name != "nt":
         cache = Path("/tmp/arcadebox-cache")
         cache.mkdir(parents=True, exist_ok=True)
@@ -826,6 +955,7 @@ def launch_game(game_id: str) -> dict:
                 f'cache_directory = "{cache.as_posix()}"',
             ]
         )
+    lines.extend(_core_option_lines(system, core))
     override.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     launch_cwd = str(rom.parent) if system["id"] in {"arcade", "neogeo"} else str(ROOT)
@@ -936,10 +1066,12 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         if parsed.path == "/api/catalog":
-            library = catalog_with_folder_roms()
+            kick_catalog_build()
+            library = cached_catalog(wait=False)
             payload = {
                 "systems": systems(),
                 "games": library,
+                "catalogReady": catalog_ready(),
                 "status": status_payload(),
                 "bios": {item["id"]: bios_status(item) for item in systems()},
                 "config": {
@@ -1097,6 +1229,7 @@ def main() -> None:
     kiosk = cfg.get("kiosk") or ("--kiosk" in sys.argv)
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
+    kick_catalog_build()
     print("Arcade Box OS  ->  " + url)
     print("ROM klasoru    ->  " + str(ROMS))
     print("Emulator       ->  " + str(retroarch_exe() or (EMULATORS / "retroarch")))
