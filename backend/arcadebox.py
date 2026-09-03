@@ -72,7 +72,8 @@ def year_from_stem(stem: str) -> str:
 
 
 def file_game_id(system_id: str, filename: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", filename.lower()).strip("-")[:96]
+    stem = Path(filename).stem.lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", stem).strip("-")[:96]
     return f"file-{system_id}-{slug}"
 
 
@@ -274,9 +275,16 @@ def catalog_with_folder_roms() -> list:
         files = list(iter_rom_files(system))
         cues = {path.stem.lower() for path in files if path.suffix.lower() == ".cue"}
         chds = {path.stem.lower() for path in files if path.suffix.lower() == ".chd"}
+        unpacked = {
+            path.stem.lower()
+            for path in files
+            if path.suffix.lower() not in {".7z", ".zip"}
+        }
         for path in files:
             stem = path.stem.lower()
-            if path.suffix.lower() == ".bin" and (stem in cues or stem in chds):
+            if system["id"] == "psx" and path.suffix.lower() == ".bin" and (stem in cues or stem in chds):
+                continue
+            if path.suffix.lower() in {".7z", ".zip"} and stem in unpacked:
                 continue
             meta = _catalog_match(catalog, system, path)
             title = pretty_title(path.stem)
@@ -340,10 +348,30 @@ def system_by_id(system_id: str) -> dict | None:
     return None
 
 
+def _launch_id_key(game_id: str) -> str:
+    key = (game_id or "").lower()
+    return re.sub(r"-(7z|zip|bin|a26|rom|nes|unf|sfc|smc|md|gen|cue|chd|iso)$", "", key)
+
+
 def game_by_id(game_id: str) -> dict | None:
-    for item in catalog_with_folder_roms():
+    library = catalog_with_folder_roms()
+    for item in library:
         if item["id"] == game_id:
             return item
+    want = _launch_id_key(game_id)
+    for item in library:
+        if _launch_id_key(item["id"]) == want:
+            return item
+    for item in games():
+        if item["id"] == game_id:
+            system = system_by_id(item["system"])
+            rom = find_rom(item, system) if system else None
+            if not rom:
+                return None
+            row = dict(item)
+            row["rom"] = rom.name
+            row["installed"] = True
+            return row
     return None
 
 

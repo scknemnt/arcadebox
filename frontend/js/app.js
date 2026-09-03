@@ -467,7 +467,9 @@ function confirm() {
     sfx("ok");
     state.gameIndex = 0;
     show("games");
-    renderGames();
+    loadCatalog()
+      .then(() => renderGames())
+      .catch(() => renderGames());
     return;
   }
   if (state.view === "games") {
