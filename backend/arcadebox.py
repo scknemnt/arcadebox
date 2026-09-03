@@ -809,7 +809,9 @@ def launch_game(game_id: str) -> dict:
         )
     override.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    args = [str(exe), "--verbose", "-L", str(core), "-f", "--appendconfig", str(override), str(rom)]
+    launch_cwd = str(rom.parent) if system["id"] in {"arcade", "neogeo"} else str(ROOT)
+    rom_arg = rom.name if system["id"] in {"arcade", "neogeo"} else str(rom)
+    args = [str(exe), "--verbose", "-L", str(core), "-f", "--appendconfig", str(override), rom_arg]
     creationflags = 0
     popen_env = os.environ.copy()
     popen_env.pop("vblank_mode", None)
@@ -819,14 +821,18 @@ def launch_game(game_id: str) -> dict:
     log_path = Path("/tmp/arcadebox-launch.log") if os.name != "nt" else ROOT / "config" / "launch.log"
     try:
         log_handle = log_path.open("ab", buffering=0)
-        log_handle.write(f"\n--- {game['title']} core={core} rom={rom}\n".encode("utf-8", "replace"))
+        log_handle.write(
+            f"\n--- {game['title']} core={core} cwd={launch_cwd} rom={rom_arg} full={rom}\n".encode(
+                "utf-8", "replace"
+            )
+        )
     except OSError:
         log_handle = subprocess.DEVNULL
 
     try:
         process = subprocess.Popen(
             args,
-            cwd=str(ROOT),
+            cwd=launch_cwd,
             creationflags=creationflags,
             env=popen_env,
             stdout=log_handle,
