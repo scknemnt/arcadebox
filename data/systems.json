@@ -6,7 +6,7 @@
     "era": "1977",
     "bits": "8-BIT",
     "emulator": "RetroArch → Stella",
-    "cores": ["stella_libretro.dll"],
+    "cores": ["stella_libretro.dll", "stella2014_libretro.dll"],
     "romDir": "atari2600",
     "extensions": [".bin", ".a26", ".rom", ".zip", ".7z"],
     "exactRom": false,

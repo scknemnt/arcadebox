@@ -8,6 +8,7 @@ import json
 import mimetypes
 import os
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -34,6 +35,7 @@ _STATE = {
     "lastError": None,
 }
 _LOCK = threading.Lock()
+_BROWSER_PROC: subprocess.Popen | None = None
 
 
 def load_json(path: Path):
@@ -88,6 +90,8 @@ SKIP_ROM_DIRS = {
     "wheel",
     "downloaded_images",
     "mixrbv2",
+    "archives",
+    "_archives",
 }
 COVER_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 MUSIC_EXTS = {".mp3", ".ogg", ".wav", ".m4a", ".flac"}
@@ -411,6 +415,52 @@ def find_rom(game: dict, system: dict) -> Path | None:
     return candidates[0][1]
 
 
+def _archive_extract_cmd(archive: Path, dest: Path) -> list[str] | None:
+    dest.mkdir(parents=True, exist_ok=True)
+    if archive.suffix.lower() == ".zip":
+        return None
+    for bin_name in ("7z", "7za", "7zr"):
+        found = which(bin_name)
+        if found:
+            return [found, "x", "-y", f"-o{dest}", str(archive)]
+    found = which("bsdtar")
+    if found:
+        return [found, "-xf", str(archive), "-C", str(dest)]
+    return []
+
+
+def unpack_rom(rom: Path, system: dict) -> Path:
+    """Stella (and some cores) cannot load .7z; extract a raw dump first."""
+    ext = rom.suffix.lower()
+    if ext not in {".7z", ".zip"}:
+        return rom
+    inner_exts = tuple(e.lower() for e in system.get("extensions", []) if e.lower() not in {".7z", ".zip"})
+    if not inner_exts:
+        inner_exts = (".bin", ".a26", ".rom", ".nes", ".unf", ".sfc", ".smc", ".md", ".gen")
+    cache = Path("/tmp/arcadebox-cache") if os.name != "nt" else Path(os.environ.get("TEMP", ".") ) / "arcadebox-cache"
+    dest = cache / "unpacked" / system.get("id", "rom") / rom.stem
+    if dest.exists():
+        hits = [p for p in dest.rglob("*") if p.is_file() and p.suffix.lower() in inner_exts]
+        if hits:
+            return max(hits, key=lambda p: p.stat().st_size)
+    dest.mkdir(parents=True, exist_ok=True)
+    try:
+        if ext == ".zip":
+            with zipfile.ZipFile(rom) as archive:
+                archive.extractall(dest)
+        else:
+            cmd = _archive_extract_cmd(rom, dest)
+            if not cmd:
+                return rom
+            subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except (OSError, zipfile.BadZipFile):
+        return rom
+    hits = [p for p in dest.rglob("*") if p.is_file() and p.suffix.lower() in inner_exts]
+    if not hits:
+        return rom
+    return max(hits, key=lambda p: p.stat().st_size)
+
+
 def resolve_path(value: str) -> Path:
     path = Path(value)
     if not path.is_absolute():
@@ -570,6 +620,7 @@ def launch_game(game_id: str) -> dict:
             "missing": True,
             "folder": str(ROMS / system["romDir"]),
         }
+    rom = unpack_rom(rom, system)
 
     bios = bios_status(system)
     if bios["needed"] and not bios["ok"]:
@@ -596,22 +647,57 @@ def launch_game(game_id: str) -> dict:
         'video_font_enable = "false"',
         'pause_nonactive = "false"',
         'video_vsync = "true"',
+        'video_hard_sync = "false"',
+        'video_threaded = "false"',
+        'video_swap_interval = "1"',
+        'video_refresh_rate = "50"',
+        'video_autoswitch_refresh_rate = "0"',
+        'vrr_runloop_enable = "false"',
+        'run_ahead_enabled = "false"',
+        'audio_enable = "true"',
+        'audio_sync = "true"',
+        'audio_rate_control = "true"',
+        'fastforward_ratio = "1.0"',
+        'input_toggle_fast_forward = "nul"',
+        'input_hold_fast_forward = "nul"',
+        'input_toggle_slowmotion = "nul"',
+        'input_hold_slowmotion = "nul"',
+        'rewind_enable = "false"',
         'video_smooth = "false"',
-        'video_scale_integer = "true"',
+        'video_scale_integer = "false"',
         'aspect_ratio_index = "0"',
-        'custom_viewport_width = "640"',
-        'custom_viewport_height = "480"',
+        'custom_viewport_width = "800"',
+        'custom_viewport_height = "600"',
         f'system_directory = "{bios_psx}"',
     ]
+    if os.name != "nt":
+        cache = Path("/tmp/arcadebox-cache")
+        cache.mkdir(parents=True, exist_ok=True)
+        lines.extend(
+            [
+                'video_driver = "gl"',
+                'audio_driver = "sdl2"',
+                f'cache_directory = "{cache.as_posix()}"',
+            ]
+        )
     override.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     args = [str(exe), "-L", str(core), str(rom), "-f", "--appendconfig", str(override)]
     creationflags = 0
+    popen_env = os.environ.copy()
+    if os.name != "nt":
+        popen_env["vblank_mode"] = "2"
+        popen_env["mesa_glthread"] = "false"
     if os.name == "nt":
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
     try:
-        process = subprocess.Popen(args, cwd=str(exe.parent), creationflags=creationflags)
+        process = subprocess.Popen(
+            args,
+            cwd=str(exe.parent),
+            creationflags=creationflags,
+            env=popen_env,
+        )
     except OSError as exc:
         with _LOCK:
             _STATE["busy"] = False
@@ -621,9 +707,11 @@ def launch_game(game_id: str) -> dict:
 
     with _LOCK:
         _STATE["process"] = process
+    pause_kiosk_browser(True)
 
     def watch() -> None:
         process.wait()
+        pause_kiosk_browser(False)
         with _LOCK:
             _STATE["busy"] = False
             _STATE["gameId"] = None
@@ -787,12 +875,30 @@ def find_browser() -> list[str] | None:
     return None
 
 
+def pause_kiosk_browser(pause: bool) -> None:
+    if os.name == "nt":
+        return
+    sig = signal.SIGSTOP if pause else signal.SIGCONT
+    if _BROWSER_PROC is not None and _BROWSER_PROC.poll() is None:
+        try:
+            os.kill(_BROWSER_PROC.pid, sig)
+        except OSError:
+            pass
+    subprocess.run(
+        ["pkill", f"-{sig}", "-f", "chromium"],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
 def open_kiosk(url: str) -> None:
+    global _BROWSER_PROC
     command = find_browser()
     if not command:
         webbrowser.open(url)
         return
-    subprocess.Popen(command + [url], cwd=str(ROOT))
+    _BROWSER_PROC = subprocess.Popen(command + [url], cwd=str(ROOT))
 
 
 def main() -> None:

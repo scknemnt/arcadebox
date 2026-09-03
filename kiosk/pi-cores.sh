@@ -24,6 +24,7 @@ fi
 # Stella, Nestopia, FCEUmm, Snes9x, Genesis Plus GX, FBNeo, PCSX ReARMed
 for c in \
   stella_libretro \
+  stella2014_libretro \
   nestopia_libretro \
   fceumm_libretro \
   snes9x_libretro \

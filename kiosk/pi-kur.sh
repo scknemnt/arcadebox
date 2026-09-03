@@ -112,11 +112,15 @@ CONFIG=/boot/firmware/config.txt
 if [ -f "$CONFIG" ] && ! grep -q "Arcade Box HDMI" "$CONFIG"; then
   cat >> "$CONFIG" <<'EOF'
 
-# Arcade Box HDMI (CRT/SCART sonra 800x600)
+# Arcade Box HDMI — PAL 50 Hz (CRT/SCART 800x600)
 hdmi_force_hotplug=1
 hdmi_force_hotplug:1=1
 hdmi_drive=2
 disable_overscan=1
+hdmi_group=1
+hdmi_mode=31
+hdmi_group:1=1
+hdmi_mode:1=31
 EOF
 fi
 
