@@ -17,6 +17,8 @@ const state = {
     ok: ["Enter", " ", "1", "Gamepad0", "Gamepad9"],
     back: ["Escape", "Backspace", "Gamepad1"],
     service: ["F2", "Tab", "9", "Gamepad8"],
+    hotkey: ["Gamepad8"],
+    exit: ["Gamepad9"],
   },
   crtFx: { scanlines: 0.55, flicker: true, rgb: true, sound: true },
   serviceTab: 0,
@@ -37,6 +39,8 @@ const ACTIONS = [
   { id: "ok", label: "START / A" },
   { id: "back", label: "GERİ / B" },
   { id: "service", label: "SERVİS" },
+  { id: "hotkey", label: "OYUN HOTKEY" },
+  { id: "exit", label: "OYUNDAN ÇIKIŞ" },
 ];
 
 const CRT_LEVELS = [
@@ -603,7 +607,7 @@ function renderService() {
             <i class="hit" data-act="service">SERVİS</i>
           </div>
           <p class="signal" id="signal-log">${state.lastSignal}</p>
-          <p class="wire-note">ARC Controller: Happ stick → AU AD AL AR (Sanwa 5 pin varsa Happ’i boş bırak). Buton 1–6 aksiyon, 10 Start, 11 servis/coin. AUTO/TURBO bağlama. Stick yürümezse MODE’a bir kez bas. 2. oyuncu = 2. kart + 2. USB.</p>
+          <p class="wire-note">Oyunda çıkış: HOTKEY basılı + ÇIKIŞ (varsayılan Select + Start). ESC de çıkar. ARC Controller: Happ stick → AU AD AL AR. Buton 1–6 aksiyon, 10 Start, 11 servis/coin.</p>
         </div>
       </div>`;
     paintHeld();
@@ -618,7 +622,7 @@ function renderService() {
         <strong>${item.label}</strong>
         <span>${waiting ? "TUŞA BAS…" : keys}</span>
       </div>`;
-    }).join("")}</div>`;
+    }).join("")}</div><p class="wire-note">Oyundan çıkmak için HOTKEY’i basılı tut, sonra ÇIKIŞ. İkisini de burada değiştir.</p>`;
     return;
   }
 

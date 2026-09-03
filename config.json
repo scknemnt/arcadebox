@@ -50,6 +50,12 @@
       "Tab",
       "9",
       "Gamepad8"
+    ],
+    "hotkey": [
+      "Gamepad8"
+    ],
+    "exit": [
+      "Gamepad9"
     ]
   },
   "crtFx": {

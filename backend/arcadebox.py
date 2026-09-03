@@ -792,6 +792,26 @@ def _crt_output() -> bool:
     return str(disp.get("output", "hdmi")).lower() == "crt"
 
 
+def _first_gamepad(tokens) -> str | None:
+    for token in tokens or []:
+        text = str(token)
+        if text.startswith("Gamepad") and text[7:].isdigit():
+            return text[7:]
+    return None
+
+
+def retroarch_exit_lines() -> list[str]:
+    controls = config().get("controls") or {}
+    hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad8"])
+    exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad9"])
+    return [
+        'input_exit_emulator = "escape"',
+        'input_enable_hotkey = "nul"',
+        f'input_enable_hotkey_btn = "{hotkey or "nul"}"',
+        f'input_exit_emulator_btn = "{exit_btn or "nul"}"',
+    ]
+
+
 def joypad_autoconfig_dir() -> Path:
     return Path.home() / ".config" / "retroarch" / "autoconfig"
 
@@ -950,6 +970,7 @@ def launch_game(game_id: str) -> dict:
                 f'input_player2_analog_dpad_mode = "{analog}"',
             ]
         )
+    lines.extend(retroarch_exit_lines())
     if _crt_output():
         lines.extend(
             [
