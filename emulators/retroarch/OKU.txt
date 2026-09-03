@@ -1,0 +1,18 @@
+Portable RetroArch'i BU klasore cikar.
+
+Windows: retroarch.exe burada olsun.
+Linux:   retroarch burada olsun (veya apt install retroarch).
+
+Core dosyalari cores/ icine:
+
+  stella_libretro.dll / .so
+  mesen_libretro.dll  (yoksa nestopia veya fceumm)
+  snes9x_libretro.dll
+  genesis_plus_gx_libretro.dll
+  fbneo_libretro.dll
+  swanstation_libretro.dll  (yoksa mednafen_psx)
+
+Ayrica RetroArch Online Updater -> Core Downloader ayni isimleri indirir.
+
+Kullanici bunlari gormez. Menü oyunu secince ilgili core + ROM tam ekran acilir.
+Oyun kapaninca yine bizim menü.

@@ -1,0 +1,40 @@
+Kabin acilisi
+=============
+
+Guc ac -> BIOS -> Windows veya Linux (kisa, gizlenebilir) -> Arcade Box menusu.
+Oyuncu Windows masaustunu gormemeli. Bizim frontend kiosk tam ekran gelir.
+
+Gelistirme PC: start.bat  (pencere)
+Kabin PC:      start-kiosk.bat  (tam ekran)
+
+Raspberry Pi 4 (8GB) — 16GB SD + 32GB USB
+-----------------------------------------
+OS kucuk SD'de, oyunlar 32GB flash'ta (Kingston).
+1. Imager: Raspberry Pi OS Lite 64-bit -> 16GB SD
+2. Windows'ta Arcade Box klasoru flash'ta ArcadeBox olarak durur (F:\ArcadeBox)
+3. Pi acilinca USB'yi mavi USB3'e tak
+4. SSH:
+
+   cd /media/*/ESD-USB/ArcadeBox
+   sudo sh kiosk/pi-kur.sh
+   sudo reboot
+
+HDMI kiosk. CRT/SCART sonra 800x600.
+
+Windows kabin
+- Otomatik oturum ac (netplwiz -> kullanici adi/sifre sorma)
+- kiosk\windows-otostart-kur.bat  bir kez calistir
+- Ekran 800x600 veya 640x480 (VGA-SCART)
+
+Linux kabin (Athlon)
+- Debian + otomatik giris
+- kiosk/arcade-box.desktop dosyasini ~/.config/autostart/ icine kopyala
+- veya openbox autostart:  kiosk/linux-start.sh
+- python3 + chromium veya firefox
+
+Emulator
+Tek program: RetroArch. NES/SNES/Atari ayri ayri kurma.
+emulators/retroarch icine portable koy, core'lari cores/ icine at.
+Pi'de apt RetroArch + /usr/lib/aarch64-linux-gnu/libretro
+BIOS: bios/psx ve roms/neogeo/neogeo.zip
+ROM:  roms/<sistem>/

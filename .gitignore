@@ -1,0 +1,31 @@
+# ROM / disk dump — never commit
+roms/**
+!roms/**/
+!roms/**/OKU.txt
+
+# BIOS dumps — never commit
+bios/**
+!bios/**/
+!bios/**/OKU.txt
+
+# Copyrighted audio
+music/**
+!music/**/
+!music/**/OKU.txt
+
+# Emulator binaries / cores (install locally)
+*.exe
+*.dll
+*.so
+*.dylib
+emulators/retroarch/**
+!emulators/retroarch/**/
+!emulators/retroarch/**/*.txt
+!emulators/**/*.txt
+
+# Python / OS
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+data/fbneo-gamelist.txt

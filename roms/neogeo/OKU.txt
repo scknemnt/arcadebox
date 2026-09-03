@@ -1,0 +1,10 @@
+FBNeo Neo Geo setini buraya koy. BIOS şart:
+
+neogeo.zip
+
+Oyunlar:
+mslug.zip, mslug2.zip, mslugx.zip
+kof94.zip, kof95.zip, kof96.zip, kof97.zip, kof98.zip
+samsho.zip, fatfury1.zip, aof.zip, wjammers.zip, turfmast.zip, garou.zip
+
+neogeo.zip dosyasını kendi AES / MVS sisteminden dök.

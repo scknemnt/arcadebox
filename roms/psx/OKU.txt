@@ -1,0 +1,8 @@
+Bu kabinde PS1 sadece dövüş:
+
+Tekken.chd
+Tekken 2.chd
+Tekken 3.chd
+Mortal Kombat Trilogy.chd
+
+.chd tercih. CRT / VGA-SCART için 1x çözünürlük.

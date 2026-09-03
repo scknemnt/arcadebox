@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARCADE BOX</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="bezel">
+    <div id="tube">
+      <div id="stage">
+        <div class="stars" id="stars"></div>
+        <div class="rgb-mask"></div>
+        <div class="scanlines"></div>
+        <div class="raster"></div>
+        <div class="vignette"></div>
+        <div class="flicker"></div>
+
+        <section id="view-boot" class="view">
+          <div class="boot-invaders" aria-hidden="true">
+            <span class="invader green"></span>
+            <span class="invader orange"></span>
+            <span class="invader green"></span>
+            <span class="invader orange"></span>
+            <span class="invader green"></span>
+          </div>
+          <p class="eyebrow">CATHODERAY · 15kHz / 31kHz</p>
+          <h1 class="boot-logo chroma">ARCADE BOX</h1>
+          <p class="boot-sub" id="boot-status">Tüp ısınıyor…</p>
+          <div class="boot-bar"><i id="boot-fill"></i></div>
+        </section>
+
+        <section id="view-home" class="view hidden">
+          <header class="topbar">
+            <div class="brand">
+              <span class="brand-mark" id="open-service" title="Servis">AB</span>
+              <div>
+                <strong>ARCADE BOX</strong>
+                <small>CRT CABINET OS</small>
+              </div>
+            </div>
+            <div class="marquee"><span id="home-marquee">INSERT COIN</span></div>
+            <div class="live-pill" id="core-pill">7 SİSTEM</div>
+          </header>
+
+          <div class="home-copy">
+            <p class="eyebrow">KONSOL SEÇİMİ</p>
+            <h2 id="home-title" class="chroma">Atari 2600</h2>
+            <p id="home-blurb">Ahşap panel, tek joystick, saf arcade refleksleri.</p>
+          </div>
+
+          <div class="system-row" id="system-row"></div>
+
+          <footer class="hintbar">
+            <span><kbd>←</kbd><kbd>→</kbd> seç</span>
+            <span><kbd>START</kbd> gir</span>
+            <span class="insert-coin">INSERT COIN</span>
+            <span class="ghost">VGA → SCART · F2 SERVİS</span>
+          </footer>
+        </section>
+
+        <section id="view-games" class="view hidden">
+          <header class="topbar">
+            <button class="text-btn" id="back-home" type="button">← KONSOLLAR</button>
+            <div class="sys-chip" id="games-chip">NES</div>
+            <div class="marquee"><span id="games-marquee">OYUN SEÇ</span></div>
+            <div class="live-pill" id="rom-count">0 / 0</div>
+          </header>
+
+          <div class="letter-rail" id="letter-rail" hidden></div>
+
+          <div class="games-layout">
+            <ol class="game-list" id="game-list"></ol>
+            <aside class="game-stage" id="game-stage"></aside>
+          </div>
+
+          <footer class="hintbar">
+            <span><kbd>←</kbd><kbd>→</kbd> harf</span>
+            <span><kbd>↑</kbd><kbd>↓</kbd> oyun</span>
+            <span><kbd>START</kbd> aç</span>
+            <span class="ghost">B geri</span>
+          </footer>
+        </section>
+
+        <section id="view-launch" class="view hidden">
+          <p class="eyebrow" id="launch-sys">NES</p>
+          <h2 id="launch-title" class="chroma">Super Mario Bros.</h2>
+          <p class="boot-sub" id="launch-copy">Sinyal CRT'ye basılıyor…</p>
+          <div class="boot-bar"><i class="pulse"></i></div>
+        </section>
+
+        <section id="view-service" class="view hidden">
+          <header class="topbar">
+            <div class="brand">
+              <span class="brand-mark">OP</span>
+              <div>
+                <strong>SERVİS</strong>
+                <small>KABİN OPERATÖR</small>
+              </div>
+            </div>
+            <div class="svc-tabs" id="svc-tabs"></div>
+            <div class="live-pill" id="pad-pill">USB —</div>
+          </header>
+          <div id="service-body" class="service-body"></div>
+          <footer class="hintbar">
+            <span><kbd>←</kbd><kbd>→</kbd> sekme</span>
+            <span><kbd>START</kbd> seç</span>
+            <span><kbd>ESC</kbd> çık</span>
+            <span class="ghost">Oyuncu bu ekranı görmez</span>
+          </footer>
+        </section>
+
+        <div id="toast" class="toast hidden"></div>
+      </div>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>

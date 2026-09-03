@@ -1,0 +1,1 @@
+Bu klasore libretro core dosyalarini koy (.dll Windows, .so Linux).

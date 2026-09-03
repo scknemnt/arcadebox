@@ -1,0 +1,3 @@
+PS1 BIOS dosyanı buraya koy. Kendi konsolundan dökülmüş olmalı.
+
+Aranan adlar: scph1001.bin, scph5501.bin, scph5502.bin, scph7001.bin

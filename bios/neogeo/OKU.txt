@@ -1,0 +1,5 @@
+Neo Geo BIOS yedek yeri. Asıl beklenen konum:
+
+roms/neogeo/neogeo.zip
+
+Buraya da koyabilirsin; launcher her iki yeri de bakar.

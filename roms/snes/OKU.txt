@@ -1,0 +1,6 @@
+Kendi yasal dump'ını bu klasöre koy.
+
+Konsol oyunlarında dosya adı oyunun adını içermeli.
+Arcade / Neo Geo için MAME kısa adı şarttır (örnek: ffight.zip, mslug.zip).
+
+Ticari ROM indirilmez. Kendi kartuş / CD / PCB dökümünü kullan.

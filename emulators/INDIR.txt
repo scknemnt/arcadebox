@@ -1,0 +1,165 @@
+Arcade Box — ne indirilir, hangi oyun hangi core
+================================================
+
+Tek program: RetroArch (portable)
+  Windows: retroarch.exe  ->  emulators/retroarch/
+  Linux:   retroarch      ->  emulators/retroarch/  veya  apt install retroarch
+
+Core'lar RetroArch icinde:
+  Online Updater  ->  Core Downloader
+
+Windows dosyasi .dll, Linux .so  (isim ayni, uzanti farkli)
+Hepsini koy: emulators/retroarch/cores/
+
+
+1) INDIRILECEK CORE'LAR
+-----------------------
+Atari 2600     Stella              stella_libretro
+NES            Mesen               mesen_libretro
+               yedek: Nestopia     nestopia_libretro
+               yedek: FCEUmm       fceumm_libretro
+SNES           Snes9x              snes9x_libretro
+Mega Drive     Genesis Plus GX     genesis_plus_gx_libretro
+Arcade         FinalBurn Neo       fbneo_libretro
+Neo Geo        FinalBurn Neo       (ayni fbneo, ikinci kez indirme)
+PS1            SwanStation         swanstation_libretro
+               yedek: Beetle PSX   mednafen_psx_libretro
+
+MAME core indirme (Athlon icin agir). Arcade+Neo Geo = sadece FBNeo.
+
+BIOS (kendi donanimindan dok):
+  bios/psx/scph5501.bin   (veya scph1001 / scph5502)
+  roms/neogeo/neogeo.zip
+
+
+2) SISTEM = CORE
+----------------
+atari2600   -  stella
+nes         -  mesen
+snes        -  snes9x
+megadrive   -  genesis_plus_gx
+arcade      -  fbneo
+neogeo      -  fbneo
+psx         -  swanstation
+
+
+3) OYUN LISTESI
+---------------
+
+--- atari2600  stella ---
+Keystone Kapers
+Asteroids
+Space Invaders
+River Raid
+Pitfall!
+Enduro
+Frogger
+Pac-Man
+Missile Command
+Breakout
+
+--- nes  mesen ---
+Super Mario Bros.
+Super Mario Bros. 3
+Contra
+Super C
+Battle City
+Bomberman
+Bomberman II
+Snow Bros.
+Captain Tsubasa
+Captain Tsubasa II
+Adventure Island
+Double Dragon
+Ninja Gaiden
+Mega Man 2
+Chip 'n Dale
+DuckTales
+Excitebike
+Circus Charlie
+Road Fighter
+Battletoads
+
+--- snes  snes9x ---
+Super Mario World
+Super Mario Kart
+Donkey Kong Country
+Donkey Kong Country 2
+Super Bomberman
+Super Bomberman 2
+Contra III
+Street Fighter II
+Mortal Kombat
+Mortal Kombat II
+International Superstar Soccer Deluxe
+F-Zero
+Top Gear
+Rock N' Roll Racing
+Aladdin
+The Jungle Book
+Mega Man X
+Super Castlevania IV
+
+--- megadrive  genesis_plus_gx ---
+Sonic the Hedgehog
+Sonic the Hedgehog 2
+Sonic the Hedgehog 3
+Aladdin
+The Jungle Book
+The Lion King
+Streets of Rage
+Streets of Rage 2
+Golden Axe
+Mortal Kombat
+Street Fighter II
+Road Rash
+Micro Machines
+Earthworm Jim
+Shinobi III
+Gunstar Heroes
+Castlevania: Bloodlines
+
+--- arcade  fbneo ---
+Snow Bros.                    snowbros.zip
+Final Fight                   ffight.zip
+Cadillacs and Dinosaurs       dino.zip
+Captain Commando              captcomm.zip
+Sunset Riders                 ssriders.zip
+Tumble Pop                    tumblep.zip
+Bubble Bobble                 bublbobl.zip
+Pang                          pang.zip
+The Simpsons                  simpsons.zip
+TMNT                          tmnt.zip
+Golden Axe                    goldnaxe.zip
+Street Fighter II             sf2.zip
+Mortal Kombat                 mk.zip
+1942                          1942.zip
+Galaga                        galaga.zip
+Pac-Man                       pacman.zip
+Raiden                        raiden.zip
+
+--- neogeo  fbneo ---
+Metal Slug                    mslug.zip
+Metal Slug 2                  mslug2.zip
+Metal Slug X                  mslugx.zip
+The King of Fighters '94      kof94.zip
+The King of Fighters '95      kof95.zip
+The King of Fighters '96      kof96.zip
+The King of Fighters '97      kof97.zip
+The King of Fighters '98      kof98.zip
+Samurai Shodown               samsho.zip
+Fatal Fury                    fatfury1.zip
+Art of Fighting               aof.zip
+Windjammers                   wjammers.zip
+Neo Turf Masters              turfmast.zip
+Garou: Mark of the Wolves     garou.zip
+(+ BIOS: neogeo.zip)
+
+--- psx  swanstation ---
+Tekken
+Tekken 2
+Tekken 3
+Mortal Kombat Trilogy
+
+ROM/BIOS indirilmez. Kendi kartus, CD, PCB dokumun.
+Konsol dump adi oyunun adini icersin. Arcade/Neo Geo kisa zip adi sart.

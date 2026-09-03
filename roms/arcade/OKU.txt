@@ -1,0 +1,7 @@
+FBNeo / MAME setini buraya koy. Dosya adı tam kısa ad olmalı:
+
+snowbros.zip, ffight.zip, dino.zip, captcomm.zip, ssriders.zip,
+tumblep.zip, bublbobl.zip, pang.zip, simpsons.zip, tmnt.zip,
+goldnaxe.zip, sf2.zip, mk.zip, 1942.zip, galaga.zip, pacman.zip, raiden.zip
+
+Bu klasöre internetten ROM paketi indirme. Kendi PCB dump'ların.

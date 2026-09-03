@@ -1,0 +1,3 @@
+Menü müziği (MP3) buraya.
+
+Kiosk `music/` altındaki dosyaları çalar. Telifli dosyaları git’e koyma.

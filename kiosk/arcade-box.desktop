@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Arcade Box
+Exec=/usr/bin/bash -lc '/opt/arcade-box/kiosk/linux-start.sh'
+X-GNOME-Autostart-enabled=true
+Hidden=false
+NoDisplay=false
+Terminal=false
