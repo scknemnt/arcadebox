@@ -804,10 +804,14 @@ def retroarch_exit_lines() -> list[str]:
     controls = config().get("controls") or {}
     hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad8"])
     exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad9"])
+    if hotkey and exit_btn and hotkey == exit_btn:
+        hold = "nul"
+    else:
+        hold = hotkey or "nul"
     return [
         'input_exit_emulator = "escape"',
         'input_enable_hotkey = "nul"',
-        f'input_enable_hotkey_btn = "{hotkey or "nul"}"',
+        f'input_enable_hotkey_btn = "{hold}"',
         f'input_exit_emulator_btn = "{exit_btn or "nul"}"',
     ]
 
