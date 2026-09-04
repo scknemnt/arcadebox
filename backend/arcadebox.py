@@ -1001,6 +1001,9 @@ def launch_game(game_id: str) -> dict:
     lines = [
         'rgui_show_start_screen = "false"',
         'quit_press_twice = "false"',
+        'input_menu_toggle = "nul"',
+        'input_menu_toggle_btn = "nul"',
+        'input_menu_toggle_gamepad_combo = "0"',
         'video_fullscreen = "true"',
         'video_font_enable = "false"',
         'pause_nonactive = "false"',
