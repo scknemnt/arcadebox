@@ -996,24 +996,15 @@ def launch_game(game_id: str) -> dict:
             ]
         )
     else:
-        shader = None if system["id"] == "psx" else _shader_file()
-        if shader:
-            lines.extend(
-                [
-                    'video_smooth = "false"',
-                    'video_scale_integer = "false"',
-                    'video_shader_enable = "true"',
-                    f'video_shader = "{shader.as_posix()}"',
-                ]
-            )
-        else:
-            lines.extend(
-                [
-                    'video_smooth = "true"',
-                    'video_scale_integer = "false"',
-                    'video_shader_enable = "false"',
-                ]
-            )
+        # LCD: 2D nearest (crisp pixels). Bilinear makes NES/SNES look muddy.
+        smooth = "true" if system["id"] == "psx" else "false"
+        lines.extend(
+            [
+                f'video_smooth = "{smooth}"',
+                'video_scale_integer = "false"',
+                'video_shader_enable = "false"',
+            ]
+        )
     if os.name != "nt":
         cache = Path("/tmp/arcadebox-cache")
         cache.mkdir(parents=True, exist_ok=True)
