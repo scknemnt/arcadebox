@@ -17,8 +17,8 @@ const state = {
     ok: ["Enter", " ", "1", "Gamepad0", "Gamepad9"],
     back: ["Escape", "Backspace", "Gamepad1"],
     service: ["F2", "Tab", "9", "Gamepad8"],
-    hotkey: ["Gamepad8"],
-    exit: ["Gamepad9"],
+    hotkey: ["Gamepad10"],
+    exit: ["Gamepad10"],
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
   serviceTab: 0,
@@ -640,7 +640,7 @@ function renderService() {
             <i class="hit" data-act="service">SERVİS</i>
           </div>
           <p class="signal" id="signal-log">${state.lastSignal}</p>
-          <p class="wire-note">Oyunda çıkış: HOTKEY basılı + ÇIKIŞ (varsayılan Select + Start). ESC de çıkar. ARC Controller: Happ stick → AU AD AL AR. Buton 1–6 aksiyon, 10 Start, 11 servis/coin.</p>
+          <p class="wire-note">Oyunda Start oyuna aittir. Çıkış: PS tuşu (veya ESC). ARC Controller: Happ stick → AU AD AL AR. Buton 1–6 aksiyon, 10 Start, 11 servis/coin.</p>
         </div>
       </div>`;
     paintHeld();
@@ -655,7 +655,7 @@ function renderService() {
         <strong>${item.label}</strong>
         <span>${waiting ? "TUŞA BAS…" : keys}</span>
       </div>`;
-    }).join("")}</div><p class="wire-note">Oyundan çıkmak için HOTKEY’i basılı tut, sonra ÇIKIŞ. İkisini de burada değiştir.</p>`;
+    }).join("")}</div><p class="wire-note">Start oyunda Start kalsın. Çıkış için PS tuşu. İkisini aynı tuşa verirsen tek basış çıkar.</p>`;
     return;
   }
 

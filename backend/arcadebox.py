@@ -811,10 +811,64 @@ def _first_gamepad(tokens) -> str | None:
     return None
 
 
+def linux_joypads() -> list[dict]:
+    path = Path("/proc/bus/input/devices")
+    if os.name == "nt" or not path.is_file():
+        return []
+    pads: list[dict] = []
+    name = ""
+    vendor = ""
+    js = None
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    for line in text.splitlines() + [""]:
+        if line.startswith("N: Name="):
+            name = line.split("=", 1)[1].strip().strip('"')
+        elif line.startswith("I: "):
+            bits = dict(part.split("=", 1) for part in line[3:].split() if "=" in part)
+            vendor = bits.get("Vendor", "")
+        elif line.startswith("H: Handlers="):
+            for token in line.split():
+                if token.startswith("js") and token[2:].isdigit():
+                    js = int(token[2:])
+        elif not line.strip() and js is not None:
+            pads.append({"name": name, "js": js, "vendor": vendor})
+            name, vendor, js = "", "", None
+    return pads
+
+
+def _is_game_pad(pad: dict) -> bool:
+    blob = f"{pad.get('name', '')} {pad.get('vendor', '')}".lower()
+    if any(word in blob for word in ("mouse", "keyboard", "power", "hdmi", "cec")):
+        return False
+    return True
+
+
+def _is_ps_pad(pad: dict) -> bool:
+    blob = f"{pad.get('name', '')} {pad.get('vendor', '')}".lower()
+    return pad.get("vendor", "").lower() == "054c" or any(
+        word in blob for word in ("playstation", "sony", "shanwan", "dualshock", "ps3")
+    )
+
+
+def pick_player1_pad() -> dict:
+    pads = [pad for pad in linux_joypads() if _is_game_pad(pad)]
+    for pad in pads:
+        if _is_ps_pad(pad):
+            return pad
+    return pads[0] if pads else {"name": "", "js": 0, "vendor": ""}
+
+
 def retroarch_exit_lines() -> list[str]:
     controls = config().get("controls") or {}
-    hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad8"])
-    exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad9"])
+    hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad10"])
+    exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad10"])
+    if hotkey == "9":
+        hotkey = "10"
+    if exit_btn == "9":
+        exit_btn = "10"
     if hotkey and exit_btn and hotkey == exit_btn:
         hold = "nul"
     else:
@@ -974,6 +1028,7 @@ def launch_game(game_id: str) -> dict:
     if os.name != "nt":
         pads = install_joypad_profiles()
         analog = "0" if system["id"] == "psx" else "1"
+        pad = pick_player1_pad()
         lines.extend(
             [
                 'input_driver = "x"',
@@ -981,10 +1036,33 @@ def launch_game(game_id: str) -> dict:
                 'input_autodetect_enable = "true"',
                 f'joypad_autoconfig_dir = "{pads.as_posix()}"',
                 'input_max_users = "2"',
+                f'input_player1_joypad_index = "{pad.get("js", 0)}"',
+                'input_player1_start = "enter"',
                 f'input_player1_analog_dpad_mode = "{analog}"',
                 f'input_player2_analog_dpad_mode = "{analog}"',
             ]
         )
+        if _is_ps_pad(pad) or not pad.get("name"):
+            lines.extend(
+                [
+                    'input_player1_b_btn = "0"',
+                    'input_player1_a_btn = "1"',
+                    'input_player1_x_btn = "2"',
+                    'input_player1_y_btn = "3"',
+                    'input_player1_l_btn = "4"',
+                    'input_player1_r_btn = "5"',
+                    'input_player1_select_btn = "8"',
+                    'input_player1_start_btn = "9"',
+                    'input_player1_up_btn = "13"',
+                    'input_player1_down_btn = "14"',
+                    'input_player1_left_btn = "15"',
+                    'input_player1_right_btn = "16"',
+                    'input_player1_l_x_plus_axis = "+0"',
+                    'input_player1_l_x_minus_axis = "-0"',
+                    'input_player1_l_y_plus_axis = "+1"',
+                    'input_player1_l_y_minus_axis = "-1"',
+                ]
+            )
     lines.extend(retroarch_exit_lines())
     if _crt_output():
         lines.extend(
@@ -1031,7 +1109,7 @@ def launch_game(game_id: str) -> dict:
     try:
         log_handle = log_path.open("ab", buffering=0)
         log_handle.write(
-            f"\n--- {game['title']} core={core} cwd={launch_cwd} rom={rom_arg} full={rom} pads={joypad_autoconfig_dir()}\n".encode(
+            f"\n--- {game['title']} core={core} cwd={launch_cwd} rom={rom_arg} full={rom} pad={pick_player1_pad()}\n".encode(
                 "utf-8", "replace"
             )
         )
