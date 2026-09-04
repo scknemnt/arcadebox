@@ -792,6 +792,17 @@ def _crt_output() -> bool:
     return str(disp.get("output", "hdmi")).lower() == "crt"
 
 
+def _aspect_ratio_index() -> str:
+    if _crt_output():
+        return "0"
+    aspect = str((config().get("display") or {}).get("aspect") or "16:9").lower().replace(" ", "")
+    if aspect in {"4:3", "4/3"}:
+        return "0"
+    if aspect in {"full", "stretch"}:
+        return "23"
+    return "1"
+
+
 def _first_gamepad(tokens) -> str | None:
     for token in tokens or []:
         text = str(token)
@@ -956,7 +967,7 @@ def launch_game(game_id: str) -> dict:
         'input_toggle_slowmotion = "nul"',
         'input_hold_slowmotion = "nul"',
         'rewind_enable = "false"',
-        'aspect_ratio_index = "0"',
+        f'aspect_ratio_index = "{_aspect_ratio_index()}"',
         f'system_directory = "{sysdir}"',
         f'rgui_browser_directory = "{sysdir}"',
     ]
