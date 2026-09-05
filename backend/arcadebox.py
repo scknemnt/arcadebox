@@ -1222,7 +1222,9 @@ class Handler(SimpleHTTPRequestHandler):
                 "config": {
                     "pi": Path("/sys/firmware/devicetree/base/model").exists(),
                     "retroarchExists": retroarch_exe() is not None,
+                    "fastBoot": bool(config().get("fastBoot")),
                     "idleDemoSeconds": config().get("idleDemoSeconds", 40),
+                    "display": config().get("display", {}),
                     "controls": config().get("controls", {}),
                     "crtFx": config().get("crtFx", {}),
                 },

@@ -783,3 +783,23 @@ body.pi-kiosk .stars span {
 }
 .crt-opts button.on { border-color: var(--cyan); box-shadow: inset 3px 0 0 var(--cyan); }
 
+/* Kabin PC — VGA tam ekran, kenar boşluğu yok */
+body.vga-kiosk {
+  background: #000;
+}
+
+body.vga-kiosk #bezel {
+  border-radius: 0;
+  background: var(--bg);
+  box-shadow: none;
+}
+
+body.vga-kiosk .stars,
+body.vga-kiosk .scanlines,
+body.vga-kiosk .rgb-mask,
+body.vga-kiosk .vignette,
+body.vga-kiosk .flicker,
+body.vga-kiosk .raster {
+  display: none;
+}
+

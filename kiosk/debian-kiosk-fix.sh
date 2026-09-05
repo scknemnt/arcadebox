@@ -89,6 +89,12 @@ from pathlib import Path
 p = Path("$ROOT/config.json")
 cfg = json.loads(p.read_text(encoding="utf-8"))
 cfg["kiosk"] = True
+cfg["fastBoot"] = True
+disp = cfg.setdefault("display", {})
+disp["aspect"] = "4:3"
+disp["scale"] = "fill"
+disp["output"] = "vga"
+disp["crt"] = False
 ra = cfg.setdefault("retroarch", {})
 ra["exe"] = ""
 ra["cores"] = ""
@@ -101,6 +107,13 @@ ln -sfn "$ROOT" "$HOME_DIR/ArcadeBox"
 
 systemctl daemon-reload
 systemctl set-default multi-user.target
+
+if [ -f /etc/default/grub ]; then
+  if ! grep -q 'loglevel=3' /etc/default/grub; then
+    sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="[^"]*"/GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 rd.udev.log_level=3"/' /etc/default/grub
+    update-grub 2>/dev/null || true
+  fi
+fi
 
 echo
 echo "Tamam. sudo reboot"

@@ -1,13 +1,15 @@
 {
   "port": 7842,
   "kiosk": false,
+  "fastBoot": true,
   "idleDemoSeconds": 40,
   "display": {
     "width": 800,
     "height": 600,
-    "aspect": "16:9",
-    "output": "hdmi",
-    "crt": true
+    "aspect": "4:3",
+    "scale": "fill",
+    "output": "vga",
+    "crt": false
   },
   "retroarch": {
     "exe": "emulators/retroarch/retroarch.exe",

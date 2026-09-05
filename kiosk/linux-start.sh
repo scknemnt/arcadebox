@@ -57,6 +57,12 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
   xrandr -r 50 2>/dev/null || true
 fi
 
+if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
+  for out in VGA-1 VGA-0 HDMI-1; do
+    xrandr --output "$out" --auto 2>/dev/null && break
+  done
+fi
+
 unclutter -idle 0.4 -root >/dev/null 2>&1 &
 
 # Firefox / menu muzigi icin ses sunucusu (minimal Debian'da yok)
@@ -80,7 +86,7 @@ if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
     exit 1
   fi
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY"
-  exec firefox-esr --kiosk "$URL"
+  exec firefox-esr --kiosk --no-first-run --disable-session-restore "$URL"
 fi
 
 exec python3 backend/arcadebox.py --kiosk

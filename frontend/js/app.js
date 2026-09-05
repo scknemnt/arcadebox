@@ -163,10 +163,18 @@ const STAGE = { w: 800, h: 600, bezelW: 860, bezelH: 648 };
 
 function scaleStage() {
   const bezel = $("bezel");
+  const mode = state.config?.display?.scale || "fit";
   const x = window.innerWidth / STAGE.bezelW;
   const y = window.innerHeight / STAGE.bezelH;
-  const scale = Math.min(x, y);
+  const scale = mode === "fill" ? Math.max(x, y) : Math.min(x, y);
   bezel.style.transform = `translate(${(window.innerWidth - STAGE.bezelW * scale) / 2}px, ${(window.innerHeight - STAGE.bezelH * scale) / 2}px) scale(${scale})`;
+}
+
+function applyDisplayProfile() {
+  const out = state.config?.display?.output || "";
+  document.body.classList.toggle("vga-kiosk", out === "vga");
+  document.body.classList.toggle("pi-kiosk", Boolean(state.config?.pi));
+  scaleStage();
 }
 
 function stars() {
@@ -425,6 +433,7 @@ async function loadCatalog() {
     document.body.classList.add("pi-kiosk");
     stars();
   }
+  applyDisplayProfile();
   state.music = data.music || [];
   applyCrt();
 }
@@ -971,8 +980,20 @@ function attract() {
 async function boot() {
   stars();
   scaleStage();
+  try {
+    await loadCatalog();
+  } catch (_error) {
+    $("boot-status").textContent = "Launcher kapalı.";
+    return;
+  }
+  applyDisplayProfile();
+  if (state.config.fastBoot) {
+    show("home");
+    renderHome();
+    pollCatalog();
+    return;
+  }
   applyCrt();
-  const catalogPromise = loadCatalog();
   const fill = $("boot-fill");
   const steps = ["Tüp ısınması", "Stella", "Mesen", "Snes9x", "Genesis Plus GX", "FBNeo", "SwanStation"];
   const stepMs = 80;
@@ -980,12 +1001,6 @@ async function boot() {
     $("boot-status").textContent = `${steps[i]} hazırlanıyor…`;
     fill.style.width = `${((i + 1) / steps.length) * 100}%`;
     await new Promise((resolve) => window.setTimeout(resolve, stepMs));
-  }
-  try {
-    await catalogPromise;
-  } catch (_error) {
-    $("boot-status").textContent = "start.bat ile aç. Launcher kapalı.";
-    return;
   }
   show("home");
   renderHome();
