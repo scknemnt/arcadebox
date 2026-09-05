@@ -125,6 +125,11 @@ if [ -f "$ROOT/kiosk/pi-cores.sh" ]; then
   sh "$ROOT/kiosk/pi-cores.sh" || true
 fi
 
+if [ -f "$ROOT/kiosk/debian-display.sh" ]; then
+  echo "Ekran (VGA) yapilandiriliyor..."
+  sh "$ROOT/kiosk/debian-display.sh" auto || true
+fi
+
 echo
 echo "Kurulum bitti. sudo reboot"
 echo "ArcadeBox: $ROOT"

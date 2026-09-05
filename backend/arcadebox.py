@@ -1322,19 +1322,23 @@ def find_browser() -> list[str] | None:
                 "--check-for-update-interval=31536000",
                 "--disable-features=Translate,TranslateUI",
             ]
-            if Path("/sys/firmware/devicetree/base/model").exists():
-                flags.extend(
-                    [
-                        "--ozone-platform=x11",
-                        "--start-fullscreen",
-                        "--disable-background-networking",
-                        "--disable-component-update",
-                        "--disable-sync",
-                        "--num-raster-threads=1",
-                        "--enable-low-end-device-mode",
-                        "--disable-gpu-rasterization",
-                    ]
-                )
+            flags.extend(
+                [
+                    "--ozone-platform=x11",
+                    "--start-fullscreen",
+                    "--disable-background-networking",
+                    "--disable-component-update",
+                    "--disable-sync",
+                    "--num-raster-threads=1",
+                    "--enable-low-end-device-mode",
+                    "--disable-gpu-rasterization",
+                    "--disable-gpu",
+                    "--disable-gpu-compositing",
+                    "--disable-dev-shm-usage",
+                    "--disable-breakpad",
+                    "--no-sandbox",
+                ]
+            )
             return [found, *flags]
     return None
 
