@@ -83,27 +83,27 @@ function beep(freq, dur, vol, slide) {
 function sfx(kind) {
   if (!state.crtFx.sound) return;
   duckMusic();
-  if (kind === "move") beep(1180, 0.04, 0.045);
+  if (kind === "move") beep(1180, 0.04, 0.11);
   if (kind === "ok") {
-    beep(620, 0.055, 0.05);
-    window.setTimeout(() => beep(930, 0.08, 0.055), 55);
+    beep(620, 0.055, 0.12);
+    window.setTimeout(() => beep(930, 0.08, 0.13), 55);
   }
-  if (kind === "back") beep(390, 0.09, 0.05, -160);
+  if (kind === "back") beep(390, 0.09, 0.12, -160);
   if (kind === "launch") {
-    beep(392, 0.07, 0.05);
-    window.setTimeout(() => beep(523, 0.07, 0.05), 80);
-    window.setTimeout(() => beep(659, 0.12, 0.06), 160);
+    beep(392, 0.07, 0.12);
+    window.setTimeout(() => beep(523, 0.07, 0.12), 80);
+    window.setTimeout(() => beep(659, 0.12, 0.14), 160);
   }
   if (kind === "boot") {
-    beep(523, 0.08, 0.05);
-    window.setTimeout(() => beep(659, 0.08, 0.05), 90);
-    window.setTimeout(() => beep(784, 0.14, 0.06), 180);
+    beep(523, 0.08, 0.12);
+    window.setTimeout(() => beep(659, 0.08, 0.13), 90);
+    window.setTimeout(() => beep(784, 0.14, 0.15), 180);
   }
-  if (kind === "error") beep(180, 0.16, 0.06, -40);
+  if (kind === "error") beep(180, 0.16, 0.14, -40);
 }
 
-const MUSIC_VOL = 0.055;
-const MUSIC_DUCK = 0.014;
+const MUSIC_VOL = 0.32;
+const MUSIC_DUCK = 0.08;
 let bgm = null;
 let musicIndex = 0;
 let musicDuckTimer = 0;
