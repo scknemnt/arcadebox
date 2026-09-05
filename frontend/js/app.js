@@ -17,7 +17,7 @@ const state = {
     ok: ["Enter", " ", "1", "Gamepad0", "Gamepad9"],
     back: ["Escape", "Backspace", "Gamepad1"],
     service: ["F2", "Tab", "9", "Gamepad8"],
-    hotkey: ["Gamepad10"],
+    hotkey: ["Gamepad4"],
     exit: ["Gamepad10"],
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
@@ -178,6 +178,7 @@ function stopSynthBgm() {
 }
 
 function startSynthBgm() {
+  if (document.body.classList.contains("vga-kiosk")) return;
   if (synthNodes || !musicWanted() || (state.music || []).length) return;
   unlockAudio().then((ready) => {
     if (!ready || !audioCtx || synthNodes) return;
@@ -1208,6 +1209,8 @@ function bootPadScan() {
 }
 
 function boot() {
+  const splash = document.getElementById("splash");
+  if (splash) splash.remove();
   primeKioskDisplay();
   bootPadScan();
   if (!document.body.classList.contains("vga-kiosk")) stars();
@@ -1215,7 +1218,7 @@ function boot() {
   show("home");
   renderHome();
 
-  window.setTimeout(() => primeAudio(), 3000);
+  window.setTimeout(() => primeAudio(), 8000);
 
   loadCatalog()
     .then(async () => {

@@ -21,7 +21,7 @@ done
 echo "ArcadeBox: $ROOT"
 chown -R "$USER_NAME:$USER_NAME" "$ROOT"
 
-apt-get install -y firefox-esr xserver-xorg xinit openbox unclutter \
+apt-get install -y firefox-esr xserver-xorg xinit openbox unclutter xdotool wmctrl \
   alsa-utils firmware-linux-nonfree pipewire pipewire-pulse wireplumber \
   pulseaudio-utils 2>/dev/null || true
 
@@ -59,12 +59,21 @@ cat > "$XINITRC" <<'EOF'
 xset s off
 xset -dpms
 xset s noblank
-openbox &
+ROOT=""
 for d in "$HOME/ArcadeBox" /mnt/games/ArcadeBox; do
   if [ -f "$d/kiosk/linux-start.sh" ]; then
-    exec sh "$d/kiosk/linux-start.sh"
+    ROOT="$d"
+    break
   fi
 done
+if [ -n "$ROOT" ] && [ -f "$ROOT/kiosk/openbox-rc.xml" ]; then
+  openbox --config-file "$ROOT/kiosk/openbox-rc.xml" &
+else
+  openbox &
+fi
+if [ -n "$ROOT" ]; then
+  exec sh "$ROOT/kiosk/linux-start.sh"
+fi
 echo "ArcadeBox bulunamadi"
 sleep 60
 EOF
@@ -98,6 +107,8 @@ disp["crt"] = False
 ra = cfg.setdefault("retroarch", {})
 ra["exe"] = ""
 ra["cores"] = ""
+cfg["controls"]["hotkey"] = ["Gamepad4"]
+cfg["controls"]["exit"] = ["Gamepad10"]
 p.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
 PY
   chown "$USER_NAME:" "$ROOT/config.json"

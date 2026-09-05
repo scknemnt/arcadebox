@@ -544,6 +544,12 @@ def find_rom(game: dict, system: dict) -> Path | None:
     expected = folder / game["rom"]
     if expected.exists():
         return expected
+    if system.get("exactRom"):
+        want = game["rom"].lower()
+        for path in folder.iterdir():
+            if path.is_file() and path.name.lower() == want:
+                return path
+        return None
 
     extensions = tuple(ext.lower() for ext in system.get("extensions", []))
     candidates: list[tuple[int, Path]] = []
@@ -867,21 +873,49 @@ def pick_player1_pad() -> dict:
 
 def retroarch_exit_lines() -> list[str]:
     controls = config().get("controls") or {}
-    hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad10"])
+    hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad4"])
     exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad10"])
     if hotkey == "9":
         hotkey = "10"
     if exit_btn == "9":
         exit_btn = "10"
+    hold = hotkey or "nul"
     if hotkey and exit_btn and hotkey == exit_btn:
         hold = "nul"
-    else:
-        hold = hotkey or "nul"
     return [
-        'input_exit_emulator = "escape"',
+        'input_exit_emulator = "nul"',
         'input_enable_hotkey = "nul"',
         f'input_enable_hotkey_btn = "{hold}"',
         f'input_exit_emulator_btn = "{exit_btn or "nul"}"',
+        'input_bind_hold = "300"',
+    ]
+
+
+def retroarch_menu_lock() -> list[str]:
+    return [
+        'menu_driver = "rgui"',
+        'rgui_show_start_screen = "false"',
+        'quick_menu_enable = "false"',
+        'config_save_on_exit = "false"',
+        'quit_press_twice = "false"',
+        'input_menu_toggle = "nul"',
+        'input_menu_toggle_btn = "nul"',
+        'input_menu_toggle_gamepad_combo = "0"',
+        'input_desktop_menu_toggle = "nul"',
+        'input_toggle_fast_forward = "nul"',
+        'input_toggle_fast_forward_btn = "nul"',
+        'input_hold_fast_forward = "nul"',
+        'input_toggle_slowmotion = "nul"',
+        'input_rewind = "nul"',
+        'input_save_state = "nul"',
+        'input_load_state = "nul"',
+        'input_state_slot_increase = "nul"',
+        'input_state_slot_decrease = "nul"',
+        'input_reset = "nul"',
+        'input_shader_toggle = "nul"',
+        'input_screenshot = "nul"',
+        'input_cheat_toggle = "nul"',
+        'input_ai_service = "nul"',
     ]
 
 
@@ -935,6 +969,16 @@ def _core_option_lines(system: dict, core: Path) -> list[str]:
         )
     if "stella" in stem:
         lines.append('stella_crop_hoverscan = "enabled"')
+    if system["id"] in {"arcade", "neogeo"} or "fbneo" in stem or "mame" in stem:
+        lines.extend(
+            [
+                'fbneo-allow-patched-romsets = "disabled"',
+                'fbneo-allow-depth = "8"',
+                'fbneo-sample-interpolation = "disabled"',
+                'fbneo-diagnostic = "disabled"',
+                'fbneo-cpu-speed-adjust = "100"',
+            ]
+        )
     return lines
 
 
@@ -1002,12 +1046,7 @@ def launch_game(game_id: str) -> dict:
         sysdir = (BIOS / "psx").as_posix()
     else:
         sysdir = rom.parent.as_posix()
-    lines = [
-        'rgui_show_start_screen = "false"',
-        'quit_press_twice = "false"',
-        'input_menu_toggle = "nul"',
-        'input_menu_toggle_btn = "nul"',
-        'input_menu_toggle_gamepad_combo = "0"',
+    lines = retroarch_menu_lock() + [
         'video_fullscreen = "true"',
         'video_font_enable = "false"',
         'pause_nonactive = "false"',
@@ -1154,6 +1193,7 @@ def launch_game(game_id: str) -> dict:
 
     def watch() -> None:
         code = process.wait()
+        refocus_kiosk_browser()
         pause_kiosk_browser(False)
         if hasattr(log_handle, "close"):
             try:
@@ -1162,11 +1202,13 @@ def launch_game(game_id: str) -> dict:
                 pass
         elapsed = time.time() - started
         with _LOCK:
-            if elapsed < 8:
-                _STATE["lastError"] = (
-                    f"{system['name']} {elapsed:.1f}sn içinde kapandı (kod {code}). "
-                    "2 Pak deneme; Pac-Man dene. Log: /tmp/arcadebox-launch.log"
-                )
+            if code != 0 or elapsed < 8:
+                err = f"{system['name']} {elapsed:.1f}sn içinde kapandı (kod {code})."
+                if system["id"] in {"arcade", "neogeo"}:
+                    err += " ROM adi FBNeo ile uyumlu mu? Log: /tmp/arcadebox-launch.log"
+                else:
+                    err += " Log: /tmp/arcadebox-launch.log"
+                _STATE["lastError"] = err
             _STATE["busy"] = False
             _STATE["gameId"] = None
             _STATE["process"] = None
@@ -1358,17 +1400,53 @@ def find_browser() -> list[str] | None:
     return None
 
 
-def pause_kiosk_browser(pause: bool) -> None:
-    if os.name == "nt" or _BROWSER_PROC is None or _BROWSER_PROC.poll() is not None:
-        return
-    sig = signal.SIGSTOP if pause else signal.SIGCONT
+def _firefox_pids() -> list[int]:
+    if os.name == "nt":
+        return []
     try:
-        os.killpg(_BROWSER_PROC.pid, sig)
-    except OSError:
+        proc = subprocess.run(
+            ["pgrep", "-f", "firefox-esr.*7842|firefox.*127.0.0.1:7842"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        return [int(line) for line in proc.stdout.splitlines() if line.strip().isdigit()]
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return []
+
+
+def refocus_kiosk_browser() -> None:
+    if os.name == "nt":
+        return
+    for cmd in (
+        ["wmctrl", "-a", "Mozilla Firefox"],
+        ["wmctrl", "-a", "Firefox"],
+        ["xdotool", "search", "--class", "Firefox-esr", "windowactivate", "--sync"],
+        ["xdotool", "search", "--class", "Navigator", "windowactivate", "--sync"],
+    ):
         try:
-            os.kill(_BROWSER_PROC.pid, sig)
+            subprocess.run(cmd, timeout=2, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            return
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+    pause_kiosk_browser(False)
+
+
+def pause_kiosk_browser(pause: bool) -> None:
+    sig = signal.SIGSTOP if pause else signal.SIGCONT
+    targets = _firefox_pids()
+    if _BROWSER_PROC is not None and _BROWSER_PROC.poll() is None:
+        targets.append(_BROWSER_PROC.pid)
+    if not targets:
+        return
+    for pid in dict.fromkeys(targets):
+        try:
+            os.kill(pid, sig)
         except OSError:
-            pass
+            try:
+                os.killpg(pid, sig)
+            except OSError:
+                pass
 
 
 def open_kiosk(url: str) -> None:

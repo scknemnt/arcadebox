@@ -88,6 +88,9 @@ user_pref("media.autoplay.default", 0);
 user_pref("media.autoplay.block-webaudio", false);
 user_pref("dom.gamepad.enabled", true);
 user_pref("dom.gamepad.non_standard_events.enabled", true);
+user_pref("browser.display.background_color", "#0a0018");
+user_pref("browser.display.use_system_colors", false);
+user_pref("browser.cache.disk.enable", true);
 EOF
   done
   python3 backend/arcadebox.py --kiosk --no-browser &
@@ -99,7 +102,7 @@ EOF
     exit 1
   fi
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY"
-  exec firefox-esr --kiosk --no-first-run --disable-session-restore "$URL"
+  exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote "$URL"
 fi
 
 exec python3 backend/arcadebox.py --kiosk

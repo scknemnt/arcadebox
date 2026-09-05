@@ -508,8 +508,8 @@ body.pi-kiosk .stars span {
   z-index: 2;
   height: calc(100% - 78px);
   display: grid;
-  grid-template-columns: minmax(200px, 22vw) 1fr minmax(170px, 20vw);
-  gap: 10px;
+  grid-template-columns: minmax(280px, 34vw) 1fr minmax(110px, 13vw);
+  gap: 12px;
   padding-top: 8px;
 }
 
@@ -538,23 +538,23 @@ body.pi-kiosk .stars span {
 
 .sys-list li {
   display: grid;
-  grid-template-columns: 22px 32px 1fr auto;
-  gap: 6px;
+  grid-template-columns: 28px 46px 1fr auto;
+  gap: 8px;
   align-items: center;
-  padding: 7px 8px;
+  padding: 11px 10px;
   border: 1px solid rgba(255, 43, 214, 0.22);
   border-radius: 4px;
   background: rgba(8, 2, 22, 0.78);
   color: #c8c0e8;
-  font-size: 11px;
+  font-size: clamp(13px, 1.85vh, 18px);
   cursor: pointer;
-  transform: perspective(900px) rotateY(16deg) scale(0.9);
+  transform: perspective(900px) rotateY(16deg) scale(0.92);
   transform-origin: left center;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
 .sys-list li.active {
-  transform: perspective(900px) rotateY(0deg) scale(1.07) translateX(8px);
+  transform: perspective(900px) rotateY(0deg) scale(1.1) translateX(12px);
   background: linear-gradient(90deg, rgba(255, 43, 214, 0.32), rgba(0, 234, 255, 0.12));
   color: #fff;
   border-color: rgba(255, 43, 214, 0.55);
@@ -565,8 +565,8 @@ body.pi-kiosk .stars span {
 }
 
 .sys-thumb {
-  width: 32px;
-  height: 24px;
+  width: 46px;
+  height: 34px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 2px;
@@ -659,35 +659,38 @@ body.pi-kiosk .stars span {
   position: relative;
   border: 1px solid rgba(0, 234, 255, 0.28);
   background: rgba(8, 2, 22, 0.78);
-  padding: 12px 10px 14px;
+  padding: 10px 8px 12px 10px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
   overflow: hidden;
   min-height: 0;
+  gap: 6px;
 }
 
-.hero-title-stack {
+.hero-side-meta {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  min-height: 58%;
-  padding-top: 4px;
+  justify-content: flex-end;
+  padding-bottom: 4px;
 }
 
-.hero-title-stretch {
+.hero-title-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
   font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
-  font-size: clamp(30px, 5.8vh, 52px);
-  line-height: 0.88;
-  margin: 10px 0 0;
-  letter-spacing: 0.06em;
+  font-size: clamp(44px, 8.5vh, 78px);
+  line-height: 0.82;
+  margin: 0;
+  padding: 0 2px;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  transform: scaleX(1.12);
-  transform-origin: left top;
-  max-width: 100%;
-  word-break: break-word;
-  text-shadow: 0 0 18px currentColor;
+  max-height: 82vh;
+  text-shadow: 0 0 22px currentColor;
+  align-self: center;
 }
 
 .hero-side h2 {
@@ -1101,9 +1104,7 @@ body.vga-kiosk .home-layout {
   flex: 1;
   min-height: 0;
   height: auto;
-  grid-template-columns: minmax(210px, 18vw) 1fr minmax(190px, 16vw);
-  gap: clamp(8px, 1vh, 14px);
-  padding-top: clamp(6px, 1.2vh, 12px);
+  grid-template-columns: minmax(260px, 36vw) 1fr minmax(100px, 12vw);
 }
 
 body.vga-kiosk .sys-list li {
@@ -1159,8 +1160,8 @@ body.vga-kiosk #view-games .hintbar {
   margin-top: auto;
 }
 
-body.vga-kiosk .hero-title-stretch {
-  font-size: clamp(28px, 5.2vh, 48px);
+body.vga-kiosk .hero-title-vertical {
+  font-size: clamp(38px, 7.5vh, 68px);
 }
 
 body.vga-kiosk .home-bg {
