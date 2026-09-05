@@ -86,6 +86,8 @@ if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
     cat >>"$prof/user.js" <<'EOF'
 user_pref("media.autoplay.default", 0);
 user_pref("media.autoplay.block-webaudio", false);
+user_pref("media.autoplay.allow-muted", true);
+user_pref("media.block-autoplay-until-in-foreground", false);
 user_pref("dom.gamepad.enabled", true);
 user_pref("dom.gamepad.non_standard_events.enabled", true);
 user_pref("browser.display.background_color", "#0a0018");

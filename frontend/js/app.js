@@ -90,11 +90,15 @@ async function unlockAudio() {
 }
 
 function primeAudio() {
-  unlockAudio().then((ready) => {
-    if (ready) syncMusic();
-  });
-  window.setTimeout(() => unlockAudio().then((ready) => ready && syncMusic()), 400);
-  window.setTimeout(() => unlockAudio().then((ready) => ready && syncMusic()), 1200);
+  unmuteMenuBgm();
+  const kick = () => {
+    unlockAudio().then(() => {
+      unmuteMenuBgm();
+      syncMusic();
+    });
+  };
+  kick();
+  [300, 900, 2000, 4500].forEach((ms) => window.setTimeout(kick, ms));
 }
 
 function beep(freq, dur, vol, slide) {
@@ -140,6 +144,7 @@ function sfx(kind) {
 
 const MUSIC_VOL = 0.32;
 const MUSIC_DUCK = 0.08;
+const BUILTIN_BGM = "media/menu-ambient.wav";
 const SYSTEM_HERO = {
   atari2600: "media/home/system-atari2600.jpg",
   nes: "media/home/system-nes.jpg",
@@ -178,8 +183,7 @@ function stopSynthBgm() {
 }
 
 function startSynthBgm() {
-  if (document.body.classList.contains("vga-kiosk")) return;
-  if (synthNodes || !musicWanted() || (state.music || []).length) return;
+  if (synthNodes || !musicWanted()) return;
   unlockAudio().then((ready) => {
     if (!ready || !audioCtx || synthNodes) return;
     const bass = audioCtx.createOscillator();
@@ -200,6 +204,11 @@ function startSynthBgm() {
 
 function ensureBgm() {
   if (bgm) return bgm;
+  const prime = document.getElementById("bgm-prime");
+  if (prime) {
+    bgm = prime;
+    return bgm;
+  }
   bgm = new Audio();
   bgm.preload = "auto";
   bgm.addEventListener("ended", () => {
@@ -213,10 +222,20 @@ function ensureBgm() {
   return bgm;
 }
 
+function unmuteMenuBgm() {
+  const player = ensureBgm();
+  if (!player) return;
+  player.muted = false;
+  player.volume = MUSIC_VOL;
+  if (musicWanted() && player.paused) player.play().catch(() => {});
+}
+
 function startMusicTrack() {
   const tracks = state.music || [];
   if (!tracks.length || !musicWanted()) return;
+  stopSynthBgm();
   const player = ensureBgm();
+  player.loop = false;
   const track = tracks[musicIndex % tracks.length];
   const url = "/api/music?file=" + encodeURIComponent(track);
   if (player.dataset.track !== track) {
@@ -224,7 +243,21 @@ function startMusicTrack() {
     player.src = url;
   }
   player.volume = MUSIC_VOL;
-  player.play().catch(() => {});
+  player.play().catch(() => startBuiltinBgm());
+}
+
+function startBuiltinBgm() {
+  if (!musicWanted()) return;
+  stopSynthBgm();
+  const player = ensureBgm();
+  player.loop = true;
+  player.muted = false;
+  if (player.dataset.track !== "__builtin__") {
+    player.dataset.track = "__builtin__";
+    if (!player.getAttribute("src")) player.src = BUILTIN_BGM;
+  }
+  player.volume = MUSIC_VOL;
+  player.play().catch(() => startSynthBgm());
 }
 
 function syncMusic() {
@@ -234,12 +267,10 @@ function syncMusic() {
     return;
   }
   if ((state.music || []).length) {
-    stopSynthBgm();
     startMusicTrack();
     return;
   }
-  if (bgm && !bgm.paused) bgm.pause();
-  startSynthBgm();
+  startBuiltinBgm();
 }
 
 function duckMusic() {
@@ -1217,13 +1248,13 @@ function boot() {
   state.systems = BOOT_SYSTEMS.slice();
   show("home");
   renderHome();
-
-  window.setTimeout(() => primeAudio(), 8000);
+  primeAudio();
 
   loadCatalog()
     .then(async () => {
       applyDisplayProfile();
       applyCrt();
+      primeAudio();
       if (state.config.fastBoot) {
         renderHome();
         pollCatalog();
