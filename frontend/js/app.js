@@ -90,15 +90,8 @@ async function unlockAudio() {
 }
 
 function primeAudio() {
-  unmuteMenuBgm();
-  const kick = () => {
-    unlockAudio().then(() => {
-      unmuteMenuBgm();
-      syncMusic();
-    });
-  };
-  kick();
-  [300, 900, 2000, 4500].forEach((ms) => window.setTimeout(kick, ms));
+  playMenuMusic();
+  [200, 800, 2000, 5000].forEach((ms) => window.setTimeout(playMenuMusic, ms));
 }
 
 function beep(freq, dur, vol, slide) {
@@ -204,73 +197,76 @@ function startSynthBgm() {
 
 function ensureBgm() {
   if (bgm) return bgm;
-  const prime = document.getElementById("bgm-prime");
-  if (prime) {
-    bgm = prime;
-    return bgm;
-  }
-  bgm = new Audio();
+  bgm = document.getElementById("bgm-prime") || new Audio();
   bgm.preload = "auto";
-  bgm.addEventListener("ended", () => {
-    musicIndex = (musicIndex + 1) % Math.max(1, (state.music || []).length);
-    startMusicTrack();
-  });
-  bgm.addEventListener("error", () => {
-    musicIndex = (musicIndex + 1) % Math.max(1, (state.music || []).length);
-    window.setTimeout(startMusicTrack, 500);
-  });
+  if (!bgm.dataset.ready) {
+    bgm.dataset.ready = "1";
+    bgm.addEventListener("error", () => {
+      if (!(state.music || []).length) return;
+      musicIndex = (musicIndex + 1) % state.music.length;
+      playMenuMusic();
+    });
+  }
   return bgm;
 }
 
-function unmuteMenuBgm() {
+function setBgmSource(url, key, loop) {
   const player = ensureBgm();
-  if (!player) return;
+  player.loop = loop;
   player.muted = false;
-  player.volume = MUSIC_VOL;
-  if (musicWanted() && player.paused) player.play().catch(() => {});
-}
-
-function startMusicTrack() {
-  const tracks = state.music || [];
-  if (!tracks.length || !musicWanted()) return;
-  stopSynthBgm();
-  const player = ensureBgm();
-  player.loop = false;
-  const track = tracks[musicIndex % tracks.length];
-  const url = "/api/music?file=" + encodeURIComponent(track);
-  if (player.dataset.track !== track) {
-    player.dataset.track = track;
+  if (player.dataset.track !== key) {
+    player.dataset.track = key;
     player.src = url;
+    player.load();
   }
-  player.volume = MUSIC_VOL;
-  player.play().catch(() => startBuiltinBgm());
+  return player;
 }
 
-function startBuiltinBgm() {
-  if (!musicWanted()) return;
-  stopSynthBgm();
-  const player = ensureBgm();
-  player.loop = true;
+function attemptBgmPlay(player) {
+  if (!musicWanted()) return Promise.resolve();
+  player.volume = MUSIC_VOL;
   player.muted = false;
-  if (player.dataset.track !== "__builtin__") {
-    player.dataset.track = "__builtin__";
-    if (!player.getAttribute("src")) player.src = BUILTIN_BGM;
-  }
-  player.volume = MUSIC_VOL;
-  player.play().catch(() => startSynthBgm());
+  return player.play().catch(() => {
+    player.muted = true;
+    player.volume = 0.001;
+    return player.play().then(() => {
+      player.muted = false;
+      player.volume = MUSIC_VOL;
+    });
+  });
 }
 
-function syncMusic() {
+function playMenuMusic() {
   if (!musicWanted()) {
     stopSynthBgm();
     if (bgm && !bgm.paused) bgm.pause();
     return;
   }
-  if ((state.music || []).length) {
-    startMusicTrack();
+  stopSynthBgm();
+  const tracks = state.music || [];
+  if (tracks.length) {
+    const track = tracks[musicIndex % tracks.length];
+    const url = "/api/music?file=" + encodeURIComponent(track);
+    const player = setBgmSource(url, track, false);
+    player.onended = () => {
+      if (!(state.music || []).length) return;
+      musicIndex = (musicIndex + 1) % state.music.length;
+      playMenuMusic();
+    };
+    attemptBgmPlay(player).catch(() => {
+      const fallback = setBgmSource(BUILTIN_BGM, "__builtin__", true);
+      fallback.onended = null;
+      attemptBgmPlay(fallback).catch(() => startSynthBgm());
+    });
     return;
   }
-  startBuiltinBgm();
+  const player = setBgmSource(BUILTIN_BGM, "__builtin__", true);
+  player.onended = null;
+  attemptBgmPlay(player).catch(() => startSynthBgm());
+}
+
+function syncMusic() {
+  playMenuMusic();
 }
 
 function duckMusic() {
@@ -677,6 +673,7 @@ async function loadCatalog() {
   applyDisplayProfile();
   state.music = data.music || [];
   applyCrt();
+  syncMusic();
 }
 
 function pollCatalog() {
@@ -1080,8 +1077,10 @@ function activateService() {
 }
 
 function ingest(token, down) {
-  unlockAudio().then((ready) => {
-    if (ready && down) syncMusic();
+  unlockAudio().then(() => {
+    if (down) {
+      syncMusic();
+    }
   });
   state.lastSignal = prettyToken(token);
   if (state.listening && down) {
