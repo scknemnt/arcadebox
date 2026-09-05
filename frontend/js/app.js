@@ -30,6 +30,7 @@ const state = {
   padReady: false,
   lastSignal: "—",
   catalogReady: false,
+  gameCounts: {},
 };
 
 const ACTIONS = [
@@ -166,56 +167,33 @@ function musicWanted() {
 function stopSynthBgm() {
   window.clearInterval(synthTimer);
   synthTimer = 0;
-  if (synthNodes) {
-    try {
-      synthNodes.bass.stop();
-    } catch (_error) {
-      /* already stopped */
-    }
-    synthNodes.bassGain.disconnect();
-    synthNodes = null;
+  if (!synthNodes) return;
+  try {
+    synthNodes.bass.stop();
+  } catch (_error) {
+    /* already stopped */
   }
+  synthNodes.bassGain.disconnect();
+  synthNodes = null;
 }
 
 function startSynthBgm() {
-  if (synthTimer || !musicWanted() || (state.music || []).length) return;
+  if (synthNodes || !musicWanted() || (state.music || []).length) return;
   unlockAudio().then((ready) => {
-    if (!ready || !audioCtx || synthTimer) return;
+    if (!ready || !audioCtx || synthNodes) return;
     const bass = audioCtx.createOscillator();
     const filter = audioCtx.createBiquadFilter();
     const bassGain = audioCtx.createGain();
-    bass.type = "sawtooth";
-    bass.frequency.value = 55;
+    bass.type = "triangle";
+    bass.frequency.value = 49;
     filter.type = "lowpass";
-    filter.frequency.value = 520;
-    bassGain.gain.value = MUSIC_VOL * 0.22;
+    filter.frequency.value = 420;
+    bassGain.gain.value = MUSIC_VOL * 0.16;
     bass.connect(filter);
     filter.connect(bassGain);
     bassGain.connect(audioCtx.destination);
     bass.start();
     synthNodes = { bass, bassGain };
-    const notes = [220, 261.63, 329.63, 392, 329.63, 261.63, 196, 246.94];
-    let step = 0;
-    synthTimer = window.setInterval(() => {
-      if (!musicWanted() || !audioCtx) {
-        stopSynthBgm();
-        return;
-      }
-      if (audioCtx.state === "suspended") unlockAudio();
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = "square";
-      osc.frequency.value = notes[step % notes.length];
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(MUSIC_VOL * 0.11, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(t);
-      osc.stop(t + 0.18);
-      step += 1;
-    }, 240);
   });
 }
 
@@ -338,6 +316,9 @@ function primeKioskDisplay() {
     display: { ...(state.config.display || {}), output: "vga", scale: "fill" },
   };
   applyDisplayProfile();
+  window.setTimeout(() => {
+    document.querySelectorAll(".home-bg").forEach((bg) => bg.classList.add("loaded"));
+  }, 1800);
 }
 
 function stars() {
@@ -392,6 +373,19 @@ function currentSystem() {
 
 function gamesFor(systemId) {
   return state.games.filter((game) => game.system === systemId);
+}
+
+function gameCount(systemId) {
+  if (state.gameCounts[systemId] !== undefined) return state.gameCounts[systemId];
+  return gamesFor(systemId).length;
+}
+
+function rebuildGameCounts() {
+  const counts = {};
+  state.games.forEach((game) => {
+    counts[game.system] = (counts[game.system] || 0) + 1;
+  });
+  state.gameCounts = counts;
 }
 
 const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
@@ -460,7 +454,7 @@ function setMarquee(id, text) {
 function renderHome() {
   const system = currentSystem();
   if (!system) return;
-  const count = gamesFor(system.id).length;
+  const count = gameCount(system.id);
   $("home-title").textContent = system.name;
   $("home-title").style.color = system.accent;
   $("home-era").textContent = `${system.era} · ${system.bits}`;
@@ -479,26 +473,62 @@ function renderHome() {
       art.src = next;
     }
     art.alt = system.name;
-    art.classList.remove("swap");
-    void art.offsetWidth;
-    art.classList.add("swap");
   }
 
-  $("system-row").innerHTML = state.systems
-    .map((item, index) => {
-      const n = gamesFor(item.id).length;
-      const meta = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
-      const num = String(index + 1).padStart(2, "0");
-      const thumb = SYSTEM_HERO[item.id] || "";
-      return `
-        <li class="${index === state.systemIndex ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
+  const row = $("system-row");
+  const sig = `${state.systems.length}:${state.catalogReady ? 1 : 0}`;
+  if (row.dataset.sig !== sig || row.childElementCount !== state.systems.length) {
+    row.dataset.sig = sig;
+    row.innerHTML = state.systems
+      .map((item, index) => {
+        const n = gameCount(item.id);
+        const meta = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
+        const num = String(index + 1).padStart(2, "0");
+        const active = index === state.systemIndex;
+        const thumb = active ? SYSTEM_HERO[item.id] || "" : "";
+        const thumbHtml = active && thumb
+          ? `<img class="sys-thumb" src="${thumb}" alt="" decoding="async">`
+          : `<span class="sys-thumb ph" style="--card-accent:${item.accent}"></span>`;
+        return `
+        <li class="${active ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
           <b>${num}</b>
-          <img class="sys-thumb" src="${thumb}" alt="" loading="lazy" decoding="async">
+          ${thumbHtml}
           <span>${item.name}</span>
           <em>${meta}</em>
         </li>`;
-    })
-    .join("");
+      })
+      .join("");
+    return;
+  }
+
+  [...row.children].forEach((li, index) => {
+    const active = index === state.systemIndex;
+    li.classList.toggle("active", active);
+    li.style.setProperty("--card-accent", state.systems[index].accent);
+    const n = gameCount(state.systems[index].id);
+    const meta = li.querySelector("em");
+    if (meta) meta.textContent = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
+    const thumbSlot = li.children[1];
+    if (!thumbSlot) return;
+    const thumb = SYSTEM_HERO[state.systems[index].id] || "";
+    if (active && thumb) {
+      if (thumbSlot.tagName !== "IMG") {
+        const img = document.createElement("img");
+        img.className = "sys-thumb";
+        img.decoding = "async";
+        img.alt = "";
+        thumbSlot.replaceWith(img);
+        img.src = thumb;
+      } else if (thumbSlot.getAttribute("src") !== thumb) {
+        thumbSlot.src = thumb;
+      }
+    } else if (thumbSlot.tagName !== "SPAN") {
+      const ph = document.createElement("span");
+      ph.className = "sys-thumb ph";
+      ph.style.setProperty("--card-accent", state.systems[index].accent);
+      thumbSlot.replaceWith(ph);
+    }
+  });
 }
 
 let letterRailKey = "";
@@ -602,6 +632,7 @@ async function loadCatalog() {
   const data = await response.json();
   state.systems = data.systems;
   state.games = data.games;
+  rebuildGameCounts();
   state.catalogReady = !!data.catalogReady;
   state.bios = data.bios;
   state.config = data.config;
@@ -1169,28 +1200,27 @@ function bootPadScan() {
       if (pads.length) {
         state.padReady = true;
         state.padName = pads.map((pad) => pad.id.split("(")[0].trim()).join(" + ");
-        unlockAudio().then((ready) => ready && syncMusic());
         window.clearInterval(scan);
       }
     }
-    if (ticks >= 400) window.clearInterval(scan);
-  }, 25);
+    if (ticks >= 120) window.clearInterval(scan);
+  }, 100);
 }
 
 function boot() {
   primeKioskDisplay();
-  primeAudio();
   bootPadScan();
   if (!document.body.classList.contains("vga-kiosk")) stars();
   state.systems = BOOT_SYSTEMS.slice();
   show("home");
   renderHome();
 
+  window.setTimeout(() => primeAudio(), 3000);
+
   loadCatalog()
     .then(async () => {
       applyDisplayProfile();
       applyCrt();
-      primeAudio();
       if (state.config.fastBoot) {
         renderHome();
         pollCatalog();

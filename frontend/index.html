@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ARCADE BOX</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0a0018; color: #f4eeff; overflow: hidden; }
+    #bezel, #tube, #stage { background: #0a0018; min-height: 100vh; }
+    body[data-kiosk="vga"] #bezel { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    .hidden { display: none !important; }
+  </style>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body data-kiosk="vga">
@@ -17,7 +23,7 @@
         <div class="vignette"></div>
         <div class="flicker"></div>
 
-        <section id="view-boot" class="view">
+        <section id="view-boot" class="view hidden">
           <div class="boot-invaders" aria-hidden="true">
             <span class="invader green"></span>
             <span class="invader orange"></span>
@@ -31,7 +37,7 @@
           <div class="boot-bar"><i id="boot-fill"></i></div>
         </section>
 
-        <section id="view-home" class="view hidden">
+        <section id="view-home" class="view">
           <div class="home-scene" aria-hidden="false">
             <div class="home-bg"></div>
             <div class="home-neon-top"></div>
@@ -52,19 +58,23 @@
           </header>
 
           <div class="home-layout">
-            <ol class="sys-list" id="system-row"></ol>
+            <div class="sys-rail">
+              <ol class="sys-list" id="system-row"></ol>
+            </div>
 
             <div class="hero-stage" id="home-preview">
               <div class="tv-frame">
-                <img id="home-art" class="tv-screen" src="media/home/system-atari2600.jpg" alt="" decoding="async">
+                <img id="home-art" class="tv-screen" src="" alt="" decoding="async">
                 <div class="tv-bezel"></div>
                 <div class="tv-glow" id="home-glow"></div>
               </div>
             </div>
 
             <aside class="hero-side">
-              <p class="eyebrow" id="home-era">1977 · 8-BIT</p>
-              <h2 id="home-title">Atari 2600</h2>
+              <div class="hero-title-stack">
+                <p class="eyebrow" id="home-era">1977 · 8-BIT</p>
+                <h2 id="home-title" class="hero-title-stretch">Atari 2600</h2>
+              </div>
               <div class="preview-meta">
                 <span id="home-count">0 GAMES</span>
                 <span id="home-core">STELLA</span>
