@@ -79,7 +79,7 @@ URL="http://127.0.0.1:7842/"
 if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
   python3 backend/arcadebox.py --kiosk --no-browser &
   srv=$!
-  sleep 3
+  sleep 1
   if ! kill -0 "$srv" 2>/dev/null; then
     echo "HATA: python server hemen kapandi"
     wait "$srv" 2>/dev/null || true

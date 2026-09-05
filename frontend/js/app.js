@@ -105,23 +105,23 @@ function sfx(kind) {
 const MUSIC_VOL = 0.32;
 const MUSIC_DUCK = 0.08;
 const SYSTEM_HERO = {
-  atari2600: "media/home/system-atari2600.png",
-  nes: "media/home/system-nes.png",
-  snes: "media/home/system-snes.png",
-  megadrive: "media/home/system-megadrive.png",
-  arcade: "media/home/system-arcade.png",
-  neogeo: "media/home/system-neogeo.png",
-  psx: "media/home/system-psx.png",
+  atari2600: "media/home/system-atari2600.jpg",
+  nes: "media/home/system-nes.jpg",
+  snes: "media/home/system-snes.jpg",
+  megadrive: "media/home/system-megadrive.jpg",
+  arcade: "media/home/system-arcade.jpg",
+  neogeo: "media/home/system-neogeo.jpg",
+  psx: "media/home/system-psx.jpg",
 };
-const SYSTEM_WHISPER = {
-  atari2600: "Atari mı? Klasik joystick!",
-  nes: "NES! Mario zamanı!",
-  snes: "SNES seçtin, süper!",
-  megadrive: "Sega! Hızlı oyunlar!",
-  arcade: "Arcade! Jeton yok burada.",
-  neogeo: "Neo Geo — kral konsol!",
-  psx: "PlayStation! 32-bit!",
-};
+const BOOT_SYSTEMS = [
+  { id: "atari2600", name: "Atari 2600", short: "ATARI", era: "1977", bits: "8-BIT", emulator: "RetroArch → Stella", accent: "#ff4d3a", blurb: "Klasöre attığın ROM menüde görünür." },
+  { id: "nes", name: "NES / Famicom", short: "NES", era: "1983", bits: "8-BIT", emulator: "RetroArch → Mesen", accent: "#e03c31", blurb: "roms/nes klasörünü tarar." },
+  { id: "snes", name: "Super Nintendo", short: "SNES", era: "1990", bits: "16-BIT", emulator: "RetroArch → Snes9x", accent: "#7b5cff", blurb: "roms/snes klasörünü tarar." },
+  { id: "megadrive", name: "Mega Drive", short: "SEGA", era: "1988", bits: "16-BIT", emulator: "RetroArch → Genesis Plus GX", accent: "#2f6bff", blurb: "roms/megadrive klasörünü tarar." },
+  { id: "arcade", name: "Arcade", short: "MAME", era: "CAB", bits: "PCB", emulator: "RetroArch → FBNeo", accent: "#ff7a18", blurb: "roms/arcade klasöründeki zip'ler." },
+  { id: "neogeo", name: "Neo Geo", short: "NEO", era: "1990", bits: "AES", emulator: "RetroArch → FBNeo", accent: "#ffe14a", blurb: "roms/neogeo klasörü + BIOS." },
+  { id: "psx", name: "PlayStation", short: "PS1", era: "1994", bits: "32-BIT", emulator: "RetroArch → SwanStation", accent: "#3ad4ff", blurb: "roms/psx klasörünü tarar." },
+];
 let bgm = null;
 let musicIndex = 0;
 let musicDuckTimer = 0;
@@ -181,6 +181,11 @@ const STAGE = { w: 800, h: 600, bezelW: 860, bezelH: 648 };
 
 function scaleStage() {
   const bezel = $("bezel");
+  const out = state.config?.display?.output || document.body.dataset.kiosk || "";
+  if (out === "vga") {
+    bezel.style.transform = "none";
+    return;
+  }
   const mode = state.config?.display?.scale || "fit";
   const x = window.innerWidth / STAGE.bezelW;
   const y = window.innerHeight / STAGE.bezelH;
@@ -189,10 +194,20 @@ function scaleStage() {
 }
 
 function applyDisplayProfile() {
-  const out = state.config?.display?.output || "";
+  const out = state.config?.display?.output || document.body.dataset.kiosk || "";
   document.body.classList.toggle("vga-kiosk", out === "vga");
   document.body.classList.toggle("pi-kiosk", Boolean(state.config?.pi));
   scaleStage();
+}
+
+function primeKioskDisplay() {
+  if (document.body.dataset.kiosk !== "vga") return;
+  state.config = {
+    ...state.config,
+    fastBoot: true,
+    display: { ...(state.config.display || {}), output: "vga", scale: "fill" },
+  };
+  applyDisplayProfile();
 }
 
 function stars() {
@@ -329,20 +344,16 @@ function renderHome() {
   $("home-preview").style.setProperty("--card-accent", system.accent);
   const art = $("home-art");
   if (art) {
-    art.src = SYSTEM_HERO[system.id] || SYSTEM_HERO.nes;
+    const next = SYSTEM_HERO[system.id] || SYSTEM_HERO.nes;
+    if (art.dataset.src !== next) {
+      art.dataset.src = next;
+      art.src = next;
+    }
     art.alt = system.name;
     art.classList.remove("swap");
     void art.offsetWidth;
     art.classList.add("swap");
   }
-  const kid = $("hero-kid");
-  if (kid) {
-    kid.classList.remove("peek");
-    void kid.offsetWidth;
-    kid.classList.add("peek");
-  }
-  const whisper = $("home-whisper");
-  if (whisper) whisper.textContent = SYSTEM_WHISPER[system.id] || "Hadi oynayalım!";
 
   $("system-row").innerHTML = state.systems
     .map((item, index) => {
@@ -353,7 +364,7 @@ function renderHome() {
       return `
         <li class="${index === state.systemIndex ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
           <b>${num}</b>
-          <img class="sys-thumb" src="${thumb}" alt="" loading="lazy">
+          <img class="sys-thumb" src="${thumb}" alt="" loading="lazy" decoding="async">
           <span>${item.name}</span>
           <em>${meta}</em>
         </li>`;
@@ -1014,35 +1025,40 @@ function attract() {
   }, 1000);
 }
 
-async function boot() {
-  stars();
-  scaleStage();
-  try {
-    await loadCatalog();
-  } catch (_error) {
-    $("boot-status").textContent = "Launcher kapalı.";
-    return;
-  }
-  applyDisplayProfile();
-  if (state.config.fastBoot) {
-    show("home");
-    renderHome();
-    pollCatalog();
-    return;
-  }
-  applyCrt();
-  const fill = $("boot-fill");
-  const steps = ["Tüp ısınması", "Stella", "Mesen", "Snes9x", "Genesis Plus GX", "FBNeo", "SwanStation"];
-  const stepMs = 80;
-  for (let i = 0; i < steps.length; i += 1) {
-    $("boot-status").textContent = `${steps[i]} hazırlanıyor…`;
-    fill.style.width = `${((i + 1) / steps.length) * 100}%`;
-    await new Promise((resolve) => window.setTimeout(resolve, stepMs));
-  }
+function boot() {
+  primeKioskDisplay();
+  if (!document.body.classList.contains("vga-kiosk")) stars();
+  state.systems = BOOT_SYSTEMS.slice();
   show("home");
   renderHome();
-  sfx("boot");
-  pollCatalog();
+
+  loadCatalog()
+    .then(async () => {
+      applyDisplayProfile();
+      if (state.config.fastBoot) {
+        renderHome();
+        pollCatalog();
+        return;
+      }
+      show("boot");
+      applyCrt();
+      const fill = $("boot-fill");
+      const steps = ["Tüp ısınması", "Stella", "Mesen", "Snes9x", "Genesis Plus GX", "FBNeo", "SwanStation"];
+      const stepMs = 80;
+      for (let i = 0; i < steps.length; i += 1) {
+        $("boot-status").textContent = `${steps[i]} hazırlanıyor…`;
+        fill.style.width = `${((i + 1) / steps.length) * 100}%`;
+        await new Promise((resolve) => window.setTimeout(resolve, stepMs));
+      }
+      show("home");
+      renderHome();
+      sfx("boot");
+      pollCatalog();
+    })
+    .catch(() => {
+      toast("Launcher bağlanıyor…");
+      pollCatalog();
+    });
 }
 
 window.addEventListener("resize", scaleStage);
