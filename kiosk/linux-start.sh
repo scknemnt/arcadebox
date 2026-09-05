@@ -13,8 +13,8 @@ cd "$ROOT" || exit 1
 xset s off 2>/dev/null
 xset -dpms 2>/dev/null
 xset s noblank 2>/dev/null
-# PAL CRT: 50 Hz. 120 Hz TV 2x yapmasin.
-if command -v xrandr >/dev/null 2>&1; then
+# Pi HDMI 50 Hz. Kabin PC (VGA/LCD) kendi yenilemesinde kalsin.
+if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>&1; then
   for out in HDMI-1 HDMI-2 HDMI-A-1 HDMI-A-2; do
     xrandr --output "$out" --mode 1280x720 --rate 50 2>/dev/null || \
     xrandr --output "$out" --mode 1920x1080 --rate 50 2>/dev/null || \

@@ -37,7 +37,8 @@ for c in \
   snes9x_libretro \
   genesis_plus_gx_libretro \
   fbneo_libretro \
-  pcsx_rearmed_libretro
+  pcsx_rearmed_libretro \
+  swanstation_libretro
 do
   echo "Indiriliyor: $c"
   if wget -q --show-progress -O "$WORKDIR/$c.so.zip" "$BASE/${c}.so.zip"; then
