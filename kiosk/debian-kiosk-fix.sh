@@ -21,7 +21,19 @@ done
 echo "ArcadeBox: $ROOT"
 chown -R "$USER_NAME:$USER_NAME" "$ROOT"
 
-apt-get install -y firefox-esr xserver-xorg xinit openbox unclutter 2>/dev/null || true
+apt-get install -y firefox-esr xserver-xorg xinit openbox unclutter \
+  alsa-utils firmware-linux-nonfree pipewire pipewire-pulse wireplumber \
+  pulseaudio-utils 2>/dev/null || true
+
+# Ses: varsayilan cikis ac
+if command -v amixer >/dev/null 2>&1; then
+  amixer sset Master 90% unmute 2>/dev/null || true
+  amixer sset PCM 90% unmute 2>/dev/null || true
+  amixer sset Headphone 90% unmute 2>/dev/null || true
+  amixer sset Speaker 90% unmute 2>/dev/null || true
+  alsactl store 2>/dev/null || true
+fi
+loginctl enable-linger "$USER_NAME" 2>/dev/null || true
 
 rm -f /etc/X11/xorg.conf.d/10-arcadebox.conf
 if [ -f "$ROOT/kiosk/debian-display.sh" ]; then

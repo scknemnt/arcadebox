@@ -59,6 +59,15 @@ fi
 
 unclutter -idle 0.4 -root >/dev/null 2>&1 &
 
+# Firefox / menu muzigi icin ses sunucusu (minimal Debian'da yok)
+if command -v pipewire >/dev/null 2>&1; then
+  pipewire >/dev/null 2>&1 &
+  wireplumber >/dev/null 2>&1 &
+  sleep 1
+elif command -v pulseaudio >/dev/null 2>&1; then
+  pulseaudio --daemonize=true 2>/dev/null || true
+fi
+
 URL="http://127.0.0.1:7842/"
 
 if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
