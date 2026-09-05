@@ -469,9 +469,9 @@ async function launchCurrent() {
     }
     $("launch-copy").textContent = `${result.core.replace("_libretro.dll", "")} · ${result.rom}`;
     pollExit();
-  } catch (error) {
+  }     catch (error) {
     show("games");
-    toast("Launcher kapalı. start.bat ile aç.");
+    toast("Launcher baglantisi koptu. F2 servis menusu.");
     state.launching = false;
   }
 }

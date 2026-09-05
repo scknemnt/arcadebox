@@ -23,4 +23,26 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
   xrandr -r 50 2>/dev/null || true
 fi
 unclutter -idle 0.4 -root >/dev/null 2>&1 &
+
+wait=0
+while [ "$wait" -lt 45 ]; do
+  if [ -f "$ROOT/backend/arcadebox.py" ]; then
+    break
+  fi
+  wait=$((wait + 1))
+  sleep 1
+done
+
+URL="http://127.0.0.1:7842/"
+
+# Kabin PC (x86_64): Chromium crash — Firefox ESR shell'den ac.
+if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
+  python3 backend/arcadebox.py --kiosk --no-browser &
+  srv=$!
+  sleep 2
+  firefox-esr --kiosk "$URL" &
+  wait $srv
+  exit 0
+fi
+
 exec python3 backend/arcadebox.py --kiosk

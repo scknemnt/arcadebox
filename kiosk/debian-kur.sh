@@ -131,6 +131,20 @@ if [ -f "$ROOT/kiosk/debian-display.sh" ]; then
   sh "$ROOT/kiosk/debian-display.sh" auto || true
 fi
 
+if [ -f "$ROOT/config.json" ]; then
+  python3 <<PY
+import json
+from pathlib import Path
+p = Path("$ROOT/config.json")
+cfg = json.loads(p.read_text(encoding="utf-8"))
+cfg["kiosk"] = True
+ra = cfg.setdefault("retroarch", {})
+ra["exe"] = ""
+ra["cores"] = ""
+p.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+PY
+fi
+
 echo
 echo "Kurulum bitti. sudo reboot"
 echo "ArcadeBox: $ROOT"

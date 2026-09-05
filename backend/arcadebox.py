@@ -653,7 +653,10 @@ def retroarch_exe() -> Path | None:
     names = []
     cfg = config().get("retroarch", {})
     if cfg.get("exe"):
-        names.append(resolve_path(cfg["exe"]))
+        path = resolve_path(cfg["exe"])
+        if os.name == "nt" or path.suffix.lower() != ".exe":
+            if path.exists():
+                names.append(path)
     names.extend(
         [
             EMULATORS / ("retroarch.exe" if os.name == "nt" else "retroarch"),
@@ -1275,7 +1278,10 @@ class Handler(SimpleHTTPRequestHandler):
             body = {}
 
         if parsed.path == "/api/launch":
-            result = launch_game(str(body.get("id") or parse_qs(parsed.query).get("id", [""])[0]))
+            try:
+                result = launch_game(str(body.get("id") or parse_qs(parsed.query).get("id", [""])[0]))
+            except Exception as exc:
+                result = {"ok": False, "error": f"Baslatma hatasi: {exc}"}
             self._json(result, 200 if result.get("ok") else 400)
             return
         if parsed.path == "/api/config":
