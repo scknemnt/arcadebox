@@ -208,7 +208,7 @@ body.pi-kiosk .stars span {
 }
 
 .boot-logo { font-size: 64px; color: var(--cyan); }
-.boot-sub, #home-blurb { color: var(--muted); font-size: 13px; max-width: 620px; }
+.boot-sub { color: var(--muted); font-size: 13px; max-width: 620px; }
 
 .boot-bar {
   width: 280px;
@@ -964,15 +964,27 @@ body.pi-kiosk .stars span {
 .crt-opts button.on { border-color: var(--cyan); box-shadow: inset 3px 0 0 var(--cyan); }
 
 /* Kabin PC — VGA tam ekran, kenar boşluğu yok */
+html.vga-kiosk,
 body.vga-kiosk {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: #000;
+  overflow: hidden;
+}
+
+body.vga-kiosk {
+  --stage-w: 100vw;
+  --stage-h: 100vh;
 }
 
 body.vga-kiosk #bezel {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
   padding: 0;
   border-radius: 0;
   background: var(--bg);
@@ -981,15 +993,58 @@ body.vga-kiosk #bezel {
 }
 
 body.vga-kiosk #tube {
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   border-radius: 0;
   box-shadow: none;
 }
 
 body.vga-kiosk #stage {
-  width: 100%;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body.vga-kiosk #view-home {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 100%;
+}
+
+body.vga-kiosk .home-layout {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  grid-template-columns: minmax(210px, 18vw) 1fr minmax(190px, 16vw);
+  gap: clamp(8px, 1vh, 14px);
+  padding-top: clamp(6px, 1.2vh, 12px);
+}
+
+body.vga-kiosk .sys-list li {
+  padding: clamp(6px, 1vh, 10px) 8px;
+  font-size: clamp(11px, 1.4vh, 14px);
+}
+
+body.vga-kiosk .sys-thumb {
+  width: clamp(34px, 4.5vh, 44px);
+  height: clamp(26px, 3.4vh, 34px);
+}
+
+body.vga-kiosk .tv-frame {
+  width: min(100%, clamp(320px, 52vh, 560px));
+}
+
+body.vga-kiosk .hero-side h2 {
+  font-size: clamp(26px, 4.8vh, 44px);
+}
+
+body.vga-kiosk .hintbar {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  margin-top: auto;
+  padding: 8px 18px 12px;
 }
 
 body.vga-kiosk .sys-list,

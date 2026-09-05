@@ -181,10 +181,37 @@ const STAGE = { w: 800, h: 600, bezelW: 860, bezelH: 648 };
 
 function scaleStage() {
   const bezel = $("bezel");
+  const tube = $("tube");
+  const stage = $("stage");
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
   if (out === "vga") {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    document.documentElement.style.setProperty("--stage-w", `${w}px`);
+    document.documentElement.style.setProperty("--stage-h", `${h}px`);
+    document.documentElement.classList.add("vga-kiosk");
+    document.body.classList.add("vga-kiosk");
     bezel.style.transform = "none";
+    bezel.style.width = `${w}px`;
+    bezel.style.height = `${h}px`;
+    if (tube) {
+      tube.style.width = `${w}px`;
+      tube.style.height = `${h}px`;
+    }
+    if (stage) {
+      stage.style.width = `${w}px`;
+      stage.style.height = `${h}px`;
+    }
     return;
+  }
+  document.documentElement.classList.remove("vga-kiosk");
+  if (tube) {
+    tube.style.width = "";
+    tube.style.height = "";
+  }
+  if (stage) {
+    stage.style.width = "";
+    stage.style.height = "";
   }
   const mode = state.config?.display?.scale || "fit";
   const x = window.innerWidth / STAGE.bezelW;
@@ -201,7 +228,8 @@ function applyDisplayProfile() {
 }
 
 function primeKioskDisplay() {
-  if (document.body.dataset.kiosk !== "vga") return;
+  const local = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+  if (document.body.dataset.kiosk !== "vga" && !local) return;
   state.config = {
     ...state.config,
     fastBoot: true,
@@ -333,7 +361,6 @@ function renderHome() {
   const count = gamesFor(system.id).length;
   $("home-title").textContent = system.name;
   $("home-title").style.color = system.accent;
-  $("home-blurb").textContent = system.blurb;
   $("home-era").textContent = `${system.era} · ${system.bits}`;
   $("home-count").textContent = !state.catalogReady && !count ? "SCAN…" : `${count} GAMES`;
   $("home-core").textContent = system.emulator.replace("RetroArch → ", "");
