@@ -72,7 +72,7 @@ function beep(freq, dur, vol, slide) {
   osc.type = "square";
   osc.frequency.setValueAtTime(freq, t);
   if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(50, freq + slide), t + dur);
-  gain.gain.setValueAtTime(vol || 0.055, t);
+  gain.gain.setValueAtTime(vol || 0.14, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
   osc.connect(gain);
   gain.connect(audioCtx.destination);
