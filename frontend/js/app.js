@@ -104,6 +104,24 @@ function sfx(kind) {
 
 const MUSIC_VOL = 0.32;
 const MUSIC_DUCK = 0.08;
+const SYSTEM_HERO = {
+  atari2600: "media/home/system-atari2600.png",
+  nes: "media/home/system-nes.png",
+  snes: "media/home/system-snes.png",
+  megadrive: "media/home/system-megadrive.png",
+  arcade: "media/home/system-arcade.png",
+  neogeo: "media/home/system-neogeo.png",
+  psx: "media/home/system-psx.png",
+};
+const SYSTEM_WHISPER = {
+  atari2600: "Atari mı? Klasik joystick!",
+  nes: "NES! Mario zamanı!",
+  snes: "SNES seçtin, süper!",
+  megadrive: "Sega! Hızlı oyunlar!",
+  arcade: "Arcade! Jeton yok burada.",
+  neogeo: "Neo Geo — kral konsol!",
+  psx: "PlayStation! 32-bit!",
+};
 let bgm = null;
 let musicIndex = 0;
 let musicDuckTimer = 0;
@@ -305,18 +323,37 @@ function renderHome() {
   $("home-count").textContent = !state.catalogReady && !count ? "SCAN…" : `${count} GAMES`;
   $("home-core").textContent = system.emulator.replace("RetroArch → ", "");
   $("core-pill").textContent = `${state.systems.length} SYSTEM`;
+  $("home-pick-label").textContent = system.short || "SEÇİM";
   const glow = $("home-glow");
-  if (glow) glow.style.background = system.accent;
+  if (glow) glow.style.background = `radial-gradient(circle at 50% 40%, ${system.accent}, transparent 70%)`;
   $("home-preview").style.setProperty("--card-accent", system.accent);
+  const art = $("home-art");
+  if (art) {
+    art.src = SYSTEM_HERO[system.id] || SYSTEM_HERO.nes;
+    art.alt = system.name;
+    art.classList.remove("swap");
+    void art.offsetWidth;
+    art.classList.add("swap");
+  }
+  const kid = $("hero-kid");
+  if (kid) {
+    kid.classList.remove("peek");
+    void kid.offsetWidth;
+    kid.classList.add("peek");
+  }
+  const whisper = $("home-whisper");
+  if (whisper) whisper.textContent = SYSTEM_WHISPER[system.id] || "Hadi oynayalım!";
 
   $("system-row").innerHTML = state.systems
     .map((item, index) => {
       const n = gamesFor(item.id).length;
       const meta = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
       const num = String(index + 1).padStart(2, "0");
+      const thumb = SYSTEM_HERO[item.id] || "";
       return `
         <li class="${index === state.systemIndex ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
           <b>${num}</b>
+          <img class="sys-thumb" src="${thumb}" alt="" loading="lazy">
           <span>${item.name}</span>
           <em>${meta}</em>
         </li>`;

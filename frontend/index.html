@@ -32,33 +32,48 @@
         </section>
 
         <section id="view-home" class="view hidden">
+          <div class="home-scene" aria-hidden="false">
+            <div class="home-bg"></div>
+            <div class="home-neon-top"></div>
+            <div class="home-neon-floor"></div>
+          </div>
           <header class="topbar home-bar">
             <div class="brand">
               <span class="brand-mark" id="open-service" title="Servis">AB</span>
               <div>
                 <strong>ARCADE BOX</strong>
-                <small>FREE PLAY</small>
+                <small>FREE PLAY · 80-90</small>
               </div>
             </div>
             <div class="home-hud">
-              <span>SELECT SYSTEM</span>
+              <span id="home-pick-label">SEÇİM</span>
               <span id="core-pill">7 SYSTEM</span>
             </div>
           </header>
 
           <div class="home-layout">
             <ol class="sys-list" id="system-row"></ol>
-            <aside class="sys-preview" id="home-preview">
-              <div class="preview-glow" id="home-glow"></div>
-              <div class="preview-grid"></div>
-              <div class="preview-body">
-                <p class="eyebrow" id="home-era">1977 · 8-BIT</p>
-                <h2 id="home-title">Atari 2600</h2>
-                <p id="home-blurb">Ahşap panel, tek joystick, saf arcade refleksleri.</p>
-                <div class="preview-meta">
-                  <span id="home-count">0 GAMES</span>
-                  <span id="home-core">STELLA</span>
-                </div>
+
+            <div class="hero-stage" id="home-preview">
+              <div class="tv-frame">
+                <img id="home-art" class="tv-screen" src="media/home/system-atari2600.png" alt="">
+                <div class="tv-bezel"></div>
+                <div class="tv-glow" id="home-glow"></div>
+              </div>
+              <img id="hero-kid" class="hero-kid" src="media/home/hero-kid.png" alt="">
+              <p class="hero-whisper" id="home-whisper">Hangisini oynayalım?</p>
+            </div>
+
+            <aside class="hero-side">
+              <p class="eyebrow" id="home-era">1977 · 8-BIT</p>
+              <h2 id="home-title">Atari 2600</h2>
+              <p id="home-blurb">Klasöre attığın ROM menüde görünür.</p>
+              <div class="preview-meta">
+                <span id="home-count">0 GAMES</span>
+                <span id="home-core">STELLA</span>
+              </div>
+              <div class="hero-side-deco" aria-hidden="true">
+                <span></span><span></span><span></span>
               </div>
             </aside>
           </div>
