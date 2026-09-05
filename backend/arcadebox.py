@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import platform
 import re
 import shutil
 import signal
@@ -1292,6 +1293,35 @@ class Handler(SimpleHTTPRequestHandler):
         self._json({"ok": False, "error": "Bilinmeyen istek."}, 404)
 
 
+def _linux_browser_command(binary: str, found: str) -> list[str]:
+    if "firefox" in binary:
+        return [found, "--kiosk"]
+    flags = [
+        "--kiosk",
+        "--noerrdialogs",
+        "--disable-infobars",
+        "--incognito",
+        "--no-first-run",
+        "--disable-session-crashed-bubble",
+        "--check-for-update-interval=31536000",
+        "--disable-features=Translate,TranslateUI",
+        "--ozone-platform=x11",
+        "--start-fullscreen",
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--disable-sync",
+        "--num-raster-threads=1",
+        "--enable-low-end-device-mode",
+        "--disable-gpu-rasterization",
+        "--disable-gpu",
+        "--disable-gpu-compositing",
+        "--disable-dev-shm-usage",
+        "--disable-breakpad",
+        "--no-sandbox",
+    ]
+    return [found, *flags]
+
+
 def find_browser() -> list[str] | None:
     if os.name == "nt":
         candidates = [
@@ -1307,39 +1337,16 @@ def find_browser() -> list[str] | None:
                     return [path, "--kiosk", "--edge-kiosk-type=fullscreen", "--no-first-run"]
                 return [path, "--kiosk", "--no-first-run", "--disable-features=Translate"]
         return None
-    for binary in ("chromium", "chromium-browser", "google-chrome", "firefox"):
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        # GeForce 405 / eski VGA: Chromium sik crash — Firefox ESR daha stabil.
+        order = ("firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome")
+    else:
+        order = ("chromium", "chromium-browser", "google-chrome", "firefox-esr", "firefox")
+    for binary in order:
         found = which(binary)
-        if found and binary == "firefox":
-            return [found, "--kiosk"]
         if found:
-            flags = [
-                "--kiosk",
-                "--noerrdialogs",
-                "--disable-infobars",
-                "--incognito",
-                "--no-first-run",
-                "--disable-session-crashed-bubble",
-                "--check-for-update-interval=31536000",
-                "--disable-features=Translate,TranslateUI",
-            ]
-            flags.extend(
-                [
-                    "--ozone-platform=x11",
-                    "--start-fullscreen",
-                    "--disable-background-networking",
-                    "--disable-component-update",
-                    "--disable-sync",
-                    "--num-raster-threads=1",
-                    "--enable-low-end-device-mode",
-                    "--disable-gpu-rasterization",
-                    "--disable-gpu",
-                    "--disable-gpu-compositing",
-                    "--disable-dev-shm-usage",
-                    "--disable-breakpad",
-                    "--no-sandbox",
-                ]
-            )
-            return [found, *flags]
+            return _linux_browser_command(binary, found)
     return None
 
 
