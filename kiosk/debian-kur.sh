@@ -145,6 +145,14 @@ p.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
 PY
 fi
 
+if [ -f "$ROOT/kiosk/arcadebox-kiosk.service" ]; then
+  cp "$ROOT/kiosk/arcadebox-kiosk.service" /etc/systemd/system/arcadebox-kiosk.service
+  systemctl daemon-reload
+  systemctl enable arcadebox-kiosk.service
+  # startx systemd'de; bash_profile'daki cift baslatmayi kaldir
+  sed -i '/Arcade Box PC kiosk/,/fi/d' "$PROFILE" 2>/dev/null || true
+fi
+
 echo
 echo "Kurulum bitti. sudo reboot"
 echo "ArcadeBox: $ROOT"

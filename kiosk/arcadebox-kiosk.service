@@ -1,0 +1,21 @@
+[Unit]
+Description=Arcade Box Kiosk (VGA PC)
+After=local-fs.target network-online.target
+Wants=network-online.target
+
+[Service]
+User=arcadebox
+WorkingDirectory=/home/arcadebox
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+Environment=DISPLAY=:0
+ExecStartPre=/bin/sh -c 'mount /mnt/games 2>/dev/null || mount -a 2>/dev/null || true'
+ExecStart=/usr/bin/startx /home/arcadebox/.xinitrc -- :0 vt1 -nocursor
+Restart=on-failure
+RestartSec=4
+
+[Install]
+WantedBy=multi-user.target
