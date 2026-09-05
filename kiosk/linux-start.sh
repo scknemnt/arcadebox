@@ -77,6 +77,19 @@ fi
 URL="http://127.0.0.1:7842/"
 
 if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
+  modprobe joydev 2>/dev/null || true
+  FF_BASE="$HOME/.mozilla/firefox-esr"
+  mkdir -p "$FF_BASE"
+  for prof in "$FF_BASE"/*.default-esr "$FF_BASE"/*.default; do
+    [ -d "$prof" ] || continue
+    grep -q 'media.autoplay.default' "$prof/user.js" 2>/dev/null && continue
+    cat >>"$prof/user.js" <<'EOF'
+user_pref("media.autoplay.default", 0);
+user_pref("media.autoplay.block-webaudio", false);
+user_pref("dom.gamepad.enabled", true);
+user_pref("dom.gamepad.non_standard_events.enabled", true);
+EOF
+  done
   python3 backend/arcadebox.py --kiosk --no-browser &
   srv=$!
   sleep 1

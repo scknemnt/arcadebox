@@ -27,6 +27,7 @@ const state = {
   held: {},
   lastPad: {},
   padName: "",
+  padReady: false,
   lastSignal: "—",
   catalogReady: false,
 };
@@ -54,30 +55,64 @@ const CRT_LEVELS = [
 const $ = (id) => document.getElementById(id);
 
 let audioCtx = null;
+let audioReady = false;
+let bgm = null;
+let musicIndex = 0;
+let musicDuckTimer = 0;
+let synthTimer = 0;
+let synthNodes = null;
 
-function unlockAudio() {
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAA==";
+
+async function unlockAudio() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return;
-  if (!audioCtx) audioCtx = new Ctx();
-  if (audioCtx.state === "suspended") audioCtx.resume();
+  if (Ctx && !audioCtx) audioCtx = new Ctx();
+  if (audioCtx && audioCtx.state === "suspended") {
+    try {
+      await audioCtx.resume();
+    } catch (_error) {
+      /* kiosk may block until input */
+    }
+  }
+  if (!audioReady) {
+    try {
+      const ping = new Audio(SILENT_WAV);
+      ping.volume = 0.001;
+      await ping.play();
+      audioReady = true;
+    } catch (_error) {
+      /* retry on next input */
+    }
+  }
+  return audioReady || (audioCtx && audioCtx.state === "running");
+}
+
+function primeAudio() {
+  unlockAudio().then((ready) => {
+    if (ready) syncMusic();
+  });
+  window.setTimeout(() => unlockAudio().then((ready) => ready && syncMusic()), 400);
+  window.setTimeout(() => unlockAudio().then((ready) => ready && syncMusic()), 1200);
 }
 
 function beep(freq, dur, vol, slide) {
   if (!state.crtFx.sound) return;
-  unlockAudio();
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = "square";
-  osc.frequency.setValueAtTime(freq, t);
-  if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(50, freq + slide), t + dur);
-  gain.gain.setValueAtTime(vol || 0.14, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(t);
-  osc.stop(t + dur + 0.02);
+  unlockAudio().then((ready) => {
+    if (!ready || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq, t);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(50, freq + slide), t + dur);
+    gain.gain.setValueAtTime(vol || 0.14, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  });
 }
 
 function sfx(kind) {
@@ -122,13 +157,66 @@ const BOOT_SYSTEMS = [
   { id: "neogeo", name: "Neo Geo", short: "NEO", era: "1990", bits: "AES", emulator: "RetroArch → FBNeo", accent: "#ffe14a", blurb: "roms/neogeo klasörü + BIOS." },
   { id: "psx", name: "PlayStation", short: "PS1", era: "1994", bits: "32-BIT", emulator: "RetroArch → SwanStation", accent: "#3ad4ff", blurb: "roms/psx klasörünü tarar." },
 ];
-let bgm = null;
-let musicIndex = 0;
-let musicDuckTimer = 0;
 
 function musicWanted() {
   const inMenu = state.view === "home" || state.view === "games";
-  return Boolean(state.crtFx.sound !== false && inMenu && !state.launching && (state.music || []).length);
+  return Boolean(state.crtFx.sound !== false && inMenu && !state.launching);
+}
+
+function stopSynthBgm() {
+  window.clearInterval(synthTimer);
+  synthTimer = 0;
+  if (synthNodes) {
+    try {
+      synthNodes.bass.stop();
+    } catch (_error) {
+      /* already stopped */
+    }
+    synthNodes.bassGain.disconnect();
+    synthNodes = null;
+  }
+}
+
+function startSynthBgm() {
+  if (synthTimer || !musicWanted() || (state.music || []).length) return;
+  unlockAudio().then((ready) => {
+    if (!ready || !audioCtx || synthTimer) return;
+    const bass = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const bassGain = audioCtx.createGain();
+    bass.type = "sawtooth";
+    bass.frequency.value = 55;
+    filter.type = "lowpass";
+    filter.frequency.value = 520;
+    bassGain.gain.value = MUSIC_VOL * 0.22;
+    bass.connect(filter);
+    filter.connect(bassGain);
+    bassGain.connect(audioCtx.destination);
+    bass.start();
+    synthNodes = { bass, bassGain };
+    const notes = [220, 261.63, 329.63, 392, 329.63, 261.63, 196, 246.94];
+    let step = 0;
+    synthTimer = window.setInterval(() => {
+      if (!musicWanted() || !audioCtx) {
+        stopSynthBgm();
+        return;
+      }
+      if (audioCtx.state === "suspended") unlockAudio();
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.value = notes[step % notes.length];
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(MUSIC_VOL * 0.11, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.18);
+      step += 1;
+    }, 240);
+  });
 }
 
 function ensureBgm() {
@@ -162,13 +250,27 @@ function startMusicTrack() {
 
 function syncMusic() {
   if (!musicWanted()) {
+    stopSynthBgm();
     if (bgm && !bgm.paused) bgm.pause();
     return;
   }
-  startMusicTrack();
+  if ((state.music || []).length) {
+    stopSynthBgm();
+    startMusicTrack();
+    return;
+  }
+  if (bgm && !bgm.paused) bgm.pause();
+  startSynthBgm();
 }
 
 function duckMusic() {
+  if (synthNodes && synthNodes.bassGain) {
+    synthNodes.bassGain.gain.value = MUSIC_DUCK * 0.55;
+    window.clearTimeout(musicDuckTimer);
+    musicDuckTimer = window.setTimeout(() => {
+      if (synthNodes && synthNodes.bassGain && musicWanted()) synthNodes.bassGain.gain.value = MUSIC_VOL * 0.22;
+    }, 220);
+  }
   if (!bgm || bgm.paused) return;
   bgm.volume = MUSIC_DUCK;
   window.clearTimeout(musicDuckTimer);
@@ -442,6 +544,7 @@ function renderGames(opts) {
   if (!system) return;
   $("games-chip").textContent = system.short;
   $("games-chip").style.color = system.accent;
+  document.documentElement.style.setProperty("--card-accent", system.accent);
 
   if (!list.length) {
     $("rom-count").textContent = "0";
@@ -481,7 +584,7 @@ function renderGames(opts) {
     ${posterHtml(game, system)}
     <div class="stage-body">
       <p class="eyebrow">${system.name}</p>
-      <h2>${game.title}</h2>
+      <h2 style="color:${system.accent}">${game.title}</h2>
       <div class="facts">
         <span>${game.year}</span>
         <span>${game.players} OYUNCU</span>
@@ -815,7 +918,7 @@ function startHold(action) {
   if (!["up", "down", "left", "right"].includes(action)) return;
   if (HOLD.timer) window.clearTimeout(HOLD.timer);
   HOLD.started = Date.now();
-  HOLD.timer = window.setTimeout(tickHold, 220);
+  HOLD.timer = window.setTimeout(tickHold, 140);
 }
 
 function fireAction(action) {
@@ -914,8 +1017,9 @@ function activateService() {
 }
 
 function ingest(token, down) {
-  unlockAudio();
-  if (down) syncMusic();
+  unlockAudio().then((ready) => {
+    if (ready && down) syncMusic();
+  });
   state.lastSignal = prettyToken(token);
   if (state.listening && down) {
     const action = state.listening;
@@ -956,7 +1060,7 @@ function onKeyUp(event) {
 }
 
 function collectPad(now, pad) {
-  const dead = 0.46;
+  const dead = 0.32;
   const ax = pad.axes[0] || 0;
   const ay = pad.axes[1] || 0;
   if (ax < -dead) now.StickLeft = true;
@@ -975,6 +1079,10 @@ function collectPad(now, pad) {
 function pollPad() {
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
   state.padName = pads.map((pad) => pad.id.split("(")[0].trim()).join(" + ");
+  if (pads.length && !state.padReady) {
+    state.padReady = true;
+    unlockAudio().then((ready) => ready && syncMusic());
+  }
   if (!pads.length) {
     state.lastPad = {};
     window.requestAnimationFrame(pollPad);
@@ -1052,8 +1160,27 @@ function attract() {
   }, 1000);
 }
 
+function bootPadScan() {
+  let ticks = 0;
+  const scan = window.setInterval(() => {
+    ticks += 1;
+    if (navigator.getGamepads) {
+      const pads = [...navigator.getGamepads()].filter(Boolean);
+      if (pads.length) {
+        state.padReady = true;
+        state.padName = pads.map((pad) => pad.id.split("(")[0].trim()).join(" + ");
+        unlockAudio().then((ready) => ready && syncMusic());
+        window.clearInterval(scan);
+      }
+    }
+    if (ticks >= 400) window.clearInterval(scan);
+  }, 25);
+}
+
 function boot() {
   primeKioskDisplay();
+  primeAudio();
+  bootPadScan();
   if (!document.body.classList.contains("vga-kiosk")) stars();
   state.systems = BOOT_SYSTEMS.slice();
   show("home");
@@ -1062,6 +1189,8 @@ function boot() {
   loadCatalog()
     .then(async () => {
       applyDisplayProfile();
+      applyCrt();
+      primeAudio();
       if (state.config.fastBoot) {
         renderHome();
         pollCatalog();
@@ -1092,7 +1221,10 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("blur", () => stopHold(true));
 window.addEventListener("keydown", onKey);
 window.addEventListener("keyup", onKeyUp);
-window.addEventListener("gamepadconnected", () => toast("USB encoder bulundu."));
+window.addEventListener("gamepadconnected", () => {
+  state.padReady = true;
+  unlockAudio().then((ready) => ready && syncMusic());
+});
 bindClicks();
 attract();
 pollPad();

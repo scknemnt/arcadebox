@@ -274,6 +274,109 @@ body.pi-kiosk .stars span {
 
 #view-games .topbar { grid-template-columns: 118px auto 1fr auto; }
 
+#view-games .marquee {
+  border-color: rgba(255, 43, 214, 0.45);
+  background: rgba(8, 2, 22, 0.82);
+  color: var(--cyan);
+}
+
+#view-games .live-pill,
+#view-games .sys-chip,
+#view-games .text-btn {
+  border-color: rgba(255, 43, 214, 0.35);
+  background: rgba(8, 2, 22, 0.82);
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0, 234, 255, 0.35);
+}
+
+#view-games .sys-chip {
+  font-family: Consolas, "Courier New", monospace;
+  letter-spacing: 0.14em;
+}
+
+.games-layout {
+  position: relative;
+  z-index: 2;
+  height: calc(100% - 96px);
+  display: grid;
+  grid-template-columns: minmax(260px, 30vw) 1fr;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.game-list {
+  list-style: none;
+  overflow: hidden;
+  border: 1px solid rgba(255, 43, 214, 0.35);
+  background: rgba(8, 2, 22, 0.82);
+  box-shadow: inset 0 0 24px rgba(255, 43, 214, 0.08);
+}
+
+.game-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #c8c0e8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.game-list li.active {
+  background: linear-gradient(90deg, rgba(255, 43, 214, 0.28), rgba(0, 234, 255, 0.1));
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--card-accent, var(--mag));
+}
+
+.game-list .year { color: #6a6490; font-family: Consolas, monospace; font-size: 10px; }
+.game-list .missing { opacity: 0.45; }
+
+.game-stage {
+  border: 1px solid rgba(0, 234, 255, 0.28);
+  background: rgba(8, 2, 22, 0.78);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 24px rgba(0, 234, 255, 0.06);
+}
+
+.letter-rail {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  margin-top: 8px;
+  padding: 2px 3px;
+  border: 1px solid rgba(255, 43, 214, 0.35);
+  background: rgba(8, 2, 22, 0.82);
+}
+
+.letter-rail[hidden] { display: none !important; }
+
+.letter-rail button {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #6a6490;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 3px 0;
+  cursor: pointer;
+}
+
+.letter-rail button.has { color: #c8c0e8; }
+.letter-rail button.empty { pointer-events: none; }
+.letter-rail button.on {
+  color: #0a0018;
+  background: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 234, 255, 0.45);
+}
+
 .brand {
   display: flex;
   gap: 8px;
@@ -335,9 +438,16 @@ body.pi-kiosk .stars span {
 
 .home-bar { grid-template-columns: 1fr auto; position: relative; z-index: 4; }
 
-#view-home {
+#view-home,
+#view-games {
   position: relative;
   overflow: hidden;
+}
+
+.games-bar,
+.home-bar {
+  position: relative;
+  z-index: 4;
 }
 
 .home-scene {
@@ -692,82 +802,6 @@ body.pi-kiosk .stars span {
 
 .hintbar .ghost { margin-left: auto; color: #5f6b7a; }
 
-.letter-rail {
-  display: flex;
-  margin-top: 8px;
-  padding: 2px 3px;
-  border: 1px solid #243040;
-  background: #0a1218;
-}
-
-.letter-rail[hidden] { display: none !important; }
-
-.letter-rail button {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: #3d4c5c;
-  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 3px 0;
-  cursor: pointer;
-}
-
-.letter-rail button.has { color: #c5d0dc; }
-.letter-rail button.empty { pointer-events: none; }
-.letter-rail button.on {
-  color: #041016;
-  background: var(--cyan);
-  box-shadow: 0 0 8px rgba(46, 240, 255, 0.35);
-}
-
-.games-layout {
-  height: calc(100% - 96px);
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 10px;
-  padding-top: 8px;
-}
-
-.game-list {
-  list-style: none;
-  overflow: hidden;
-  border: 1px solid #243040;
-  background: rgba(8, 12, 18, 0.88);
-}
-
-.game-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 10px;
-  border-bottom: 1px solid #16202c;
-  color: #c5d0dc;
-  font-size: 12px;
-}
-
-.game-list li.active {
-  background: linear-gradient(90deg, rgba(196, 77, 255, 0.24), rgba(61, 224, 255, 0.06));
-  color: var(--text);
-  box-shadow: inset 3px 0 0 var(--mag);
-}
-
-.game-list .year { color: var(--muted); font-family: Consolas, monospace; font-size: 10px; }
-.game-list .missing { opacity: 0.45; }
-
-.game-stage {
-  border: 1px solid #243040;
-  background: linear-gradient(180deg, #101821, #0a0e14);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  position: relative;
-  overflow: hidden;
-}
-
 .poster { position: absolute; inset: 0; opacity: 0.5; }
 .poster b { position: absolute; }
 .poster.art {
@@ -801,18 +835,19 @@ body.pi-kiosk .stars span {
   flex-wrap: wrap;
 }
 .facts span {
-  border: 1px solid #2a3b50;
+  border: 1px solid rgba(255, 43, 214, 0.35);
   padding: 3px 6px;
-  color: var(--muted);
+  color: var(--cyan);
   font-size: 9px;
   letter-spacing: 0.08em;
+  background: rgba(0, 0, 0, 0.25);
 }
 .play {
   width: 168px;
   height: 40px;
   border: 0;
-  background: var(--cyan);
-  color: #041016;
+  background: linear-gradient(90deg, var(--mag), var(--cyan));
+  color: #0a0018;
   font-family: Impact, sans-serif;
   font-size: 18px;
   letter-spacing: 0.1em;
@@ -1050,6 +1085,27 @@ body.vga-kiosk .hintbar {
 body.vga-kiosk .sys-list,
 body.vga-kiosk .hero-side {
   backdrop-filter: none;
+}
+
+body.vga-kiosk #view-games {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+}
+
+body.vga-kiosk .games-layout {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+body.vga-kiosk #view-games .hintbar {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  margin-top: auto;
 }
 
 body.vga-kiosk .stars,
