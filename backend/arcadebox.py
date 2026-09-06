@@ -10,6 +10,7 @@ import mimetypes
 import os
 import platform
 import re
+import shlex
 import shutil
 import signal
 import struct
@@ -129,36 +130,47 @@ def _music_dir_names(folder: Path, prefix: str = "") -> list[str]:
     if not folder.is_dir():
         return []
     out = []
-    for path in folder.iterdir():
-        if path.is_file() and path.suffix.lower() in MUSIC_EXTS:
-            out.append(f"{prefix}{path.name}" if prefix else path.name)
+    for path in folder.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in MUSIC_EXTS:
+            continue
+        rel = path.relative_to(folder).as_posix()
+        if any(part == ".." for part in rel.split("/")):
+            continue
+        out.append(f"{prefix}{rel}" if prefix else rel)
     return out
 
 
 def music_tracks() -> list[str]:
     names = _music_dir_names(MUSIC)
-    for item in _music_dir_names(PANDORA_MUSIC, "pandora/"):
-        if item not in names:
-            names.append(item)
+    if names:
+        names.sort(key=str.lower)
+        return names
+    names = _music_dir_names(PANDORA_MUSIC, "pandora/")
     names.sort(key=str.lower)
     return names
 
 
-def resolve_music(name: str) -> Path | None:
-    raw = unquote(name or "")
-    if not raw or ".." in raw:
+def _safe_music_path(root: Path, rel: str) -> Path | None:
+    if not rel or any(part == ".." for part in rel.replace("\\", "/").split("/")):
         return None
-    raw = raw.replace("\\", "/")
-    if raw.startswith("pandora/"):
-        leaf = Path(raw[8:]).name
-        path = PANDORA_MUSIC / leaf
-    else:
-        if "/" in raw or "\\" in raw:
-            return None
-        path = MUSIC / Path(raw).name
+    path = (root / rel).resolve()
+    try:
+        path.relative_to(root.resolve())
+    except ValueError:
+        return None
     if path.is_file() and path.suffix.lower() in MUSIC_EXTS:
         return path
     return None
+
+
+def resolve_music(name: str) -> Path | None:
+    raw = unquote(name or "")
+    if not raw:
+        return None
+    raw = raw.replace("\\", "/")
+    if raw.startswith("pandora/"):
+        return _safe_music_path(PANDORA_MUSIC, raw[8:])
+    return _safe_music_path(MUSIC, raw)
 
 
 _AUDIO = {
@@ -274,38 +286,91 @@ def _play_wav_bytes(data: bytes) -> None:
             continue
 
 
-def default_bgm_path(name: str = "") -> Path | None:
-    if name and name != "__builtin__":
+def _playlist_paths() -> list[Path]:
+    paths = []
+    for name in music_tracks():
         found = resolve_music(name)
         if found:
-            return found
-    for track in music_tracks():
-        found = resolve_music(track)
-        if found:
-            return found
+            paths.append(found)
+    if paths:
+        return paths
     for path in (
         FRONTEND / "media" / "menu-ambient.wav",
         FRONTEND / "media" / "pandora" / "music" / "menu-ambient.wav",
     ):
         if path.is_file():
-            return path
-    return None
+            return [path]
+    return []
 
 
-def _bgm_command(path: Path) -> list[str] | None:
+def default_bgm_path(name: str = "") -> Path | None:
+    if name and name != "__builtin__":
+        found = resolve_music(name)
+        if found:
+            return found
+    tracks = _playlist_paths()
+    return tracks[0] if tracks else None
+
+
+def _next_bgm_path(current: Path | None) -> Path | None:
+    tracks = _playlist_paths()
+    if not tracks:
+        return None
+    if current is None or current not in tracks:
+        return tracks[0]
+    return tracks[(tracks.index(current) + 1) % len(tracks)]
+
+
+def _spawn_bgm(path: Path) -> subprocess.Popen | None:
     device = _pick_alsa_device()
+    suffix = path.suffix.lower()
+    wav_only = suffix == ".wav"
+    commands: list[list[str]] = []
+    if suffix == ".mp3" and which("mpg123"):
+        commands.append(["mpg123", "-q", str(path)])
+        if device:
+            commands.append(["mpg123", "-q", "-a", device, str(path)])
     if which("ffplay"):
-        return ["ffplay", "-nodisp", "-hide_banner", "-loglevel", "quiet", "-loop", "0", str(path)]
+        commands.append(["ffplay", "-nodisp", "-hide_banner", "-loglevel", "error", "-autoexit", str(path)])
     if which("mpv"):
-        return ["mpv", "--no-video", "--really-quiet", "--loop", str(path)]
-    if which("aplay"):
+        commands.append(["mpv", "--no-video", "--really-quiet", str(path)])
+    if wav_only and which("aplay"):
         cmd = ["aplay", "-q"]
         if device:
             cmd.extend(["-D", device])
         cmd.append(str(path))
-        return cmd
-    if which("paplay"):
-        return ["paplay", str(path)]
+        commands.append(cmd)
+    if wav_only and which("paplay"):
+        commands.append(["paplay", str(path)])
+    for command in commands:
+        try:
+            print(f"Kiosk BGM {' '.join(command[:2])} {path.name}", flush=True)
+            return subprocess.Popen(
+                command,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError:
+            continue
+    if which("ffmpeg") and which("aplay") and not wav_only:
+        aplay = "aplay -q -t wav"
+        if device:
+            aplay += f" -D {shlex.quote(device)}"
+        pipeline = (
+            f"ffmpeg -hide_banner -loglevel error -i {shlex.quote(str(path))} -f wav - | {aplay}"
+        )
+        try:
+            print(f"Kiosk BGM ffmpeg|aplay {path.name}", flush=True)
+            return subprocess.Popen(
+                pipeline,
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError:
+            return None
     return None
 
 
@@ -316,13 +381,22 @@ def _kill_bgm_proc() -> None:
     if proc is None or proc.poll() is not None:
         return
     try:
-        proc.terminate()
-        proc.wait(timeout=1)
-    except (OSError, subprocess.TimeoutExpired):
+        os.killpg(proc.pid, signal.SIGTERM)
+    except OSError:
         try:
-            proc.kill()
+            proc.terminate()
         except OSError:
             pass
+    try:
+        proc.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            try:
+                proc.kill()
+            except OSError:
+                pass
 
 
 def stop_kiosk_bgm(keep_wanted: bool = False) -> None:
@@ -347,20 +421,22 @@ def _bgm_supervisor() -> None:
             continue
         if proc is not None and proc.poll() is None:
             continue
-        command = _bgm_command(path)
-        if not command:
-            continue
-        try:
-            spawned = subprocess.Popen(
-                command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except OSError:
+        if proc is not None and proc.poll() is not None:
+            path = _next_bgm_path(path)
+            with _AUDIO["lock"]:
+                _AUDIO["path"] = path
+            if path is None:
+                continue
+        spawned = _spawn_bgm(path)
+        if spawned is None:
+            time.sleep(1)
             continue
         with _AUDIO["lock"]:
             if not _AUDIO["wanted"] or _AUDIO["path"] != path:
-                spawned.kill()
+                try:
+                    os.killpg(spawned.pid, signal.SIGTERM)
+                except OSError:
+                    spawned.kill()
                 continue
             _AUDIO["bgm_proc"] = spawned
 
@@ -374,8 +450,6 @@ def start_kiosk_bgm(name: str = "") -> bool:
     path = default_bgm_path(name)
     if not path:
         return False
-    if not _bgm_command(path):
-        return False
     with _AUDIO["lock"]:
         same = _AUDIO["path"] == path and _AUDIO["bgm_proc"] is not None and _AUDIO["bgm_proc"].poll() is None
         _AUDIO["wanted"] = True
@@ -385,7 +459,6 @@ def start_kiosk_bgm(name: str = "") -> bool:
             threading.Thread(target=_bgm_supervisor, daemon=True).start()
     if not same:
         _kill_bgm_proc()
-        print(f"Kiosk BGM {path.name} alsa={_pick_alsa_device() or 'default'}", flush=True)
     return True
 
 
@@ -1758,8 +1831,6 @@ def main() -> None:
     kick_catalog_build()
     if os.name != "nt":
         install_joypad_profiles()
-        if kiosk:
-            start_kiosk_bgm()
     print("Arcade Box OS  ->  " + url)
     print("ROM klasoru    ->  " + str(ROMS))
     print("Emulator       ->  " + str(retroarch_exe() or (EMULATORS / "retroarch")))

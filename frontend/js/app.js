@@ -1245,9 +1245,24 @@ function bootPadScan() {
   }, 100);
 }
 
-function boot() {
+function hideSplash() {
   const splash = document.getElementById("splash");
-  if (splash) splash.remove();
+  if (!splash) return;
+  let gone = false;
+  const done = () => {
+    if (gone) return;
+    gone = true;
+    splash.remove();
+  };
+  const img = new Image();
+  img.onload = () => window.setTimeout(done, 40);
+  img.onerror = done;
+  img.src = "media/pandora/system_main.jpg?v=3";
+  window.setTimeout(done, 2500);
+}
+
+function boot() {
+  hideSplash();
   primeKioskDisplay();
   bootPadScan();
   if (!document.body.classList.contains("vga-kiosk")) stars();

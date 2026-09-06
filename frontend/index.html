@@ -13,12 +13,13 @@
     body[data-kiosk="vga"] #bezel { position: fixed; inset: 0; width: 100vw; height: 100vh; }
     .hidden { display: none !important; }
   </style>
+  <link rel="preload" as="image" href="media/pandora/system_main.jpg?v=3">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/pandora.css">
 </head>
 <body class="theme-pandora theme-red-yellow" data-kiosk="vga">
   <div id="splash" aria-hidden="true"><strong>ARCADE BOX</strong><small>YUKLENIYOR</small></div>
-  <audio id="bgm-prime" loop preload="auto" autoplay playsinline src="media/menu-ambient.wav"></audio>
+  <audio id="bgm-prime" loop preload="none" playsinline></audio>
   <div id="bezel">
     <div id="tube">
       <div id="stage">

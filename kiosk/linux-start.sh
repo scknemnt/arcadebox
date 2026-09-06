@@ -7,6 +7,7 @@ exec >>"$LOG" 2>&1
 echo "=== $(date) linux-start ==="
 
 export DISPLAY="${DISPLAY:-:0}"
+xsetroot -solid "#1a0505" 2>/dev/null || true
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 if [ ! -f "$ROOT/backend/arcadebox.py" ]; then
@@ -58,14 +59,16 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
 fi
 
 if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
-  for out in VGA-1 VGA-0 HDMI-1; do
-    xrandr --output "$out" --auto 2>/dev/null && break
-  done
+  if ! xrandr 2>/dev/null | grep -q ' connected.*[0-9]\+x[0-9]\+'; then
+    for out in VGA-1 VGA-0 HDMI-1; do
+      xrandr --output "$out" --auto 2>/dev/null && break
+    done
+  fi
 fi
 
 unclutter -idle 0.4 -root >/dev/null 2>&1 &
 
-# startx/getty oturumunda Pulse soketi icin
+# Ses, ekrani bekletmesin — arka planda
 uid="$(id -u)"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$uid}"
 if [ ! -d "$XDG_RUNTIME_DIR" ]; then
@@ -74,46 +77,26 @@ if [ ! -d "$XDG_RUNTIME_DIR" ]; then
   chmod 700 "$XDG_RUNTIME_DIR"
 fi
 
-# Firefox Pulse ister; menü muzigi ALSA/aplay kullanir. Ikisini de ayaga kaldir.
-if command -v pipewire >/dev/null 2>&1; then
-  pipewire >/dev/null 2>&1 &
-  command -v pipewire-pulse >/dev/null 2>&1 && pipewire-pulse >/dev/null 2>&1 &
-  command -v wireplumber >/dev/null 2>&1 && wireplumber >/dev/null 2>&1 &
-  n=0
-  while [ "$n" -lt 20 ]; do
-    [ -S "$XDG_RUNTIME_DIR/pulse/native" ] && break
-    n=$((n + 1))
-    sleep 0.25
-  done
-elif command -v pulseaudio >/dev/null 2>&1; then
-  pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 || pulseaudio --daemonize=true 2>/dev/null || true
-fi
-
-if command -v amixer >/dev/null 2>&1; then
+(
+  if command -v pipewire >/dev/null 2>&1; then
+    pipewire >/dev/null 2>&1 &
+    command -v pipewire-pulse >/dev/null 2>&1 && pipewire-pulse >/dev/null 2>&1 &
+    command -v wireplumber >/dev/null 2>&1 && wireplumber >/dev/null 2>&1 &
+  elif command -v pulseaudio >/dev/null 2>&1; then
+    pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 || pulseaudio --daemonize=true 2>/dev/null || true
+  fi
+  sleep 1
   amixer -q sset Master 90% unmute 2>/dev/null || true
   amixer -q sset PCM 90% unmute 2>/dev/null || true
   amixer -q sset Speaker 90% unmute 2>/dev/null || true
   amixer -q sset Headphone 90% unmute 2>/dev/null || true
-  amixer -q sset Line 90% unmute 2>/dev/null || true
-fi
-
-if command -v pactl >/dev/null 2>&1; then
-  analog="$(pactl list short sinks 2>/dev/null | awk '/analog|alsa_output/ && $0 !~ /hdmi|hdmi/ { print $2; exit }')"
-  if [ -n "$analog" ]; then
-    pactl set-default-sink "$analog" 2>/dev/null || true
+  if command -v pactl >/dev/null 2>&1; then
+    analog="$(pactl list short sinks 2>/dev/null | awk '/analog/ && $0 !~ /hdmi/ { print $2; exit }')"
+    [ -n "$analog" ] && pactl set-default-sink "$analog" 2>/dev/null || true
+    pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
+    pactl set-sink-volume @DEFAULT_SINK@ 90% 2>/dev/null || true
   fi
-  pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
-  pactl set-sink-volume @DEFAULT_SINK@ 90% 2>/dev/null || true
-fi
-
-if [ -f /proc/asound/pcm ]; then
-  echo "ALSA pcm:" >>"$LOG"
-  cat /proc/asound/pcm >>"$LOG" 2>&1 || true
-fi
-if command -v aplay >/dev/null 2>&1; then
-  echo "aplay -l:" >>"$LOG"
-  aplay -l >>"$LOG" 2>&1 || true
-fi
+) >/dev/null 2>&1 &
 
 URL="http://127.0.0.1:7842/"
 
@@ -133,25 +116,30 @@ user_pref("dom.gamepad.non_standard_events.enabled", true);
 user_pref("browser.display.background_color", "#120404");
 user_pref("browser.display.use_system_colors", false);
 user_pref("browser.cache.disk.enable", true);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.startup.firstrunSkipsHomepage", true);
+user_pref("datareporting.policy.dataSubmissionEnabled", false);
+user_pref("toolkit.telemetry.enabled", false);
+user_pref("app.update.enabled", false);
+user_pref("extensions.pocket.enabled", false);
 EOF
-  (
-    n=0
-    while [ "$n" -lt 25 ]; do
-      sleep 0.4
-      if command -v xdotool >/dev/null 2>&1; then
-        xdotool search --onlyvisible --class Firefox windowactivate --sync click 1 && break
-      fi
-      n=$((n + 1))
-    done
-  ) >/dev/null 2>&1 &
   python3 backend/arcadebox.py --kiosk --no-browser &
   srv=$!
-  sleep 1
-  if ! kill -0 "$srv" 2>/dev/null; then
-    echo "HATA: python server hemen kapandi"
-    wait "$srv" 2>/dev/null || true
-    exit 1
-  fi
+  n=0
+  while [ "$n" -lt 40 ]; do
+    if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7842/', timeout=0.2)" >/dev/null 2>&1; then
+      break
+    fi
+    if ! kill -0 "$srv" 2>/dev/null; then
+      echo "HATA: python server hemen kapandi"
+      wait "$srv" 2>/dev/null || true
+      exit 1
+    fi
+    n=$((n + 1))
+    sleep 0.1
+  done
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY profile=$FF_PROF"
   exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL"
 fi

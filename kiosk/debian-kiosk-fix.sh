@@ -22,7 +22,7 @@ echo "ArcadeBox: $ROOT"
 chown -R "$USER_NAME:$USER_NAME" "$ROOT"
 
 apt-get install -y firefox-esr xserver-xorg xinit openbox unclutter xdotool wmctrl \
-  alsa-utils firmware-linux-nonfree pipewire pipewire-pulse wireplumber \
+  alsa-utils mpg123 ffmpeg firmware-linux-nonfree pipewire pipewire-pulse wireplumber \
   pulseaudio-utils 2>/dev/null || true
 
 # Ses: varsayilan cikis ac
@@ -56,6 +56,7 @@ usermod -aG video,tty,input,audio,render,sudo "$USER_NAME" 2>/dev/null || true
 XINITRC="$HOME_DIR/.xinitrc"
 cat > "$XINITRC" <<'EOF'
 #!/bin/sh
+xsetroot -solid "#1a0505" 2>/dev/null || true
 xset s off
 xset -dpms
 xset s noblank

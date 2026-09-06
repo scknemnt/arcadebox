@@ -40,6 +40,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   chromium \
   firefox-esr \
   alsa-utils \
+  mpg123 \
+  ffmpeg \
   pipewire-pulse \
   pulseaudio-utils \
   retroarch \
