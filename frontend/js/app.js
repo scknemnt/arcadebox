@@ -19,6 +19,7 @@ const state = {
     service: ["F2", "Tab", "9", "Gamepad8"],
     hotkey: ["Gamepad4"],
     exit: ["Gamepad10"],
+    fav: ["y", "Y", "Gamepad3"],
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
   serviceTab: 0,
@@ -31,6 +32,7 @@ const state = {
   lastSignal: "—",
   catalogReady: false,
   gameCounts: {},
+  favorites: [],
 };
 
 const ACTIONS = [
@@ -43,6 +45,7 @@ const ACTIONS = [
   { id: "service", label: "SERVİS" },
   { id: "hotkey", label: "OYUN HOTKEY" },
   { id: "exit", label: "OYUNDAN ÇIKIŞ" },
+  { id: "fav", label: "FAVORİ" },
 ];
 
 const CRT_LEVELS = [
@@ -173,6 +176,7 @@ const MUSIC_VOL = 0.42;
 const MUSIC_DUCK = 0.08;
 const BUILTIN_BGM = "media/menu-ambient.wav";
 const SYSTEM_LOGOS = {
+  favorites: "media/pandora/logos/favorites.png",
   atari2600: "media/pandora/logos/atari2600.png",
   nes: "media/pandora/logos/nes.png",
   snes: "media/pandora/logos/snes.png",
@@ -182,6 +186,7 @@ const SYSTEM_LOGOS = {
   psx: "media/pandora/logos/psx.png",
 };
 const SYSTEM_HERO = {
+  favorites: "media/home/system-arcade.jpg",
   atari2600: "media/home/system-atari2600.jpg",
   nes: "media/home/system-nes.jpg",
   snes: "media/home/system-snes.jpg",
@@ -190,6 +195,25 @@ const SYSTEM_HERO = {
   neogeo: "media/home/system-neogeo.jpg",
   psx: "media/home/system-psx.jpg",
 };
+const FAV_SYSTEM = {
+  id: "favorites",
+  name: "Favoriler",
+  short: "FAV",
+  era: "★",
+  bits: "PICKS",
+  emulator: "Hızlı seçim",
+  accent: "#ff4ae8",
+  romDir: "",
+  blurb: "Yıldızladığın oyunlar.",
+};
+
+function systemsWithFav(list) {
+  return [FAV_SYSTEM, ...(list || []).filter((item) => item.id !== "favorites")];
+}
+
+function isFavorite(id) {
+  return (state.favorites || []).includes(id);
+}
 const BOOT_SYSTEMS = [
   { id: "atari2600", name: "Atari 2600", short: "ATARI", era: "1977", bits: "8-BIT", emulator: "RetroArch → Stella", accent: "#ff4d3a", blurb: "Klasöre attığın ROM menüde görünür." },
   { id: "nes", name: "NES / Famicom", short: "NES", era: "1983", bits: "8-BIT", emulator: "RetroArch → Mesen", accent: "#e03c31", blurb: "roms/nes klasörünü tarar." },
@@ -456,7 +480,21 @@ function currentSystem() {
   return state.systems[state.systemIndex];
 }
 
+function systemById(id) {
+  return (state.systems || []).find((item) => item.id === id);
+}
+
+function gameSystem(game) {
+  return (game && systemById(game.system)) || currentSystem();
+}
+
 function gamesFor(systemId) {
+  if (systemId === "favorites") {
+    const ids = new Set(state.favorites || []);
+    return state.games
+      .filter((game) => ids.has(game.id))
+      .sort((a, b) => String(a.title).localeCompare(String(b.title), "en", { sensitivity: "base" }));
+  }
   return state.games.filter((game) => game.system === systemId);
 }
 
@@ -470,6 +508,7 @@ function rebuildGameCounts() {
   state.games.forEach((game) => {
     counts[game.system] = (counts[game.system] || 0) + 1;
   });
+  counts.favorites = gamesFor("favorites").length;
   state.gameCounts = counts;
 }
 
@@ -622,7 +661,9 @@ function paintGameWindow(list, game) {
   $("game-list").innerHTML = visible
     .map((item) => {
       const active = item.id === game.id;
+      const fav = isFavorite(item.id);
       return `<li class="${active ? "active" : ""} ${item.installed ? "" : "missing"}" data-id="${item.id}">
+        <span class="g-star ${fav ? "on" : ""}">${fav ? "★" : active ? "☆" : ""}</span>
         <span class="g-title">${item.title}</span>
       </li>`;
     })
@@ -650,9 +691,12 @@ function renderGames(opts) {
     $("letter-rail").innerHTML = "";
     letterRailKey = "";
     $("game-list").innerHTML = "";
+    const empty = system.id === "favorites"
+      ? "Listede bir oyuna Y (üçgen) bas — yıldızla. Sonra buradan aç."
+      : (state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at.` : "Liste taranıyor…");
     $("game-stage").innerHTML = `
       <div class="stage-body">
-        <p class="warn">${state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at.` : "Liste taranıyor…"}</p>
+        <p class="warn">${empty}</p>
       </div>`;
     return;
   }
@@ -662,14 +706,15 @@ function renderGames(opts) {
   paintLetterRail(list, gameLetter(game.title), false);
   paintGameWindow(list, game);
 
-  const bios = state.bios[system.id] || { ok: true };
+  const host = gameSystem(game) || system;
+  const bios = state.bios[host.id] || { ok: true };
   let warn = "";
   if (!state.config.retroarchExists) warn = "RetroArch yolu config.json içinde henüz yok.";
   else if (!bios.ok) warn = `BIOS eksik: ${(bios.needed || []).join(", ")}`;
-  else if (!game.installed) warn = `ROM yok. Yasal dump'ı roms/${system.romDir}/ klasörüne koy.`;
+  else if (!game.installed) warn = `ROM yok. Yasal dump'ı roms/${host.romDir}/ klasörüne koy.`;
 
   $("game-stage").innerHTML = `
-    ${posterHtml(game, system)}
+    ${posterHtml(game, host)}
     ${warn ? `<div class="stage-body"><p class="warn">${warn}</p></div>` : ""}`;
 }
 
@@ -677,8 +722,9 @@ async function loadCatalog() {
   const response = await fetch("/api/catalog");
   if (!response.ok) throw new Error("Katalog okunamadı");
   const data = await response.json();
-  state.systems = data.systems;
+  state.systems = systemsWithFav(data.systems);
   state.games = data.games;
+  if (Array.isArray(data.config.favorites)) state.favorites = data.config.favorites;
   rebuildGameCounts();
   state.catalogReady = !!data.catalogReady;
   state.bios = data.bios;
@@ -711,8 +757,8 @@ function pollCatalog() {
 
 async function launchCurrent() {
   const game = currentGame();
-  const system = currentSystem();
-  if (!game || state.launching) return;
+  const system = gameSystem(game);
+  if (!game || !system || system.id === "favorites" || state.launching) return;
   show("launch");
   $("launch-sys").textContent = system.name;
   $("launch-title").textContent = game.title;
@@ -849,11 +895,34 @@ async function saveSettings() {
     await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ controls: state.controls, crtFx: state.crtFx }),
+      body: JSON.stringify({
+        controls: state.controls,
+        crtFx: state.crtFx,
+        favorites: state.favorites,
+      }),
     });
   } catch (_error) {
     toast("Ayar yazılamadı.");
   }
+}
+
+function toggleFavorite() {
+  if (state.view !== "games") return;
+  const game = currentGame();
+  if (!game) return;
+  const had = isFavorite(game.id);
+  state.favorites = had
+    ? state.favorites.filter((id) => id !== game.id)
+    : [...state.favorites, game.id];
+  rebuildGameCounts();
+  if (currentSystem()?.id === "favorites" && had) {
+    if (state.gameIndex >= currentGames().length) {
+      state.gameIndex = Math.max(0, currentGames().length - 1);
+    }
+  }
+  renderGames();
+  sfx(had ? "back" : "ok");
+  saveSettings();
 }
 
 function openService() {
@@ -998,7 +1067,7 @@ function startHold(action) {
 
 function fireAction(action) {
   state.idle = 0;
-  if (["ok", "back", "service"].includes(action)) stopHold(false);
+  if (["ok", "back", "service", "fav"].includes(action)) stopHold(false);
   if (state.view === "boot" || state.view === "launch") return;
   if (action === "service") {
     if (state.view === "service") return;
@@ -1021,6 +1090,7 @@ function fireAction(action) {
   if (action === "down") move(state.view === "games" || state.view === "home" ? 1 : 0);
   if (action === "ok") confirm();
   if (action === "back") back();
+  if (action === "fav") toggleFavorite();
 }
 
 function handleService(action) {
@@ -1266,7 +1336,7 @@ function boot() {
   primeKioskDisplay();
   bootPadScan();
   if (!document.body.classList.contains("vga-kiosk")) stars();
-  state.systems = BOOT_SYSTEMS.slice();
+  state.systems = systemsWithFav(BOOT_SYSTEMS.slice());
   show("home");
   renderHome();
   primeAudio();

@@ -1652,6 +1652,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "display": config().get("display", {}),
                     "controls": config().get("controls", {}),
                     "crtFx": config().get("crtFx", {}),
+                    "favorites": config().get("favorites") or [],
                 },
                 "music": music_tracks(),
             }
@@ -1716,6 +1717,15 @@ class Handler(SimpleHTTPRequestHandler):
                 current["controls"] = body["controls"]
             if "crtFx" in body and isinstance(body["crtFx"], dict):
                 current["crtFx"] = body["crtFx"]
+            if "favorites" in body and isinstance(body["favorites"], list):
+                seen = []
+                for item in body["favorites"]:
+                    name = str(item or "").strip()
+                    if name and name not in seen:
+                        seen.append(name)
+                    if len(seen) >= 300:
+                        break
+                current["favorites"] = seen
             save_json(CONFIG_PATH, current)
             if current.get("crtFx", {}).get("sound") is False:
                 stop_kiosk_bgm()

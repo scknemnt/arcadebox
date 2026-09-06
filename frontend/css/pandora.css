@@ -431,10 +431,33 @@
 .theme-pandora .game-list .g-num,
 .theme-pandora .game-list .year { display: none; }
 
+.theme-pandora .game-list .g-star {
+  flex: 0 0 1.1em;
+  width: 1.1em;
+  color: #ffdc4c;
+  text-shadow: 0 0 8px #ff4ae8;
+}
+
+.theme-pandora .game-list .g-star:not(.on) {
+  color: rgba(255, 255, 255, 0.35);
+  text-shadow: none;
+}
+
 .theme-pandora .game-list .g-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pandora-fav-hint {
+  position: absolute;
+  left: 6.4%;
+  bottom: 6.4%;
+  z-index: 4;
+  margin: 0;
+  color: rgba(255, 220, 76, 0.85);
+  font: 11px Consolas, monospace;
+  letter-spacing: 0.16em;
 }
 
 .theme-pandora .game-list .missing { opacity: 0.35; }
