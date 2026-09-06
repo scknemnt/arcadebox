@@ -56,8 +56,22 @@
   pointer-events: none;
 }
 
+.pandora-bg-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  object-position: center;
+  pointer-events: none;
+  background: #120404;
+}
+
 .pandora-bg-home {
-  background-image: url("../media/pandora/system_main.jpg?v=3");
+  z-index: 1;
+  background-image: url("../media/pandora/system_main2.png");
+  background-color: transparent;
 }
 
 .pandora-bg-games {

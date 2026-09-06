@@ -13,7 +13,7 @@
     body[data-kiosk="vga"] #bezel { position: fixed; inset: 0; width: 100vw; height: 100vh; }
     .hidden { display: none !important; }
   </style>
-  <link rel="preload" as="image" href="media/pandora/system_main.jpg?v=3">
+  <link rel="preload" as="image" href="media/pandora/system_main2.png">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/pandora.css">
 </head>
@@ -45,6 +45,9 @@
         </section>
 
         <section id="view-home" class="view">
+          <video id="home-bg-video" class="pandora-bg-video" muted loop playsinline preload="auto" aria-hidden="true">
+            <source src="media/pandora/system_main.mp4" type="video/mp4">
+          </video>
           <div class="pandora-bg pandora-bg-home" aria-hidden="true"></div>
           <header class="pandora-hud">
             <span class="pandora-hud-item">TIME: <b id="home-time">99</b></span>

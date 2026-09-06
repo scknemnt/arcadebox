@@ -467,6 +467,20 @@ function show(view) {
     $("view-" + name).classList.toggle("hidden", name !== view);
   });
   syncMusic();
+  syncHomeVideo();
+}
+
+function syncHomeVideo() {
+  const video = $("home-bg-video");
+  if (!video) return;
+  video.muted = true;
+  video.loop = true;
+  if (state.view === "home") {
+    const play = video.play();
+    if (play) play.catch(() => {});
+  } else {
+    video.pause();
+  }
 }
 
 function toast(message) {
@@ -1157,6 +1171,7 @@ function ingest(token, down) {
   unlockAudio().then(() => {
     if (down) {
       syncMusic();
+      syncHomeVideo();
     }
   });
   state.lastSignal = prettyToken(token);
@@ -1327,7 +1342,7 @@ function hideSplash() {
   const img = new Image();
   img.onload = () => window.setTimeout(done, 40);
   img.onerror = done;
-  img.src = "media/pandora/system_main.jpg?v=3";
+  img.src = "media/pandora/system_main2.png";
   window.setTimeout(done, 2500);
 }
 
@@ -1378,6 +1393,7 @@ window.addEventListener("keydown", onKey);
 window.addEventListener("keyup", onKeyUp);
 window.addEventListener("pointerdown", () => {
   unlockAudio().then(() => primeAudio());
+  syncHomeVideo();
 }, { once: true });
 window.addEventListener("gamepadconnected", () => {
   state.padReady = true;
