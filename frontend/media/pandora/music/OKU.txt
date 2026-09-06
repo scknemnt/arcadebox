@@ -1,0 +1,7 @@
+Pandora tema menü müziği (isteğe bağlı)
+
+Bu klasöre .mp3 / .ogg / .wav koy — API otomatik listeler.
+Örnek: menu-ambient.wav (dahili fallback)
+
+Ana müzik klasörü: /music/ (gitignore — kabine elle kopyala)
+Öncelik: her iki klasör birleşik listede; çalma sırası alfabetik.

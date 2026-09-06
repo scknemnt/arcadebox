@@ -28,6 +28,7 @@ DATA = ROOT / "data"
 ROMS = ROOT / "roms"
 BIOS = ROOT / "bios"
 MUSIC = ROOT / "music"
+PANDORA_MUSIC = FRONTEND / "media" / "pandora" / "music"
 CONFIG_PATH = ROOT / "config.json"
 EMULATORS = ROOT / "emulators" / "retroarch"
 
@@ -122,23 +123,37 @@ PSX_DISC_EXTS = {".chd", ".cue", ".bin", ".iso", ".img", ".pbp", ".mdf"}
 _COVER_INDEX: dict[str, dict] = {}
 
 
-def music_tracks() -> list[str]:
-    if not MUSIC.is_dir():
+def _music_dir_names(folder: Path, prefix: str = "") -> list[str]:
+    if not folder.is_dir():
         return []
-    names = [
-        path.name
-        for path in MUSIC.iterdir()
-        if path.is_file() and path.suffix.lower() in MUSIC_EXTS
-    ]
+    out = []
+    for path in folder.iterdir():
+        if path.is_file() and path.suffix.lower() in MUSIC_EXTS:
+            out.append(f"{prefix}{path.name}" if prefix else path.name)
+    return out
+
+
+def music_tracks() -> list[str]:
+    names = _music_dir_names(MUSIC)
+    for item in _music_dir_names(PANDORA_MUSIC, "pandora/"):
+        if item not in names:
+            names.append(item)
     names.sort(key=str.lower)
     return names
 
 
 def resolve_music(name: str) -> Path | None:
     raw = unquote(name or "")
-    if not raw or "/" in raw or "\\" in raw or ".." in raw:
+    if not raw or ".." in raw:
         return None
-    path = MUSIC / Path(raw).name
+    raw = raw.replace("\\", "/")
+    if raw.startswith("pandora/"):
+        leaf = Path(raw[8:]).name
+        path = PANDORA_MUSIC / leaf
+    else:
+        if "/" in raw or "\\" in raw:
+            return None
+        path = MUSIC / Path(raw).name
     if path.is_file() and path.suffix.lower() in MUSIC_EXTS:
         return path
     return None

@@ -138,6 +138,15 @@ function sfx(kind) {
 const MUSIC_VOL = 0.42;
 const MUSIC_DUCK = 0.08;
 const BUILTIN_BGM = "media/menu-ambient.wav";
+const SYSTEM_LOGOS = {
+  atari2600: "media/pandora/logos/atari2600.png",
+  nes: "media/pandora/logos/nes.png",
+  snes: "media/pandora/logos/snes.png",
+  megadrive: "media/pandora/logos/megadrive.png",
+  arcade: "media/pandora/logos/arcade.png",
+  neogeo: "media/pandora/logos/neogeo.png",
+  psx: "media/pandora/logos/psx.png",
+};
 const SYSTEM_HERO = {
   atari2600: "media/home/system-atari2600.jpg",
   nes: "media/home/system-nes.jpg",
@@ -345,7 +354,7 @@ function primeKioskDisplay() {
   };
   applyDisplayProfile();
   window.setTimeout(() => {
-    document.querySelectorAll(".home-bg").forEach((bg) => bg.classList.add("loaded"));
+    document.querySelectorAll(".pandora-bg").forEach((bg) => bg.classList.add("loaded"));
   }, 1800);
 }
 
@@ -479,20 +488,31 @@ function setMarquee(id, text) {
   $(id).textContent = line + line;
 }
 
+function systemLogo(id) {
+  return SYSTEM_LOGOS[id] || SYSTEM_LOGOS.nes;
+}
+
 function renderHome() {
   const system = currentSystem();
   if (!system) return;
   const count = gameCount(system.id);
   $("home-title").textContent = system.name;
-  $("home-title").style.color = system.accent;
   $("home-era").textContent = `${system.era} · ${system.bits}`;
   $("home-count").textContent = !state.catalogReady && !count ? "SCAN…" : `${count} GAMES`;
   $("home-core").textContent = system.emulator.replace("RetroArch → ", "");
-  $("core-pill").textContent = `${state.systems.length} SYSTEM`;
-  $("home-pick-label").textContent = system.short || "SEÇİM";
-  const glow = $("home-glow");
-  if (glow) glow.style.background = `radial-gradient(circle at 50% 40%, ${system.accent}, transparent 70%)`;
-  $("home-preview").style.setProperty("--card-accent", system.accent);
+  const pageNum = String(state.systemIndex + 1).padStart(3, "0");
+  const pageTotal = String(state.systems.length).padStart(3, "0");
+  const pageEl = $("home-page");
+  if (pageEl) pageEl.textContent = `${pageNum}/${pageTotal}`;
+  const logoEl = $("home-sys-logo");
+  if (logoEl) {
+    const logo = systemLogo(system.id);
+    if (logoEl.dataset.src !== logo) {
+      logoEl.dataset.src = logo;
+      logoEl.src = logo;
+    }
+    logoEl.alt = system.name;
+  }
   const art = $("home-art");
   if (art) {
     const next = SYSTEM_HERO[system.id] || SYSTEM_HERO.nes;
@@ -511,16 +531,11 @@ function renderHome() {
       .map((item, index) => {
         const n = gameCount(item.id);
         const meta = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
-        const num = String(index + 1).padStart(2, "0");
+        const num = String(index + 1).padStart(4, "0");
         const active = index === state.systemIndex;
-        const thumb = active ? SYSTEM_HERO[item.id] || "" : "";
-        const thumbHtml = active && thumb
-          ? `<img class="sys-thumb" src="${thumb}" alt="" decoding="async">`
-          : `<span class="sys-thumb ph" style="--card-accent:${item.accent}"></span>`;
         return `
         <li class="${active ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
           <b>${num}</b>
-          ${thumbHtml}
           <span>${item.name}</span>
           <em>${meta}</em>
         </li>`;
@@ -536,26 +551,6 @@ function renderHome() {
     const n = gameCount(state.systems[index].id);
     const meta = li.querySelector("em");
     if (meta) meta.textContent = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
-    const thumbSlot = li.children[1];
-    if (!thumbSlot) return;
-    const thumb = SYSTEM_HERO[state.systems[index].id] || "";
-    if (active && thumb) {
-      if (thumbSlot.tagName !== "IMG") {
-        const img = document.createElement("img");
-        img.className = "sys-thumb";
-        img.decoding = "async";
-        img.alt = "";
-        thumbSlot.replaceWith(img);
-        img.src = thumb;
-      } else if (thumbSlot.getAttribute("src") !== thumb) {
-        thumbSlot.src = thumb;
-      }
-    } else if (thumbSlot.tagName !== "SPAN") {
-      const ph = document.createElement("span");
-      ph.className = "sys-thumb ph";
-      ph.style.setProperty("--card-accent", state.systems[index].accent);
-      thumbSlot.replaceWith(ph);
-    }
   });
 }
 
@@ -587,8 +582,10 @@ function paintGameWindow(list, game) {
   $("game-list").innerHTML = visible
     .map((item) => {
       const active = item.id === game.id;
+      const idx = String(list.indexOf(item) + 1).padStart(4, "0");
       return `<li class="${active ? "active" : ""} ${item.installed ? "" : "missing"}" data-id="${item.id}">
-        <span>${item.title}</span>
+        <span class="g-num">${idx}</span>
+        <span class="g-title">${item.title}</span>
         <span class="year">${item.year}${item.installed ? "" : "  ·  YOK"}</span>
       </li>`;
     })
@@ -600,8 +597,15 @@ function renderGames(opts) {
   const system = currentSystem();
   const list = currentGames();
   if (!system) return;
-  $("games-chip").textContent = system.short;
-  $("games-chip").style.color = system.accent;
+  const logoEl = $("games-logo");
+  if (logoEl) {
+    const logo = systemLogo(system.id);
+    if (logoEl.dataset.src !== logo) {
+      logoEl.dataset.src = logo;
+      logoEl.src = logo;
+    }
+    logoEl.alt = system.name;
+  }
   document.documentElement.style.setProperty("--card-accent", system.accent);
 
   if (!list.length) {
@@ -630,7 +634,6 @@ function renderGames(opts) {
     return;
   }
 
-  setMarquee("games-marquee", `${system.emulator}  ·  ${list.length} oyun  ·  sol-sag harf`);
   const bios = state.bios[system.id] || { ok: true };
   const canPlay = game.installed && bios.ok && state.config.retroarchExists;
   let warn = "";
@@ -642,7 +645,7 @@ function renderGames(opts) {
     ${posterHtml(game, system)}
     <div class="stage-body">
       <p class="eyebrow">${system.name}</p>
-      <h2 style="color:${system.accent}">${game.title}</h2>
+      <h2>${game.title}</h2>
       <div class="facts">
         <span>${game.year}</span>
         <span>${game.players} OYUNCU</span>

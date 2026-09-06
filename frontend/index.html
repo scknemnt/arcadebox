@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ARCADE BOX</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #0a0018 !important; color: #f4eeff; overflow: hidden; }
-    #splash { position: fixed; inset: 0; z-index: 99999; background: #0a0018; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
-    #splash strong { font: 52px Impact, sans-serif; color: #00eaff; letter-spacing: 0.08em; text-shadow: 0 0 24px #00eaff; }
-    #splash small { color: #9a8fc4; letter-spacing: 0.28em; font: 10px Consolas, monospace; }
-    #bezel, #tube, #stage { background: #0a0018; min-height: 100vh; }
+    html, body { margin: 0; height: 100%; background: #1a0505 !important; color: #fff8e8; overflow: hidden; }
+    #splash { position: fixed; inset: 0; z-index: 99999; background: linear-gradient(180deg, #2a0808, #120404); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+    #splash strong { font: 52px Impact, sans-serif; color: #ffdc4c; letter-spacing: 0.08em; text-shadow: 0 0 24px #ff6b2c; }
+    #splash small { color: #ffb347; letter-spacing: 0.28em; font: 10px Consolas, monospace; }
+    #bezel, #tube, #stage { background: #120404; min-height: 100vh; }
     body[data-kiosk="vga"] #bezel { position: fixed; inset: 0; width: 100vw; height: 100vh; }
     .hidden { display: none !important; }
   </style>
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/pandora.css">
 </head>
-<body data-kiosk="vga">
+<body class="theme-pandora theme-red-yellow" data-kiosk="vga">
   <div id="splash" aria-hidden="true"><strong>ARCADE BOX</strong><small>YUKLENIYOR</small></div>
   <audio id="bgm-prime" loop preload="auto" autoplay muted playsinline></audio>
   <div id="bezel">
@@ -36,93 +37,72 @@
             <span class="invader orange"></span>
             <span class="invader green"></span>
           </div>
-          <p class="eyebrow">SYSTEM DISK · 1989</p>
+          <p class="eyebrow">PANDORA · 80-90</p>
           <h1 class="boot-logo chroma">ARCADE BOX</h1>
           <p class="boot-sub" id="boot-status">Yükleniyor…</p>
           <div class="boot-bar"><i id="boot-fill"></i></div>
         </section>
 
         <section id="view-home" class="view">
-          <div class="home-scene" aria-hidden="false">
-            <div class="home-bg"></div>
-            <div class="home-neon-top"></div>
-            <div class="home-neon-floor"></div>
-          </div>
-          <header class="topbar home-bar">
-            <div class="brand">
-              <span class="brand-mark" id="open-service" title="Servis">AB</span>
-              <div>
-                <strong>ARCADE BOX</strong>
-                <small>FREE PLAY · 80-90</small>
-              </div>
-            </div>
-            <div class="home-hud">
-              <span id="home-pick-label">SEÇİM</span>
-              <span id="core-pill">7 SYSTEM</span>
-            </div>
+          <div class="pandora-bg pandora-bg-home" aria-hidden="true"></div>
+          <header class="pandora-hud">
+            <span class="pandora-hud-item">TIME: <b id="home-time">99</b></span>
+            <span class="pandora-hud-item">PAGE: <b id="home-page">001/007</b></span>
+            <span class="pandora-credits">CREDIT(S): <em>FREE</em></span>
+            <button type="button" class="pandora-service" id="open-service" title="Servis">⚙</button>
           </header>
 
-          <div class="home-layout">
+          <div class="home-layout pandora-home-layout">
             <div class="sys-rail">
               <ol class="sys-list" id="system-row"></ol>
             </div>
 
-            <div class="hero-stage" id="home-preview">
-              <div class="tv-frame">
-                <img id="home-art" class="tv-screen" src="" alt="" decoding="async">
-                <div class="tv-bezel"></div>
-                <div class="tv-glow" id="home-glow"></div>
+            <div class="pandora-preview" id="home-preview">
+              <img id="home-sys-logo" class="pandora-sys-logo" src="" alt="">
+              <div class="pandora-video-frame">
+                <img id="home-art" class="pandora-screen" src="" alt="" decoding="async">
+                <div class="pandora-coin-msg" id="home-coin">INSERT COIN</div>
               </div>
-            </div>
-
-            <aside class="hero-side">
-              <div class="hero-side-meta">
+              <div class="pandora-side-info">
                 <p class="eyebrow" id="home-era">1977 · 8-BIT</p>
-                <div class="preview-meta">
+                <h2 id="home-title">Atari 2600</h2>
+                <p class="pandora-meta">
                   <span id="home-count">0 GAMES</span>
                   <span id="home-core">STELLA</span>
-                </div>
+                </p>
               </div>
-              <h2 id="home-title" class="hero-title-vertical">Atari 2600</h2>
-              <div class="hero-side-deco" aria-hidden="true">
-                <span></span><span></span><span></span>
-              </div>
-            </aside>
+            </div>
           </div>
 
-          <footer class="hintbar">
-            <span><kbd>↑</kbd><kbd>↓</kbd> seç</span>
-            <span><kbd>START</kbd> gir</span>
+          <footer class="hintbar pandora-hint">
+            <span class="pandora-help-item"><i class="ico-stick"></i> CHOOSE</span>
+            <span class="pandora-help-item"><i class="ico-a"></i> LAUNCH</span>
+            <span class="pandora-help-item"><i class="ico-b"></i> BACK</span>
             <span class="insert-coin">FREE PLAY</span>
-            <span class="ghost">F2 SERVİS</span>
           </footer>
         </section>
 
         <section id="view-games" class="view hidden">
-          <div class="home-scene" aria-hidden="true">
-            <div class="home-bg"></div>
-            <div class="home-neon-top"></div>
-            <div class="home-neon-floor"></div>
-          </div>
-          <header class="topbar games-bar">
-            <button class="text-btn" id="back-home" type="button">← KONSOLLAR</button>
-            <div class="sys-chip" id="games-chip">NES</div>
-            <div class="marquee"><span id="games-marquee">OYUN SEÇ</span></div>
-            <div class="live-pill" id="rom-count">0 / 0</div>
+          <div class="pandora-bg pandora-bg-games" aria-hidden="true"></div>
+          <header class="pandora-games-head">
+            <img id="games-logo" class="pandora-sys-logo" src="" alt="">
+            <span class="pandora-credits">CREDIT(S): <em>FREE</em></span>
+            <button class="text-btn pandora-back" id="back-home" type="button">← SYSTEM</button>
+            <span class="live-pill pandora-page-pill" id="rom-count">0 / 0</span>
           </header>
 
-          <div class="letter-rail" id="letter-rail" hidden></div>
+          <div class="letter-rail pandora-letters" id="letter-rail" hidden></div>
 
-          <div class="games-layout">
+          <div class="games-layout pandora-games-layout">
             <ol class="game-list" id="game-list"></ol>
-            <aside class="game-stage" id="game-stage"></aside>
+            <aside class="game-stage pandora-stage" id="game-stage"></aside>
           </div>
 
-          <footer class="hintbar">
-            <span><kbd>←</kbd><kbd>→</kbd> harf</span>
-            <span><kbd>↑</kbd><kbd>↓</kbd> oyun</span>
-            <span><kbd>START</kbd> aç</span>
-            <span class="ghost">B geri</span>
+          <footer class="hintbar pandora-hint">
+            <span class="pandora-help-item"><i class="ico-stick"></i> CHOOSE</span>
+            <span class="pandora-help-item"><i class="ico-a"></i> LAUNCH</span>
+            <span class="pandora-help-item"><i class="ico-b"></i> BACK</span>
+            <span class="ghost">← → harf</span>
           </footer>
         </section>
 
