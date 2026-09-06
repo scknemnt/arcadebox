@@ -549,15 +549,10 @@ function renderHome() {
     row.dataset.sig = sig;
     row.innerHTML = state.systems
       .map((item, index) => {
-        const n = gameCount(item.id);
-        const meta = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
-        const num = String(index + 1).padStart(4, "0");
         const active = index === state.systemIndex;
         return `
-        <li class="${active ? "active" : ""}" data-index="${index}" style="--card-accent:${item.accent}">
-          <b>${num}</b>
-          <span>${item.name}</span>
-          <em>${meta}</em>
+        <li class="${active ? "active" : ""}" data-index="${index}">
+          <img class="sys-logo-item" src="${systemLogo(item.id)}" alt="${item.name}">
         </li>`;
       })
       .join("");
@@ -565,12 +560,7 @@ function renderHome() {
   }
 
   [...row.children].forEach((li, index) => {
-    const active = index === state.systemIndex;
-    li.classList.toggle("active", active);
-    li.style.setProperty("--card-accent", state.systems[index].accent);
-    const n = gameCount(state.systems[index].id);
-    const meta = li.querySelector("em");
-    if (meta) meta.textContent = !state.catalogReady && !n ? "…" : String(n).padStart(3, "0");
+    li.classList.toggle("active", index === state.systemIndex);
   });
 }
 

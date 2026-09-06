@@ -114,67 +114,59 @@
 
 .theme-pandora .sys-rail {
   position: absolute;
-  left: 2.4%;
-  top: 17%;
-  width: 38%;
-  height: 58%;
-  perspective: 700px;
-  perspective-origin: left center;
+  left: 0.4%;
+  top: 16%;
+  width: 34%;
+  height: 62%;
   display: flex;
   align-items: center;
   overflow: visible;
 }
 
 .theme-pandora .sys-list {
-  gap: clamp(8px, 1.2vh, 12px);
+  gap: clamp(6px, 1vh, 10px);
   padding: 0;
   width: 100%;
 }
 
 .theme-pandora .sys-list li {
-  grid-template-columns: 70px 1fr auto;
-  gap: 12px;
-  padding: clamp(13px, 1.9vh, 20px) 16px;
-  border: 2px solid rgba(255, 0, 220, 0.35);
-  border-radius: 0;
-  background: linear-gradient(90deg, rgba(60, 8, 70, 0.82), rgba(20, 4, 40, 0.65));
-  color: rgba(255, 230, 255, 0.75);
-  font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(16px, 2.4vh, 24px);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transform: perspective(700px) rotateY(10deg) skewX(-6deg) scale(0.98);
-  transform-origin: left center;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
-  max-width: 96%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+  max-width: 100%;
 }
 
 .theme-pandora .sys-list li.active {
-  transform: perspective(700px) rotateY(3deg) skewX(-6deg) scale(1) translateX(4px);
-  background: linear-gradient(90deg, rgba(180, 0, 160, 0.88), rgba(0, 200, 255, 0.28));
-  color: #fff;
-  border-color: #ff4ae8;
-  box-shadow: 0 0 14px rgba(255, 0, 220, 0.4);
+  background: none;
+  transform: none;
+  z-index: 2;
 }
 
-.theme-pandora .sys-list li b {
-  color: #7cf6ff;
-  font-size: clamp(13px, 1.8vh, 18px);
+.theme-pandora .sys-logo-item {
+  display: block;
+  width: min(78%, 280px);
+  height: clamp(28px, 5.6vh, 48px);
+  object-fit: contain;
+  object-position: left center;
+  opacity: 0.55;
+  filter: grayscale(0.15) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
+  transform: scale(0.92);
+  transform-origin: left center;
+  transition: transform 0.16s ease, opacity 0.16s ease, height 0.16s ease, filter 0.16s ease;
 }
 
-.theme-pandora .sys-list li em {
-  color: rgba(255, 180, 255, 0.8);
-  font-size: clamp(12px, 1.6vh, 16px);
-}
-
-.theme-pandora .sys-list li.active b,
-.theme-pandora .sys-list li.active em { color: #fff; }
-
-.theme-pandora .sys-list li span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+.theme-pandora .sys-list li.active .sys-logo-item,
+.theme-pandora .sys-list li:hover .sys-logo-item {
+  opacity: 1;
+  height: clamp(40px, 8vh, 68px);
+  width: min(92%, 340px);
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 10px rgba(255, 80, 220, 0.45)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
 }
 
 .theme-pandora .sys-thumb,
@@ -182,13 +174,13 @@
 
 .pandora-center-slot {
   position: absolute;
-  left: 50%;
-  top: 38%;
-  width: 28%;
-  height: 8%;
-  transform: translate(-50%, -50%);
+  left: calc(1436 / 1920 * 100%);
+  top: calc(618 / 1080 * 100%);
+  width: calc(400 / 1920 * 100%);
+  height: auto;
+  transform: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   pointer-events: none;
   z-index: 3;
@@ -197,7 +189,7 @@
 .pandora-center-slot h2 {
   margin: 0;
   font-family: "Road Rage", Impact, sans-serif;
-  font-size: clamp(18px, 3.2vh, 32px);
+  font-size: clamp(16px, 2.8vh, 26px);
   line-height: 1;
   color: #fff;
   text-transform: uppercase;
@@ -211,14 +203,14 @@
 
 .pandora-sys-info {
   position: absolute;
-  left: 50%;
-  top: 44%;
-  width: 28.75%;
-  transform: translate(-50%, -50%);
+  left: calc(1436 / 1920 * 100%);
+  top: calc(652 / 1080 * 100%);
+  width: calc(400 / 1920 * 100%);
+  transform: none;
   margin: 0;
   text-align: center;
   font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(11px, 2vh, 18px);
+  font-size: clamp(11px, 2vh, 16px);
   letter-spacing: 0.12em;
   color: rgba(180, 255, 255, 0.85);
   text-shadow: 0 1px 4px #000;
@@ -238,7 +230,17 @@
 }
 
 .theme-pandora #view-home .pandora-sys-logo {
-  display: none;
+  display: block;
+  position: absolute;
+  left: calc(1436 / 1920 * 100%);
+  top: calc(268 / 1080 * 100%);
+  width: calc(400 / 1920 * 100%);
+  height: calc(64 / 1080 * 100%);
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
+  z-index: 4;
+  pointer-events: none;
 }
 
 .theme-pandora #view-home .pandora-screen {
