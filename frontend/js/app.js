@@ -135,7 +135,7 @@ function sfx(kind) {
   if (kind === "error") beep(180, 0.16, 0.14, -40);
 }
 
-const MUSIC_VOL = 0.32;
+const MUSIC_VOL = 0.42;
 const MUSIC_DUCK = 0.08;
 const BUILTIN_BGM = "media/menu-ambient.wav";
 const SYSTEM_HERO = {

@@ -1238,6 +1238,17 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(FRONTEND), **kwargs)
 
+    def _send_file(self, path: Path, mime: str, cache: str = "public, max-age=3600") -> None:
+        size = path.stat().st_size
+        self.send_response(200)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(size))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", cache)
+        self.end_headers()
+        with path.open("rb") as handle:
+            shutil.copyfileobj(handle, self.wfile)
+
     def log_message(self, format: str, *args) -> None:
         sys.stderr.write("ArcadeBox: " + (format % args) + "\n")
 
@@ -1302,13 +1313,9 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_error(404, "Parça yok")
                 return
             mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
-            data = path.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", mime)
-            self.send_header("Cache-Control", "public, max-age=3600")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
+            if path.suffix.lower() == ".mp3":
+                mime = "audio/mpeg"
+            self._send_file(path, mime)
             return
         return super().do_GET()
 
