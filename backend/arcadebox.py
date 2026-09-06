@@ -404,6 +404,15 @@ def stop_kiosk_bgm(keep_wanted: bool = False) -> None:
         if not keep_wanted:
             _AUDIO["wanted"] = False
     _kill_bgm_proc()
+    deadline = time.time() + 1.2
+    while time.time() < deadline:
+        with _AUDIO["lock"]:
+            proc = _AUDIO["bgm_proc"]
+        if proc is None or proc.poll() is not None:
+            break
+        time.sleep(0.05)
+    if os.name != "nt":
+        time.sleep(0.2)
 
 
 def _bgm_supervisor() -> None:
@@ -1156,6 +1165,18 @@ def _aspect_ratio_index() -> str:
     return "1"
 
 
+def _game_refresh_rate(system: dict) -> str:
+    # Neo Geo / CPS / most 90s boards are ~59.18–60 Hz. Forcing 50 Hz on a 60 Hz VGA
+    # panel makes vsync miss; FBNeo then runs Metal Slug and friends uncapped.
+    if system["id"] == "neogeo":
+        return "59.185606"
+    if system["id"] in {"arcade", "megadrive", "snes", "psx"}:
+        return "59.94"
+    if system["id"] == "nes":
+        return "60.098812"
+    return "60"
+
+
 def _first_gamepad(tokens) -> str | None:
     for token in tokens or []:
         text = str(token)
@@ -1320,6 +1341,7 @@ def _core_option_lines(system: dict, core: Path) -> list[str]:
                 'fbneo-sample-interpolation = "disabled"',
                 'fbneo-diagnostic = "disabled"',
                 'fbneo-cpu-speed-adjust = "100"',
+                'fbneo-frameskip = "0"',
             ]
         )
     return lines
@@ -1398,13 +1420,14 @@ def launch_game(game_id: str) -> dict:
         'video_hard_sync = "false"',
         'video_threaded = "false"',
         'video_swap_interval = "1"',
-        'video_refresh_rate = "50"',
+        f'video_refresh_rate = "{_game_refresh_rate(system)}"',
         'video_autoswitch_refresh_rate = "0"',
         'vrr_runloop_enable = "false"',
         'run_ahead_enabled = "false"',
         'audio_enable = "true"',
         'audio_sync = "true"',
         'audio_rate_control = "true"',
+        'audio_latency = "64"',
         'fastforward_ratio = "1.0"',
         'input_toggle_fast_forward = "nul"',
         'input_hold_fast_forward = "nul"',
@@ -1491,7 +1514,7 @@ def launch_game(game_id: str) -> dict:
     args = [str(exe), "--verbose", "-L", str(core), "-f", "--appendconfig", str(override), rom_arg]
     creationflags = 0
     popen_env = os.environ.copy()
-    popen_env.pop("vblank_mode", None)
+    popen_env["vblank_mode"] = "1"
     if os.name == "nt":
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
