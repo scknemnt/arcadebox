@@ -65,28 +65,66 @@ fi
 
 unclutter -idle 0.4 -root >/dev/null 2>&1 &
 
-# Firefox / menu muzigi icin ses sunucusu (minimal Debian'da yok)
+# startx/getty oturumunda Pulse soketi icin
+uid="$(id -u)"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$uid}"
+if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+  export XDG_RUNTIME_DIR="/tmp/runtime-$uid"
+  mkdir -p "$XDG_RUNTIME_DIR"
+  chmod 700 "$XDG_RUNTIME_DIR"
+fi
+
+# Firefox Pulse ister; menü muzigi ALSA/aplay kullanir. Ikisini de ayaga kaldir.
 if command -v pipewire >/dev/null 2>&1; then
   pipewire >/dev/null 2>&1 &
-  wireplumber >/dev/null 2>&1 &
-  sleep 1
+  command -v pipewire-pulse >/dev/null 2>&1 && pipewire-pulse >/dev/null 2>&1 &
+  command -v wireplumber >/dev/null 2>&1 && wireplumber >/dev/null 2>&1 &
+  n=0
+  while [ "$n" -lt 20 ]; do
+    [ -S "$XDG_RUNTIME_DIR/pulse/native" ] && break
+    n=$((n + 1))
+    sleep 0.25
+  done
 elif command -v pulseaudio >/dev/null 2>&1; then
-  pulseaudio --daemonize=true 2>/dev/null || true
+  pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 || pulseaudio --daemonize=true 2>/dev/null || true
+fi
+
+if command -v amixer >/dev/null 2>&1; then
+  amixer -q sset Master 90% unmute 2>/dev/null || true
+  amixer -q sset PCM 90% unmute 2>/dev/null || true
+  amixer -q sset Speaker 90% unmute 2>/dev/null || true
+  amixer -q sset Headphone 90% unmute 2>/dev/null || true
+  amixer -q sset Line 90% unmute 2>/dev/null || true
+fi
+
+if command -v pactl >/dev/null 2>&1; then
+  analog="$(pactl list short sinks 2>/dev/null | awk '/analog|alsa_output/ && $0 !~ /hdmi|hdmi/ { print $2; exit }')"
+  if [ -n "$analog" ]; then
+    pactl set-default-sink "$analog" 2>/dev/null || true
+  fi
+  pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
+  pactl set-sink-volume @DEFAULT_SINK@ 90% 2>/dev/null || true
+fi
+
+if [ -f /proc/asound/pcm ]; then
+  echo "ALSA pcm:" >>"$LOG"
+  cat /proc/asound/pcm >>"$LOG" 2>&1 || true
+fi
+if command -v aplay >/dev/null 2>&1; then
+  echo "aplay -l:" >>"$LOG"
+  aplay -l >>"$LOG" 2>&1 || true
 fi
 
 URL="http://127.0.0.1:7842/"
 
 if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
   modprobe joydev 2>/dev/null || true
-  FF_BASE="$HOME/.mozilla/firefox-esr"
-  mkdir -p "$FF_BASE"
-  for prof in "$FF_BASE"/*.default-esr "$FF_BASE"/*.default; do
-    [ -d "$prof" ] || continue
-    touch "$prof/user.js"
-    sed -i '/media.autoplay/d;/dom.gamepad/d;/browser.display.background_color/d;/browser.display.use_system_colors/d;/browser.cache.disk.enable/d' "$prof/user.js" 2>/dev/null || true
-    cat >>"$prof/user.js" <<'EOF'
+  FF_PROF="$HOME/.arcadebox-firefox"
+  mkdir -p "$FF_PROF"
+  cat >"$FF_PROF/user.js" <<'EOF'
 user_pref("media.autoplay.default", 0);
 user_pref("media.autoplay.enabled", true);
+user_pref("media.autoplay.blocking_policy", 0);
 user_pref("media.autoplay.block-webaudio", false);
 user_pref("media.autoplay.allow-muted", true);
 user_pref("media.block-autoplay-until-in-foreground", false);
@@ -96,7 +134,16 @@ user_pref("browser.display.background_color", "#120404");
 user_pref("browser.display.use_system_colors", false);
 user_pref("browser.cache.disk.enable", true);
 EOF
-  done
+  (
+    n=0
+    while [ "$n" -lt 25 ]; do
+      sleep 0.4
+      if command -v xdotool >/dev/null 2>&1; then
+        xdotool search --onlyvisible --class Firefox windowactivate --sync click 1 && break
+      fi
+      n=$((n + 1))
+    done
+  ) >/dev/null 2>&1 &
   python3 backend/arcadebox.py --kiosk --no-browser &
   srv=$!
   sleep 1
@@ -105,8 +152,8 @@ EOF
     wait "$srv" 2>/dev/null || true
     exit 1
   fi
-  echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY"
-  exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote "$URL"
+  echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY profile=$FF_PROF"
+  exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL"
 fi
 
 exec python3 backend/arcadebox.py --kiosk

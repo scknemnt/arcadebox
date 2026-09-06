@@ -137,6 +137,18 @@ const SFX_SRC = {
   error: toneWav(180, 0.16, 0.6),
 };
 
+function useHostAudio() {
+  return document.body.dataset.kiosk === "vga" && /Linux/i.test(navigator.userAgent);
+}
+
+function hostAudio(body) {
+  fetch("/api/audio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+}
+
 function playSfxUrl(url) {
   const shot = new Audio(url);
   shot.volume = 0.7;
@@ -149,6 +161,10 @@ function beep(freq, dur, vol) {
 
 function sfx(kind) {
   if (state.crtFx.sound === false) return;
+  if (useHostAudio()) {
+    hostAudio({ cmd: "sfx", kind });
+    return;
+  }
   duckMusic();
   if (SFX_SRC[kind]) playSfxUrl(SFX_SRC[kind]);
 }
@@ -263,7 +279,21 @@ function attemptBgmPlay(player) {
   });
 }
 
+let lastHostBgm = "";
+
 function playMenuMusic() {
+  if (useHostAudio()) {
+    if (!musicWanted()) {
+      lastHostBgm = "";
+      hostAudio({ cmd: "stop" });
+      return;
+    }
+    const key = (state.music && state.music.length) ? state.music[musicIndex % state.music.length] : "__builtin__";
+    if (lastHostBgm === key) return;
+    lastHostBgm = key;
+    hostAudio({ cmd: "bgm", file: key === "__builtin__" ? "" : key });
+    return;
+  }
   if (!musicWanted()) {
     stopSynthBgm();
     if (bgm && !bgm.paused) bgm.pause();

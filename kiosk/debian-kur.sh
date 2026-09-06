@@ -39,6 +39,9 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   unclutter \
   chromium \
   firefox-esr \
+  alsa-utils \
+  pipewire-pulse \
+  pulseaudio-utils \
   retroarch \
   joystick \
   mesa-utils \

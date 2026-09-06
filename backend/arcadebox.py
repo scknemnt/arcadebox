@@ -5,12 +5,14 @@
 from __future__ import annotations
 
 import json
+import math
 import mimetypes
 import os
 import platform
 import re
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import threading
@@ -157,6 +159,259 @@ def resolve_music(name: str) -> Path | None:
     if path.is_file() and path.suffix.lower() in MUSIC_EXTS:
         return path
     return None
+
+
+_AUDIO = {
+    "lock": threading.Lock(),
+    "bgm_proc": None,
+    "wanted": False,
+    "path": None,
+    "supervisor": False,
+}
+_SFX_WAV: dict[str, bytes] = {}
+_SFX_TONES = {
+    "move": (1180, 0.05, 0.55),
+    "ok": (880, 0.09, 0.6),
+    "back": (360, 0.1, 0.55),
+    "launch": (523, 0.14, 0.62),
+    "boot": (659, 0.16, 0.6),
+    "error": (180, 0.16, 0.6),
+}
+
+
+def _tone_wav(freq: float, seconds: float, volume: float) -> bytes:
+    rate = 22050
+    count = max(8, int(rate * seconds))
+    samples = bytearray()
+    for index in range(count):
+        env = min(1.0, index / 90.0) * (1.0 - index / count)
+        value = int(math.sin(2 * math.pi * freq * index / rate) * volume * env * 32767)
+        samples.extend(struct.pack("<h", max(-32767, min(32767, value))))
+    header = struct.pack(
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF",
+        36 + len(samples),
+        b"WAVE",
+        b"fmt ",
+        16,
+        1,
+        1,
+        rate,
+        rate * 2,
+        2,
+        16,
+        b"data",
+        len(samples),
+    )
+    return header + bytes(samples)
+
+
+def _sfx_wav(kind: str) -> bytes:
+    if kind not in _SFX_WAV:
+        freq, seconds, volume = _SFX_TONES.get(kind, _SFX_TONES["ok"])
+        _SFX_WAV[kind] = _tone_wav(freq, seconds, volume)
+    return _SFX_WAV[kind]
+
+
+def _pick_alsa_device() -> str | None:
+    forced = os.environ.get("ARCADEBOX_ALSA_DEVICE")
+    if forced:
+        return forced
+    pcm = Path("/proc/asound/pcm")
+    if not pcm.is_file():
+        return None
+    analog = None
+    other = None
+    for line in pcm.read_text(encoding="utf-8", errors="replace").splitlines():
+        low = line.lower()
+        if "playback" not in low:
+            continue
+        head = line.split(":", 1)[0].strip()
+        if "-" not in head:
+            continue
+        card, device = head.split("-", 1)
+        try:
+            name = f"plughw:{int(card)},{int(device)}"
+        except ValueError:
+            continue
+        if "hdmi" in low or "displayport" in low:
+            continue
+        if analog is None and ("analog" in low or "speaker" in low or "alc" in low):
+            analog = name
+        elif other is None:
+            other = name
+    return analog or other
+
+
+def _play_wav_bytes(data: bytes) -> None:
+    device = _pick_alsa_device()
+    commands = []
+    if which("aplay"):
+        cmd = ["aplay", "-q", "-t", "wav"]
+        if device:
+            cmd.extend(["-D", device])
+        cmd.append("-")
+        commands.append(cmd)
+        if device:
+            commands.append(["aplay", "-q", "-t", "wav", "-"])
+    if which("paplay"):
+        commands.append(["paplay", "--file-format=wav"])
+    if which("pw-play"):
+        commands.append(["pw-play", "-"])
+    for command in commands:
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            assert proc.stdin is not None
+            proc.stdin.write(data)
+            proc.stdin.close()
+            return
+        except OSError:
+            continue
+
+
+def default_bgm_path(name: str = "") -> Path | None:
+    if name and name != "__builtin__":
+        found = resolve_music(name)
+        if found:
+            return found
+    for track in music_tracks():
+        found = resolve_music(track)
+        if found:
+            return found
+    for path in (
+        FRONTEND / "media" / "menu-ambient.wav",
+        FRONTEND / "media" / "pandora" / "music" / "menu-ambient.wav",
+    ):
+        if path.is_file():
+            return path
+    return None
+
+
+def _bgm_command(path: Path) -> list[str] | None:
+    device = _pick_alsa_device()
+    if which("ffplay"):
+        return ["ffplay", "-nodisp", "-hide_banner", "-loglevel", "quiet", "-loop", "0", str(path)]
+    if which("mpv"):
+        return ["mpv", "--no-video", "--really-quiet", "--loop", str(path)]
+    if which("aplay"):
+        cmd = ["aplay", "-q"]
+        if device:
+            cmd.extend(["-D", device])
+        cmd.append(str(path))
+        return cmd
+    if which("paplay"):
+        return ["paplay", str(path)]
+    return None
+
+
+def _kill_bgm_proc() -> None:
+    with _AUDIO["lock"]:
+        proc = _AUDIO["bgm_proc"]
+        _AUDIO["bgm_proc"] = None
+    if proc is None or proc.poll() is not None:
+        return
+    try:
+        proc.terminate()
+        proc.wait(timeout=1)
+    except (OSError, subprocess.TimeoutExpired):
+        try:
+            proc.kill()
+        except OSError:
+            pass
+
+
+def stop_kiosk_bgm(keep_wanted: bool = False) -> None:
+    with _AUDIO["lock"]:
+        if not keep_wanted:
+            _AUDIO["wanted"] = False
+    _kill_bgm_proc()
+
+
+def _bgm_supervisor() -> None:
+    while True:
+        time.sleep(0.2)
+        with _AUDIO["lock"]:
+            wanted = _AUDIO["wanted"]
+            path = _AUDIO["path"]
+            proc = _AUDIO["bgm_proc"]
+        if not wanted:
+            if proc is not None:
+                _kill_bgm_proc()
+            continue
+        if path is None:
+            continue
+        if proc is not None and proc.poll() is None:
+            continue
+        command = _bgm_command(path)
+        if not command:
+            continue
+        try:
+            spawned = subprocess.Popen(
+                command,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError:
+            continue
+        with _AUDIO["lock"]:
+            if not _AUDIO["wanted"] or _AUDIO["path"] != path:
+                spawned.kill()
+                continue
+            _AUDIO["bgm_proc"] = spawned
+
+
+def start_kiosk_bgm(name: str = "") -> bool:
+    if os.name == "nt":
+        return False
+    if config().get("crtFx", {}).get("sound") is False:
+        stop_kiosk_bgm()
+        return False
+    path = default_bgm_path(name)
+    if not path:
+        return False
+    if not _bgm_command(path):
+        return False
+    with _AUDIO["lock"]:
+        same = _AUDIO["path"] == path and _AUDIO["bgm_proc"] is not None and _AUDIO["bgm_proc"].poll() is None
+        _AUDIO["wanted"] = True
+        _AUDIO["path"] = path
+        if not _AUDIO["supervisor"]:
+            _AUDIO["supervisor"] = True
+            threading.Thread(target=_bgm_supervisor, daemon=True).start()
+    if not same:
+        _kill_bgm_proc()
+        print(f"Kiosk BGM {path.name} alsa={_pick_alsa_device() or 'default'}", flush=True)
+    return True
+
+
+def play_kiosk_sfx(kind: str) -> None:
+    if os.name == "nt":
+        return
+    if config().get("crtFx", {}).get("sound") is False:
+        return
+    data = _sfx_wav(kind)
+    threading.Thread(target=_play_wav_bytes, args=(data,), daemon=True).start()
+
+
+def handle_audio_command(body: dict) -> dict:
+    cmd = str(body.get("cmd") or "")
+    if cmd == "stop":
+        with _AUDIO["lock"]:
+            _AUDIO["wanted"] = False
+        stop_kiosk_bgm()
+        return {"ok": True}
+    if cmd == "sfx":
+        play_kiosk_sfx(str(body.get("kind") or "ok"))
+        return {"ok": True}
+    if cmd == "bgm":
+        ok = start_kiosk_bgm(str(body.get("file") or ""))
+        return {"ok": ok}
+    return {"ok": False, "error": "Bilinmeyen ses komutu."}
 
 
 def psx_archive_playable(path: Path) -> bool:
@@ -1054,6 +1309,7 @@ def launch_game(game_id: str) -> dict:
         _STATE["busy"] = True
         _STATE["gameId"] = game_id
         _STATE["lastError"] = None
+    stop_kiosk_bgm(keep_wanted=True)
 
     override = ROOT / "config" / "runtime.cfg"
     override.parent.mkdir(parents=True, exist_ok=True)
@@ -1193,6 +1449,7 @@ def launch_game(game_id: str) -> dict:
             _STATE["busy"] = False
             _STATE["gameId"] = None
             _STATE["lastError"] = str(exc)
+        start_kiosk_bgm()
         return {"ok": False, "error": f"Emülatör başlatılamadı: {exc}"}
 
     with _LOCK:
@@ -1227,6 +1484,10 @@ def launch_game(game_id: str) -> dict:
             _STATE["busy"] = False
             _STATE["gameId"] = None
             _STATE["process"] = None
+        with _AUDIO["lock"]:
+            resume = _AUDIO["wanted"]
+        if resume:
+            start_kiosk_bgm()
 
     threading.Thread(target=watch, daemon=True).start()
     return {
@@ -1360,7 +1621,12 @@ class Handler(SimpleHTTPRequestHandler):
             if "crtFx" in body and isinstance(body["crtFx"], dict):
                 current["crtFx"] = body["crtFx"]
             save_json(CONFIG_PATH, current)
+            if current.get("crtFx", {}).get("sound") is False:
+                stop_kiosk_bgm()
             self._json({"ok": True, "config": current})
+            return
+        if parsed.path == "/api/audio":
+            self._json(handle_audio_command(body))
             return
         self._json({"ok": False, "error": "Bilinmeyen istek."}, 404)
 
@@ -1492,6 +1758,8 @@ def main() -> None:
     kick_catalog_build()
     if os.name != "nt":
         install_joypad_profiles()
+        if kiosk:
+            start_kiosk_bgm()
     print("Arcade Box OS  ->  " + url)
     print("ROM klasoru    ->  " + str(ROMS))
     print("Emulator       ->  " + str(retroarch_exe() or (EMULATORS / "retroarch")))
