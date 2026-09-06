@@ -82,15 +82,17 @@ if [ "$(uname -m)" = "x86_64" ] && command -v firefox-esr >/dev/null 2>&1; then
   mkdir -p "$FF_BASE"
   for prof in "$FF_BASE"/*.default-esr "$FF_BASE"/*.default; do
     [ -d "$prof" ] || continue
-    grep -q 'media.autoplay.default' "$prof/user.js" 2>/dev/null && continue
+    touch "$prof/user.js"
+    sed -i '/media.autoplay/d;/dom.gamepad/d;/browser.display.background_color/d;/browser.display.use_system_colors/d;/browser.cache.disk.enable/d' "$prof/user.js" 2>/dev/null || true
     cat >>"$prof/user.js" <<'EOF'
 user_pref("media.autoplay.default", 0);
+user_pref("media.autoplay.enabled", true);
 user_pref("media.autoplay.block-webaudio", false);
 user_pref("media.autoplay.allow-muted", true);
 user_pref("media.block-autoplay-until-in-foreground", false);
 user_pref("dom.gamepad.enabled", true);
 user_pref("dom.gamepad.non_standard_events.enabled", true);
-user_pref("browser.display.background_color", "#0a0018");
+user_pref("browser.display.background_color", "#120404");
 user_pref("browser.display.use_system_colors", false);
 user_pref("browser.cache.disk.enable", true);
 EOF

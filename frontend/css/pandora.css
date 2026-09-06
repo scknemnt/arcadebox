@@ -6,6 +6,13 @@
 }
 
 @font-face {
+  font-family: "Digital Serial Folder";
+  src: url("../media/pandora/fonts/Digital-Serial-Bold-folder.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
   font-family: "Road Rage";
   src: url("../media/pandora/fonts/Road_Rage.otf") format("opentype");
   font-weight: 400;
@@ -17,7 +24,6 @@
   --pandora-orange: #ff6b2c;
   --pandora-red: #c41e1e;
   --pandora-dark: #120404;
-  --pandora-list: rgba(40, 8, 8, 0.55);
 }
 
 .theme-pandora .stars,
@@ -33,10 +39,11 @@
 
 .theme-pandora #view-home,
 .theme-pandora #view-games {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  display: block;
   height: 100%;
   min-height: 100%;
+  overflow: hidden;
 }
 
 .pandora-bg {
@@ -44,412 +51,229 @@
   inset: 0;
   z-index: 0;
   background-position: center;
-  background-size: cover;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
 }
 
 .pandora-bg-home {
-  background-image: url("../media/pandora/system_select_red_yellow.png");
+  background-image: url("../media/pandora/system_main.jpg?v=3");
 }
 
 .pandora-bg-games {
-  background-image: url("../media/pandora/gamelist_red_yellow.png");
+  background-image: url("../media/pandora/gamelist_v2.jpg");
 }
 
 .pandora-hud {
-  position: relative;
-  z-index: 4;
+  position: absolute;
+  z-index: 5;
+  left: 4%;
+  top: 3.4%;
+  right: 4%;
   display: flex;
   align-items: center;
-  gap: clamp(12px, 2vw, 28px);
-  padding: clamp(6px, 1.2vh, 12px) clamp(14px, 2vw, 24px) 4px;
+  gap: 22px;
+  padding: 0;
   font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(11px, 1.5vh, 15px);
+  font-size: clamp(10px, 1.6vh, 14px);
   letter-spacing: 0.12em;
-  color: var(--pandora-gold);
-  text-shadow: 0 0 8px rgba(255, 107, 44, 0.45);
+  color: #f4c8ff;
+  text-shadow: 0 0 8px rgba(255, 0, 220, 0.45);
+  pointer-events: none;
 }
 
-.pandora-hud b {
-  color: #fff;
-  font-weight: 700;
-}
+.pandora-hud b { color: #fff; font-weight: 700; }
 
 .pandora-credits {
   margin-left: auto;
-  font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(10px, 1.3vh, 13px);
-  letter-spacing: 0.1em;
-  color: #9ce1ff;
+  color: #7cf6ff;
+  pointer-events: none;
 }
 
 .pandora-credits em {
   color: var(--pandora-gold);
   font-style: normal;
-  font-weight: 700;
 }
 
 .pandora-service {
-  width: 34px;
-  height: 34px;
-  border: 2px solid rgba(255, 220, 76, 0.55);
-  background: rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 220, 76, 0.45);
+  background: rgba(0, 0, 0, 0.35);
   color: var(--pandora-gold);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(255, 107, 44, 0.25);
 }
 
 .pandora-home-layout {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(240px, 42vw) 1fr;
-  gap: clamp(8px, 1.5vw, 16px);
-  padding: 0 clamp(10px, 2vw, 22px);
-  align-items: center;
 }
 
 .theme-pandora .sys-rail {
+  position: absolute;
+  left: 2.4%;
+  top: 17%;
+  width: 38%;
+  height: 58%;
   perspective: 700px;
   perspective-origin: left center;
-  align-self: center;
-  max-height: 72%;
+  display: flex;
+  align-items: center;
   overflow: visible;
 }
 
 .theme-pandora .sys-list {
-  gap: clamp(4px, 0.8vh, 7px);
+  gap: clamp(8px, 1.2vh, 12px);
   padding: 0;
+  width: 100%;
 }
 
 .theme-pandora .sys-list li {
-  grid-template-columns: 52px 1fr auto;
-  gap: 10px;
-  padding: clamp(8px, 1.2vh, 12px) 14px;
-  border: 2px solid rgba(255, 120, 40, 0.35);
+  grid-template-columns: 70px 1fr auto;
+  gap: 12px;
+  padding: clamp(13px, 1.9vh, 20px) 16px;
+  border: 2px solid rgba(255, 0, 220, 0.35);
   border-radius: 0;
-  background: linear-gradient(90deg, rgba(90, 12, 12, 0.82), rgba(40, 8, 8, 0.65));
-  color: rgba(255, 255, 255, 0.72);
+  background: linear-gradient(90deg, rgba(60, 8, 70, 0.82), rgba(20, 4, 40, 0.65));
+  color: rgba(255, 230, 255, 0.75);
   font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(12px, 1.7vh, 17px);
+  font-size: clamp(16px, 2.4vh, 24px);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  transform: perspective(700px) rotateY(14deg) skewX(-8deg) scale(0.94);
+  transform: perspective(700px) rotateY(10deg) skewX(-6deg) scale(0.98);
   transform-origin: left center;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  max-width: 96%;
 }
 
 .theme-pandora .sys-list li.active {
-  transform: perspective(700px) rotateY(0deg) skewX(-8deg) scale(1.04) translateX(10px);
-  background: linear-gradient(90deg, rgba(196, 30, 30, 0.92), rgba(255, 107, 44, 0.55));
+  transform: perspective(700px) rotateY(3deg) skewX(-6deg) scale(1) translateX(4px);
+  background: linear-gradient(90deg, rgba(180, 0, 160, 0.88), rgba(0, 200, 255, 0.28));
   color: #fff;
-  border-color: var(--pandora-gold);
-  box-shadow:
-    0 0 16px rgba(255, 107, 44, 0.45),
-    inset 0 0 0 1px rgba(255, 220, 76, 0.35);
+  border-color: #ff4ae8;
+  box-shadow: 0 0 14px rgba(255, 0, 220, 0.4);
 }
 
 .theme-pandora .sys-list li b {
-  color: var(--pandora-gold);
-  font-size: clamp(11px, 1.4vh, 14px);
+  color: #7cf6ff;
+  font-size: clamp(13px, 1.8vh, 18px);
 }
 
 .theme-pandora .sys-list li em {
-  color: rgba(255, 220, 76, 0.75);
-  font-size: clamp(10px, 1.2vh, 12px);
+  color: rgba(255, 180, 255, 0.8);
+  font-size: clamp(12px, 1.6vh, 16px);
 }
 
 .theme-pandora .sys-list li.active b,
-.theme-pandora .sys-list li.active em {
-  color: #fff;
+.theme-pandora .sys-list li.active em { color: #fff; }
+
+.theme-pandora .sys-list li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .theme-pandora .sys-thumb,
-.theme-pandora .sys-thumb.ph {
-  display: none !important;
+.theme-pandora .sys-thumb.ph { display: none !important; }
+
+.pandora-center-slot {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 28%;
+  height: 8%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.pandora-center-slot h2 {
+  margin: 0;
+  font-family: "Road Rage", Impact, sans-serif;
+  font-size: clamp(18px, 3.2vh, 32px);
+  line-height: 1;
+  color: #fff;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.pandora-sys-info {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 28.75%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  text-align: center;
+  font-family: "Digital Serial", Consolas, monospace;
+  font-size: clamp(11px, 2vh, 18px);
+  letter-spacing: 0.12em;
+  color: rgba(180, 255, 255, 0.85);
+  text-shadow: 0 1px 4px #000;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .pandora-preview {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 1vh, 10px);
-  min-height: 0;
-  padding-right: clamp(4px, 2vw, 18px);
+  position: absolute;
+  left: calc(1436 / 1920 * 100%);
+  top: calc(342 / 1080 * 100%);
+  width: calc(400 / 1920 * 100%);
+  height: calc(267 / 1080 * 100%);
+  display: block;
+  overflow: hidden;
+  z-index: 3;
 }
 
-.pandora-sys-logo {
-  max-width: min(52%, 340px);
-  max-height: clamp(48px, 9vh, 72px);
+.theme-pandora #view-home .pandora-sys-logo {
+  display: none;
+}
+
+.theme-pandora #view-home .pandora-screen {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 12px rgba(255, 107, 44, 0.35));
-}
-
-.pandora-video-frame {
-  position: relative;
-  width: min(88%, 420px);
-  aspect-ratio: 4 / 3;
-  border: 3px solid rgba(255, 220, 76, 0.65);
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.55),
-    0 0 24px rgba(255, 107, 44, 0.35);
-  background: #000;
+  object-position: center;
+  display: block;
 }
 
 .pandora-screen {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 
-.pandora-coin-msg {
+.theme-pandora #view-home .pandora-hint {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-family: Impact, Haettenschweiler, sans-serif;
-  font-size: clamp(18px, 3vh, 28px);
-  letter-spacing: 0.18em;
-  color: rgba(255, 255, 255, 0.88);
-  text-shadow: 0 0 12px rgba(0, 0, 0, 0.85);
-  background: rgba(0, 0, 0, 0.28);
-  animation: coin-blink 1.2s steps(1, end) infinite;
-  pointer-events: none;
-}
-
-.pandora-side-info {
-  text-align: center;
-  max-width: 90%;
-}
-
-.pandora-side-info .eyebrow {
-  color: var(--pandora-gold);
-  font-family: "Digital Serial", Consolas, monospace;
-  letter-spacing: 0.14em;
-}
-
-.pandora-side-info h2 {
-  font-family: "Road Rage", Impact, sans-serif;
-  font-size: clamp(22px, 4vh, 38px);
-  line-height: 0.95;
-  color: #fff;
-  text-transform: uppercase;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
-  margin: 4px 0;
-}
-
-.pandora-meta {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-  font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(10px, 1.3vh, 12px);
-  letter-spacing: 0.12em;
-  color: rgba(255, 220, 76, 0.85);
-}
-
-.pandora-games-head {
-  position: relative;
-  z-index: 4;
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  align-items: center;
-  gap: 12px;
-  padding: clamp(4px, 1vh, 8px) clamp(14px, 2vw, 22px) 0;
-}
-
-.pandora-games-head .pandora-sys-logo {
-  justify-self: start;
-  max-height: clamp(40px, 7vh, 58px);
-}
-
-.pandora-back {
-  border: 1px solid rgba(255, 220, 76, 0.45) !important;
-  background: rgba(0, 0, 0, 0.45) !important;
-  color: var(--pandora-gold) !important;
-  padding: 4px 10px;
-  font-family: "Digital Serial", Consolas, monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-}
-
-.pandora-page-pill {
-  border-color: rgba(255, 220, 76, 0.45) !important;
-  background: rgba(0, 0, 0, 0.45) !important;
-  color: var(--pandora-gold) !important;
-  font-family: "Digital Serial", Consolas, monospace !important;
-}
-
-.pandora-games-layout {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  min-height: 0;
-  display: block;
-  padding: 0;
-}
-
-.theme-pandora .game-list {
-  position: absolute;
-  left: 3.5%;
-  top: 19%;
-  width: 54%;
-  height: 64%;
-  overflow: hidden;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  list-style: none;
-  padding: 0;
+  left: 4%;
+  right: 4%;
+  bottom: 5.5%;
+  z-index: 5;
   margin: 0;
-}
-
-.theme-pandora .game-list li {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 8px;
-  align-items: center;
-  padding: clamp(5px, 0.9vh, 8px) 10px;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 220, 76, 0.08);
-  color: rgba(255, 255, 255, 0.55);
-  font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(11px, 1.45vh, 14px);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: transparent;
-}
-
-.theme-pandora .game-list li.active {
-  color: #fff;
-  background: url("../media/pandora/selector.png") center / 100% 100% no-repeat;
-  box-shadow: none;
-  text-shadow: 0 0 8px rgba(255, 107, 44, 0.35);
-}
-
-.theme-pandora .game-list .g-num {
-  color: var(--pandora-gold);
-  font-weight: 700;
-}
-
-.theme-pandora .game-list li.active .g-num {
-  color: #fff;
-}
-
-.theme-pandora .game-list .g-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.theme-pandora .game-list .year {
-  display: none;
-}
-
-.theme-pandora .game-list .missing {
-  opacity: 0.35;
-}
-
-.theme-pandora .pandora-stage {
-  position: absolute;
-  right: 3%;
-  top: 14%;
-  width: 40%;
-  height: 72%;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
   padding: 0;
-  overflow: hidden;
-}
-
-.theme-pandora .pandora-stage .poster {
-  position: absolute;
-  inset: 8% 6% 28% 6%;
-  opacity: 1;
-  border: 3px solid rgba(255, 220, 76, 0.55);
-  box-shadow: 0 0 18px rgba(255, 107, 44, 0.25);
-}
-
-.theme-pandora .pandora-stage .poster.art img {
-  object-position: center center;
-}
-
-.theme-pandora .pandora-stage .poster.art::after {
-  background: linear-gradient(transparent, rgba(18, 4, 4, 0.88) 82%);
-}
-
-.theme-pandora .pandora-stage .stage-body {
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  bottom: 4%;
-  padding: 10px;
-  border: 2px solid rgba(255, 220, 76, 0.45);
-  background: rgba(18, 4, 4, 0.82);
-}
-
-.theme-pandora .pandora-stage .stage-body h2 {
-  font-family: "Road Rage", Impact, sans-serif;
-  font-size: clamp(16px, 2.6vh, 26px);
-  max-width: none;
-  color: var(--pandora-gold);
-}
-
-.theme-pandora .pandora-stage .facts span {
-  border-color: rgba(255, 220, 76, 0.35);
-  color: var(--pandora-gold);
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.theme-pandora .pandora-stage .play {
-  width: 100%;
-  max-width: 200px;
-  background: linear-gradient(180deg, #ff6b2c, #c41e1e);
-  color: #fff;
-  box-shadow: 0 0 12px rgba(255, 107, 44, 0.45);
-}
-
-.theme-pandora .letter-rail {
-  position: relative;
-  z-index: 3;
-  margin: 2px clamp(14px, 2vw, 22px) 0;
-  border-color: rgba(255, 220, 76, 0.35);
-  background: rgba(18, 4, 4, 0.72);
-}
-
-.theme-pandora .letter-rail button.on {
-  background: var(--pandora-gold);
-  color: var(--pandora-dark);
-  box-shadow: 0 0 8px rgba(255, 220, 76, 0.45);
-}
-
-.pandora-hint {
-  position: relative;
-  z-index: 4;
-  margin-top: auto;
-  padding: clamp(6px, 1vh, 10px) clamp(14px, 2vw, 22px) clamp(10px, 1.4vh, 14px);
-  color: var(--pandora-gold);
+  color: #f4c8ff;
   font-family: "Digital Serial", Consolas, monospace;
-  font-size: clamp(10px, 1.25vh, 12px);
+  font-size: clamp(10px, 1.4vh, 13px);
   letter-spacing: 0.1em;
 }
 
 .pandora-hint .insert-coin {
   margin-left: auto;
   color: var(--pandora-gold);
-}
-
-.pandora-hint .ghost {
-  color: rgba(255, 220, 76, 0.45);
 }
 
 .pandora-help-item {
@@ -481,7 +305,194 @@
   background:
     radial-gradient(circle at 50% 35%, #e03c31 0 35%, transparent 36%),
     linear-gradient(#c41e1e, #c41e1e) 50% 100% / 4px 60% no-repeat;
-  box-shadow: 0 0 0 2px rgba(255, 220, 76, 0.35);
+}
+
+.theme-pandora #view-games .pandora-credits,
+.theme-pandora #view-games .pandora-hint {
+  display: none !important;
+}
+
+.theme-pandora #view-games .letter-rail,
+.theme-pandora #letter-rail.letter-rail {
+  position: absolute;
+  left: 2.6%;
+  top: 21%;
+  width: 3.4%;
+  height: 60%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.theme-pandora #letter-rail[hidden] {
+  display: none !important;
+}
+
+.theme-pandora #letter-rail button {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 220, 76, 0.35);
+  font-family: "Digital Serial", Consolas, monospace;
+  font-size: clamp(8px, 1.35vh, 12px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.theme-pandora #letter-rail button.has {
+  color: rgba(255, 240, 180, 0.75);
+}
+
+.theme-pandora #letter-rail button.on {
+  color: #0a0018;
+  background: #7cf6ff;
+  box-shadow: 0 0 8px rgba(0, 220, 255, 0.55);
+}
+
+.pandora-logo-text {
+  position: absolute;
+  left: calc(29.1667% - 26.0417%);
+  top: calc(8.3333% - 8.1481%);
+  width: 52.0833%;
+  height: 16.2963%;
+  margin: 0;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.75));
+  z-index: 4;
+  pointer-events: none;
+}
+
+.pandora-back {
+  position: absolute;
+  right: 1.4%;
+  top: 2.4%;
+  z-index: 6;
+  width: 36px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+
+.theme-pandora .game-list {
+  position: absolute;
+  left: 6.4%;
+  top: 20.8%;
+  width: 50.2%;
+  height: 61%;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  z-index: 3;
+}
+
+.theme-pandora .game-list li {
+  display: flex;
+  align-items: center;
+  height: 6.2vh;
+  min-height: 34px;
+  padding: 0 8% 0 7%;
+  margin: 0.35vh 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.4);
+  font-family: "Digital Serial Folder", "Digital Serial", Consolas, monospace;
+  font-size: clamp(13px, 3.2vh, 24px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: transparent;
+  cursor: pointer;
+}
+
+.theme-pandora .game-list li.active {
+  color: #fff;
+  border-bottom-color: transparent;
+  background: url("../media/pandora/selector.png?v=2") center / 100% 100% no-repeat;
+  box-shadow: none;
+  text-shadow: 0 0 8px rgba(0, 80, 160, 0.45);
+  padding-left: 8%;
+}
+
+.theme-pandora .game-list .g-num,
+.theme-pandora .game-list .year { display: none; }
+
+.theme-pandora .game-list .g-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-pandora .game-list .missing { opacity: 0.35; }
+
+.theme-pandora .pandora-stage {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.theme-pandora .pandora-stage .poster,
+.theme-pandora .pandora-stage .poster.art {
+  position: absolute;
+  left: calc(79.1146% - 16.6667%);
+  top: calc(42.5926% - 22.2222%);
+  width: 33.3333%;
+  height: 44.4444%;
+  opacity: 1;
+  border: 0;
+  box-shadow: none;
+  background: #000;
+  overflow: hidden;
+}
+
+.theme-pandora .pandora-stage .poster.art img,
+.theme-pandora .pandora-stage .poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.theme-pandora .pandora-stage .poster.art::after,
+.theme-pandora .pandora-stage .poster::after { display: none; }
+
+.theme-pandora .pandora-stage .stage-body {
+  position: absolute;
+  left: calc(79.1146% - 16.6667%);
+  top: 70%;
+  width: 33.3333%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.theme-pandora .pandora-stage .stage-body .eyebrow,
+.theme-pandora .pandora-stage .stage-body h2,
+.theme-pandora .pandora-stage .facts,
+.theme-pandora .pandora-stage .play { display: none; }
+
+.theme-pandora .pandora-stage .warn {
+  color: var(--pandora-gold);
+  font-size: 11px;
+  text-align: center;
 }
 
 body.vga-kiosk.theme-pandora #view-home,
@@ -489,19 +500,159 @@ body.vga-kiosk.theme-pandora #view-games {
   height: 100%;
 }
 
+body.vga-kiosk.theme-pandora .hintbar {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 3.2%;
+}
+
+body.vga-kiosk.theme-pandora .games-layout,
 body.vga-kiosk.theme-pandora .pandora-home-layout {
   height: auto;
 }
 
-body.vga-kiosk.theme-pandora .hintbar {
+.theme-pandora #view-service {
   position: relative;
-  left: auto;
-  right: auto;
-  bottom: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background:
+    linear-gradient(180deg, rgba(18, 4, 20, 0.72), rgba(8, 2, 12, 0.88)),
+    url("../media/pandora/system_main.jpg?v=3") center / cover no-repeat;
 }
 
-body.vga-kiosk.theme-pandora .games-layout {
+.theme-pandora .svc-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px 8px;
+}
+
+.theme-pandora .svc-tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.theme-pandora .svc-tabs button {
+  min-width: 120px;
+  padding: 12px 18px;
+  border: 2px solid rgba(255, 0, 220, 0.4);
+  background: rgba(20, 4, 30, 0.75);
+  color: #f4c8ff;
+  font-family: "Digital Serial", Consolas, monospace;
+  font-size: clamp(14px, 2.2vh, 20px);
+  letter-spacing: 0.12em;
+}
+
+.theme-pandora .svc-tabs button.on {
+  background: #ff4ae8;
+  color: #140414;
+  border-color: #7cf6ff;
+}
+
+.theme-pandora .service-body {
   flex: 1;
   min-height: 0;
-  height: auto;
+  padding: 8px 18px 70px;
+  overflow: auto;
+}
+
+.theme-pandora .svc-panel,
+.theme-pandora .svc-test {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.theme-pandora .svc-lead {
+  font-family: "Digital Serial", Consolas, monospace;
+  font-size: clamp(14px, 2vh, 18px);
+  color: #7cf6ff;
+  letter-spacing: 0.08em;
+}
+
+.theme-pandora .joy i,
+.theme-pandora .hit {
+  min-width: 72px;
+  height: 56px;
+  font-size: 16px;
+  border: 2px solid rgba(255, 0, 220, 0.4);
+  background: rgba(20, 4, 30, 0.8);
+  color: #f4c8ff;
+}
+
+.theme-pandora .joy {
+  grid-template-columns: 72px 72px 72px;
+  grid-template-rows: 56px 56px 56px;
+  gap: 10px;
+}
+
+.theme-pandora .joy i.hot,
+.theme-pandora .hit.hot {
+  background: #7cf6ff;
+  color: #120414;
+  border-color: #fff;
+}
+
+.theme-pandora .signal {
+  font-size: clamp(16px, 2.4vh, 22px);
+  color: #ffdc4c;
+}
+
+.theme-pandora .bind-list,
+.theme-pandora .crt-opts {
+  width: min(720px, 92%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.theme-pandora .bind-row,
+.theme-pandora .crt-opts button {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: center;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 2px solid rgba(255, 0, 220, 0.35);
+  background: rgba(20, 4, 30, 0.82);
+  color: #fff;
+  font-size: clamp(15px, 2.1vh, 20px);
+  text-align: left;
+}
+
+.theme-pandora .crt-opts button {
+  display: block;
+  font-family: "Digital Serial", Consolas, monospace;
+  letter-spacing: 0.08em;
+}
+
+.theme-pandora .bind-row.on,
+.theme-pandora .crt-opts button.sel {
+  border-color: #7cf6ff;
+  box-shadow: inset 6px 0 0 #7cf6ff;
+}
+
+.theme-pandora .crt-opts button.on {
+  color: #7cf6ff;
+}
+
+.theme-pandora .bind-row.waiting {
+  border-color: #ffdc4c;
+  color: #ffdc4c;
+}
+
+.theme-pandora #view-service .hintbar {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 12px;
+  color: #f4c8ff;
+  font-family: "Digital Serial", Consolas, monospace;
 }

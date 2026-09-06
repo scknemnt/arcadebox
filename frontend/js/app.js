@@ -89,50 +89,68 @@ async function unlockAudio() {
   return audioReady || (audioCtx && audioCtx.state === "running");
 }
 
+let musicWatch = 0;
+
 function primeAudio() {
   playMenuMusic();
-  [200, 800, 2000, 5000].forEach((ms) => window.setTimeout(playMenuMusic, ms));
+  [150, 400, 900, 1800, 3500, 7000].forEach((ms) => window.setTimeout(playMenuMusic, ms));
+  if (!musicWatch) {
+    musicWatch = window.setInterval(() => {
+      if (musicWanted() && (!bgm || bgm.paused)) playMenuMusic();
+    }, 2000);
+  }
 }
 
-function beep(freq, dur, vol, slide) {
-  if (!state.crtFx.sound) return;
-  unlockAudio().then((ready) => {
-    if (!ready || !audioCtx) return;
-    const t = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "square";
-    osc.frequency.setValueAtTime(freq, t);
-    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(50, freq + slide), t + dur);
-    gain.gain.setValueAtTime(vol || 0.14, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(t);
-    osc.stop(t + dur + 0.02);
-  });
+function toneWav(freq, seconds, volume) {
+  const sr = 22050;
+  const n = Math.max(8, Math.floor(sr * seconds));
+  const bytes = new Uint8Array(44 + n * 2);
+  const view = new DataView(bytes.buffer);
+  const ascii = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) bytes[offset + i] = text.charCodeAt(i);
+  };
+  ascii(0, "RIFF");
+  view.setUint32(4, 36 + n * 2, true);
+  ascii(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sr, true);
+  view.setUint32(28, sr * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  ascii(36, "data");
+  view.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i += 1) {
+    const env = Math.min(1, i / 90) * (1 - i / n);
+    view.setInt16(44 + i * 2, Math.sin((2 * Math.PI * freq * i) / sr) * volume * env * 32767, true);
+  }
+  return URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+}
+
+const SFX_SRC = {
+  move: toneWav(1180, 0.05, 0.55),
+  ok: toneWav(880, 0.09, 0.6),
+  back: toneWav(360, 0.1, 0.55),
+  launch: toneWav(523, 0.14, 0.62),
+  boot: toneWav(659, 0.16, 0.6),
+  error: toneWav(180, 0.16, 0.6),
+};
+
+function playSfxUrl(url) {
+  const shot = new Audio(url);
+  shot.volume = 0.7;
+  shot.play().catch(() => {});
+}
+
+function beep(freq, dur, vol) {
+  playSfxUrl(toneWav(freq, dur, vol || 0.55));
 }
 
 function sfx(kind) {
-  if (!state.crtFx.sound) return;
+  if (state.crtFx.sound === false) return;
   duckMusic();
-  if (kind === "move") beep(1180, 0.04, 0.11);
-  if (kind === "ok") {
-    beep(620, 0.055, 0.12);
-    window.setTimeout(() => beep(930, 0.08, 0.13), 55);
-  }
-  if (kind === "back") beep(390, 0.09, 0.12, -160);
-  if (kind === "launch") {
-    beep(392, 0.07, 0.12);
-    window.setTimeout(() => beep(523, 0.07, 0.12), 80);
-    window.setTimeout(() => beep(659, 0.12, 0.14), 160);
-  }
-  if (kind === "boot") {
-    beep(523, 0.08, 0.12);
-    window.setTimeout(() => beep(659, 0.08, 0.13), 90);
-    window.setTimeout(() => beep(784, 0.14, 0.15), 180);
-  }
-  if (kind === "error") beep(180, 0.16, 0.14, -40);
+  if (SFX_SRC[kind]) playSfxUrl(SFX_SRC[kind]);
 }
 
 const MUSIC_VOL = 0.42;
@@ -167,7 +185,7 @@ const BOOT_SYSTEMS = [
 ];
 
 function musicWanted() {
-  const inMenu = state.view === "home" || state.view === "games";
+  const inMenu = state.view === "home" || state.view === "games" || state.view === "service";
   return Boolean(state.crtFx.sound !== false && inMenu && !state.launching);
 }
 
@@ -497,7 +515,9 @@ function renderHome() {
   if (!system) return;
   const count = gameCount(system.id);
   $("home-title").textContent = system.name;
-  $("home-era").textContent = `${system.era} · ${system.bits}`;
+  $("home-era").textContent = !state.catalogReady && !count
+    ? `${system.era} · ${system.bits}`
+    : `${count} GAMES`;
   $("home-count").textContent = !state.catalogReady && !count ? "SCAN…" : `${count} GAMES`;
   $("home-core").textContent = system.emulator.replace("RetroArch → ", "");
   const pageNum = String(state.systemIndex + 1).padStart(3, "0");
@@ -559,7 +579,7 @@ let letterRailKey = "";
 function paintLetterRail(list, activeLetter, rebuild) {
   const rail = $("letter-rail");
   const key = `${currentSystem()?.id || ""}:${list.length}`;
-  rail.hidden = list.length < 12;
+  rail.hidden = list.length < 8;
   if (rebuild || letterRailKey !== key || !rail.children.length) {
     letterRailKey = key;
     const present = lettersIn(list);
@@ -576,35 +596,31 @@ function paintLetterRail(list, activeLetter, rebuild) {
 }
 
 function paintGameWindow(list, game) {
-  const page = 12;
-  const start = Math.max(0, Math.min(state.gameIndex - 5, Math.max(0, list.length - page)));
+  const page = 9;
+  const start = Math.max(0, Math.min(state.gameIndex - 4, Math.max(0, list.length - page)));
   const visible = list.slice(start, start + page);
   $("game-list").innerHTML = visible
     .map((item) => {
       const active = item.id === game.id;
-      const idx = String(list.indexOf(item) + 1).padStart(4, "0");
       return `<li class="${active ? "active" : ""} ${item.installed ? "" : "missing"}" data-id="${item.id}">
-        <span class="g-num">${idx}</span>
         <span class="g-title">${item.title}</span>
-        <span class="year">${item.year}${item.installed ? "" : "  ·  YOK"}</span>
       </li>`;
     })
     .join("");
 }
 
 function renderGames(opts) {
-  const light = opts && opts.light;
   const system = currentSystem();
   const list = currentGames();
   if (!system) return;
-  const logoEl = $("games-logo");
-  if (logoEl) {
+  const titleEl = $("games-title");
+  if (titleEl) {
     const logo = systemLogo(system.id);
-    if (logoEl.dataset.src !== logo) {
-      logoEl.dataset.src = logo;
-      logoEl.src = logo;
+    if (titleEl.dataset.src !== logo) {
+      titleEl.dataset.src = logo;
+      titleEl.src = logo;
     }
-    logoEl.alt = system.name;
+    titleEl.alt = system.name;
   }
   document.documentElement.style.setProperty("--card-accent", system.accent);
 
@@ -616,9 +632,7 @@ function renderGames(opts) {
     $("game-list").innerHTML = "";
     $("game-stage").innerHTML = `
       <div class="stage-body">
-        <p class="eyebrow">${system.name}</p>
-        <h2>${state.catalogReady ? "KLASÖR BOŞ" : "TARANIYOR"}</h2>
-        <p class="warn">${state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at. Adı menüde görünür.` : "USB’deki oyun listesi hazırlanıyor…"}</p>
+        <p class="warn">${state.catalogReady ? `ROM’ları roms/${system.romDir}/ içine at.` : "Liste taranıyor…"}</p>
       </div>`;
     return;
   }
@@ -628,14 +642,7 @@ function renderGames(opts) {
   paintLetterRail(list, gameLetter(game.title), false);
   paintGameWindow(list, game);
 
-  if (light) {
-    const title = $("game-stage") && $("game-stage").querySelector("h2");
-    if (title) title.textContent = game.title;
-    return;
-  }
-
   const bios = state.bios[system.id] || { ok: true };
-  const canPlay = game.installed && bios.ok && state.config.retroarchExists;
   let warn = "";
   if (!state.config.retroarchExists) warn = "RetroArch yolu config.json içinde henüz yok.";
   else if (!bios.ok) warn = `BIOS eksik: ${(bios.needed || []).join(", ")}`;
@@ -643,18 +650,7 @@ function renderGames(opts) {
 
   $("game-stage").innerHTML = `
     ${posterHtml(game, system)}
-    <div class="stage-body">
-      <p class="eyebrow">${system.name}</p>
-      <h2>${game.title}</h2>
-      <div class="facts">
-        <span>${game.year}</span>
-        <span>${game.players} OYUNCU</span>
-        <span>${game.genre}</span>
-        <span>${game.installed ? "DUMP HAZIR" : "DUMP YOK"}</span>
-      </div>
-      <button class="play ${canPlay ? "" : "disabled"}" id="play-btn" type="button">${canPlay ? "BAŞLAT" : "HAZIR DEĞİL"}</button>
-      ${warn ? `<p class="warn">${warn}</p>` : `<p class="warn" style="color:#8b97a8">Start basınca ${system.cores[0].replace("_libretro.dll", "")} gizlenerek açılır.</p>`}
-    </div>`;
+    ${warn ? `<div class="stage-body"><p class="warn">${warn}</p></div>` : ""}`;
 }
 
 async function loadCatalog() {
@@ -858,39 +854,35 @@ function closeService() {
 
 function serviceItems() {
   if (state.serviceTab === 1) return ACTIONS;
-  if (state.serviceTab === 2) return [...CRT_LEVELS, { id: "flicker" }, { id: "rgb" }, { id: "sound" }];
+  if (state.serviceTab === 2) return [{ id: "sound" }, ...CRT_LEVELS, { id: "flicker" }, { id: "rgb" }];
   return [];
 }
 
 function renderService() {
-  const tabs = ["TEST", "TUŞ ATA", "CRT"];
+  const tabs = ["TEST", "TUŞLAR", "SES"];
   $("svc-tabs").innerHTML = tabs
     .map((name, index) => `<button type="button" class="${index === state.serviceTab ? "on" : ""}" data-tab="${index}">${name}</button>`)
     .join("");
-  $("pad-pill").textContent = state.padName ? "USB PAD" : "USB —";
+  $("pad-pill").textContent = state.padName ? "USB PAD HAZIR" : "KOL BEKLENİYOR";
 
   if (state.serviceTab === 0) {
     $("service-body").innerHTML = `
-      <div class="svc-grid">
-        <div>
-          <p class="eyebrow">JOYSTICK</p>
+      <div class="svc-panel">
+        <p class="svc-lead">Kol / encoder tuşuna bas — ışık yanmalı.</p>
+        <div class="svc-test">
           <div class="joy">
             <i class="u" data-act="up">↑</i>
             <i class="l" data-act="left">←</i>
-            <i class="c"></i>
+            <i class="c">PAD</i>
             <i class="r" data-act="right">→</i>
             <i class="d" data-act="down">↓</i>
           </div>
-        </div>
-        <div>
-          <p class="eyebrow">BUTONLAR</p>
           <div class="hit-row">
-            <i class="hit" data-act="ok">START</i>
-            <i class="hit" data-act="back">GERİ</i>
+            <i class="hit" data-act="ok">A / START</i>
+            <i class="hit" data-act="back">B / GERİ</i>
             <i class="hit" data-act="service">SERVİS</i>
           </div>
           <p class="signal" id="signal-log">${state.lastSignal}</p>
-          <p class="wire-note">Oyunda Start oyuna aittir. Çıkış: PS tuşu (veya ESC). ARC Controller: Happ stick → AU AD AL AR. Buton 1–6 aksiyon, 10 Start, 11 servis/coin.</p>
         </div>
       </div>`;
     paintHeld();
@@ -905,22 +897,22 @@ function renderService() {
         <strong>${item.label}</strong>
         <span>${waiting ? "TUŞA BAS…" : keys}</span>
       </div>`;
-    }).join("")}</div><p class="wire-note">Start oyunda Start kalsın. Çıkış için PS tuşu. İkisini aynı tuşa verirsen tek basış çıkar.</p>`;
+    }).join("")}</div>`;
     return;
   }
 
   const scanIndex = CRT_LEVELS.findIndex((item) => item.scanlines === state.crtFx.scanlines);
   const rows = [
+    { label: state.crtFx.sound !== false ? "MENÜ SESİ  ·  AÇIK" : "MENÜ SESİ  ·  KAPALI", on: state.crtFx.sound !== false },
     ...CRT_LEVELS.map((item, index) => ({
       label: item.label,
-      on: index === (scanIndex < 0 ? 2 : scanIndex),
+      on: index === (scanIndex < 0 ? 0 : scanIndex),
     })),
-    { label: state.crtFx.flicker ? "TİTREŞİM AÇIK" : "TİTREŞİM KAPALI", on: false },
-    { label: state.crtFx.rgb ? "RGB MASKE AÇIK" : "RGB MASKE KAPALI", on: false },
-    { label: state.crtFx.sound !== false ? "MENÜ SESİ AÇIK" : "MENÜ SESİ KAPALI", on: false },
+    { label: state.crtFx.flicker ? "TİTREŞİM  ·  AÇIK" : "TİTREŞİM  ·  KAPALI", on: state.crtFx.flicker },
+    { label: state.crtFx.rgb ? "RGB MASKE  ·  AÇIK" : "RGB MASKE  ·  KAPALI", on: state.crtFx.rgb },
   ];
   $("service-body").innerHTML = `<div class="crt-opts">${rows
-    .map((row, index) => `<button type="button" class="${index === state.serviceIndex || row.on ? "on" : ""}" data-index="${index}">${row.label}</button>`)
+    .map((row, index) => `<button type="button" class="${index === state.serviceIndex ? "sel" : ""} ${row.on ? "on" : ""}" data-index="${index}">${row.label}</button>`)
     .join("")}</div>`;
 }
 
@@ -972,7 +964,7 @@ function tickHold() {
     if (action === "left" || action === "up") move(-1, { silent: true });
     else if (action === "right" || action === "down") move(1, { silent: true });
   } else if (state.view === "service") {
-    handleService(action);
+    if (action === "up" || action === "down") handleService(action);
   }
   HOLD.timer = window.setTimeout(tickHold, wait);
 }
@@ -1017,14 +1009,6 @@ function handleService(action) {
     closeService();
     return;
   }
-  if (state.serviceTab === 0) {
-    if (action === "ok") {
-      state.serviceTab = 1;
-      state.serviceIndex = 0;
-      renderService();
-    }
-    return;
-  }
   if (action === "left") {
     sfx("move");
     state.serviceTab = (state.serviceTab + 2) % 3;
@@ -1062,16 +1046,16 @@ function activateService() {
     return;
   }
   if (state.serviceTab === 2) {
-    if (state.serviceIndex < CRT_LEVELS.length) {
-      state.crtFx.scanlines = CRT_LEVELS[state.serviceIndex].scanlines;
-    } else if (state.serviceIndex === CRT_LEVELS.length) {
-      state.crtFx.flicker = !state.crtFx.flicker;
-    } else if (state.serviceIndex === CRT_LEVELS.length + 1) {
-      state.crtFx.rgb = !state.crtFx.rgb;
-    } else {
+    if (state.serviceIndex === 0) {
       state.crtFx.sound = state.crtFx.sound === false;
       if (state.crtFx.sound) sfx("ok");
       syncMusic();
+    } else if (state.serviceIndex <= CRT_LEVELS.length) {
+      state.crtFx.scanlines = CRT_LEVELS[state.serviceIndex - 1].scanlines;
+    } else if (state.serviceIndex === CRT_LEVELS.length + 1) {
+      state.crtFx.flicker = !state.crtFx.flicker;
+    } else {
+      state.crtFx.rgb = !state.crtFx.rgb;
     }
     applyCrt();
     saveSettings();
@@ -1287,9 +1271,12 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("blur", () => stopHold(true));
 window.addEventListener("keydown", onKey);
 window.addEventListener("keyup", onKeyUp);
+window.addEventListener("pointerdown", () => {
+  unlockAudio().then(() => primeAudio());
+}, { once: true });
 window.addEventListener("gamepadconnected", () => {
   state.padReady = true;
-  unlockAudio().then((ready) => ready && syncMusic());
+  unlockAudio().then(() => primeAudio());
 });
 bindClicks();
 attract();

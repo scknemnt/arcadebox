@@ -18,7 +18,7 @@
 </head>
 <body class="theme-pandora theme-red-yellow" data-kiosk="vga">
   <div id="splash" aria-hidden="true"><strong>ARCADE BOX</strong><small>YUKLENIYOR</small></div>
-  <audio id="bgm-prime" loop preload="auto" autoplay muted playsinline></audio>
+  <audio id="bgm-prime" loop preload="auto" autoplay playsinline src="media/menu-ambient.wav"></audio>
   <div id="bezel">
     <div id="tube">
       <div id="stage">
@@ -57,20 +57,16 @@
               <ol class="sys-list" id="system-row"></ol>
             </div>
 
+            <div class="pandora-center-slot">
+              <h2 id="home-title">Atari 2600</h2>
+            </div>
+            <p class="pandora-sys-info" id="home-era">1977 · 8-BIT</p>
+            <span id="home-count" hidden>0 GAMES</span>
+            <span id="home-core" hidden>STELLA</span>
+
             <div class="pandora-preview" id="home-preview">
               <img id="home-sys-logo" class="pandora-sys-logo" src="" alt="">
-              <div class="pandora-video-frame">
-                <img id="home-art" class="pandora-screen" src="" alt="" decoding="async">
-                <div class="pandora-coin-msg" id="home-coin">INSERT COIN</div>
-              </div>
-              <div class="pandora-side-info">
-                <p class="eyebrow" id="home-era">1977 · 8-BIT</p>
-                <h2 id="home-title">Atari 2600</h2>
-                <p class="pandora-meta">
-                  <span id="home-count">0 GAMES</span>
-                  <span id="home-core">STELLA</span>
-                </p>
-              </div>
+              <img id="home-art" class="pandora-screen" src="" alt="" decoding="async">
             </div>
           </div>
 
@@ -84,26 +80,12 @@
 
         <section id="view-games" class="view hidden">
           <div class="pandora-bg pandora-bg-games" aria-hidden="true"></div>
-          <header class="pandora-games-head">
-            <img id="games-logo" class="pandora-sys-logo" src="" alt="">
-            <span class="pandora-credits">CREDIT(S): <em>FREE</em></span>
-            <button class="text-btn pandora-back" id="back-home" type="button">← SYSTEM</button>
-            <span class="live-pill pandora-page-pill" id="rom-count">0 / 0</span>
-          </header>
-
-          <div class="letter-rail pandora-letters" id="letter-rail" hidden></div>
-
-          <div class="games-layout pandora-games-layout">
-            <ol class="game-list" id="game-list"></ol>
-            <aside class="game-stage pandora-stage" id="game-stage"></aside>
-          </div>
-
-          <footer class="hintbar pandora-hint">
-            <span class="pandora-help-item"><i class="ico-stick"></i> CHOOSE</span>
-            <span class="pandora-help-item"><i class="ico-a"></i> LAUNCH</span>
-            <span class="pandora-help-item"><i class="ico-b"></i> BACK</span>
-            <span class="ghost">← → harf</span>
-          </footer>
+          <img id="games-title" class="pandora-logo-text" src="media/pandora/logos/nes.png" alt="">
+          <button class="pandora-back" id="back-home" type="button" aria-label="Geri">←</button>
+          <span id="rom-count" hidden>0 / 0</span>
+          <div class="letter-rail pandora-az" id="letter-rail" hidden></div>
+          <ol class="game-list" id="game-list"></ol>
+          <aside class="game-stage pandora-stage" id="game-stage"></aside>
         </section>
 
         <section id="view-launch" class="view hidden">
@@ -114,23 +96,22 @@
         </section>
 
         <section id="view-service" class="view hidden">
-          <header class="topbar">
+          <header class="topbar svc-head">
             <div class="brand">
               <span class="brand-mark">OP</span>
               <div>
-                <strong>SERVİS</strong>
-                <small>KABİN OPERATÖR</small>
+                <strong>AYARLAR</strong>
+                <small id="pad-pill">USB —</small>
               </div>
             </div>
             <div class="svc-tabs" id="svc-tabs"></div>
-            <div class="live-pill" id="pad-pill">USB —</div>
           </header>
           <div id="service-body" class="service-body"></div>
           <footer class="hintbar">
-            <span><kbd>←</kbd><kbd>→</kbd> sekme</span>
-            <span><kbd>START</kbd> seç</span>
-            <span><kbd>ESC</kbd> çık</span>
-            <span class="ghost">Oyuncu bu ekranı görmez</span>
+            <span>← → SEKME</span>
+            <span>↑ ↓ SEÇ</span>
+            <span>A / START DEĞİŞTİR</span>
+            <span>B ÇIK</span>
           </footer>
         </section>
 
