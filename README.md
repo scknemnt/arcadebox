@@ -1,4 +1,5 @@
 # Arcade Box
+<img width="1448" height="1086" alt="Arcadebox_logo1" src="https://github.com/user-attachments/assets/aff5c3da-ac61-4b54-b625-9c6c7f5d72c5" />
 
 Ev tipi ayakta kabin için **kiosk kabuk**. Windows veya Linux masaüstü görünmez: açılış → senin menün → oyun (RetroArch tam ekran) → menüye dönüş.
 
