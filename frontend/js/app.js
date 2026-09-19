@@ -362,21 +362,18 @@ function loadCrtLayoutFrom(data) {
 
 function crtLayoutScale() {
   const base = crtLayout.resolution || [800, 600];
-  const crt = Boolean(state.config?.display?.crt);
-  const out = state.config?.display?.output || document.body.dataset.kiosk || "";
-  const cabinet = crt && out === "vga";
-  const dw = cabinet ? (state.config?.display?.width || 720) : (state.config?.display?.width || window.innerWidth || base[0]);
-  const dh = cabinet ? (state.config?.display?.height || 576) : (state.config?.display?.height || window.innerHeight || base[1]);
+  const dw = state.config?.display?.width || window.innerWidth || base[0];
+  const dh = state.config?.display?.height || window.innerHeight || base[1];
   const sx = dw / base[0];
   const sy = dh / base[1];
-  return { sx, sy, uniform: cabinet ? Math.min(sx, sy) : null, crt };
+  const crt = Boolean(state.config?.display?.crt);
+  return { sx, sy, uniform: null, crt };
 }
 
 function layoutPx(value, axis) {
-  const { sx, sy, uniform, crt } = crtLayoutScale();
+  const { sx, sy, crt } = crtLayoutScale();
   if (crt && document.body.classList.contains("vga-kiosk")) {
-    const s = uniform ?? Math.min(sx, sy);
-    return Math.round(value * s);
+    return Math.round(value * (axis === "y" ? sy : sx));
   }
   return Math.round(value * (axis === "y" ? sy : sx));
 }
@@ -413,18 +410,13 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-title", `${layoutPx(crtLayout.game.titleSize, "y")}px`);
   root.style.setProperty("--amiga-title-focus", `${layoutPx(crtLayout.game.titleSizeFocus, "y")}px`);
   root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
-  const { sx, sy, uniform, crt } = crtLayoutScale();
+  const { sx, sy } = crtLayoutScale();
   const vp = crtViewport();
   if (vp && document.body.classList.contains("vga-kiosk")) {
-    const bw = crtLayout.resolution?.[0] || 800;
-    const bh = crtLayout.resolution?.[1] || 600;
-    const s = uniform ?? Math.min(sx, sy);
-    const rw = Math.round(bw * s);
-    const rh = Math.round(bh * s);
-    root.style.setProperty("--amiga-layout-w", `${rw}px`);
-    root.style.setProperty("--amiga-layout-h", `${rh}px`);
+    root.style.setProperty("--amiga-layout-w", `${vp.w}px`);
+    root.style.setProperty("--amiga-layout-h", `${vp.h}px`);
     root.style.setProperty("--amiga-layout-x", "0px");
-    root.style.setProperty("--amiga-layout-y", `${Math.round((vp.h - rh) / 2)}px`);
+    root.style.setProperty("--amiga-layout-y", "0px");
     root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
     root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
   } else {
@@ -742,8 +734,11 @@ function scaleStage() {
     document.documentElement.classList.add("vga-kiosk");
     document.body.classList.add("vga-kiosk");
     if (vp) {
-      document.documentElement.style.setProperty("--crt-pan-x", `${vp.panX}px`);
-      document.documentElement.style.setProperty("--crt-pan-y", `${vp.panY}px`);
+      const tx = vp.panX || 0;
+      const ty = vp.panY || 0;
+      bezel.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : "none";
+    } else {
+      bezel.style.transform = "none";
     }
     bezel.style.width = `${w}px`;
     bezel.style.height = `${h}px`;
@@ -779,6 +774,15 @@ function applyDisplayProfile() {
   const crt = Boolean(state.config?.display?.crt);
   document.body.classList.toggle("vga-kiosk", out === "vga");
   document.body.classList.toggle("crt-display", out === "vga" && crt);
+  if (out === "vga" && crt) {
+    document.documentElement.style.width = "720px";
+    document.documentElement.style.height = "576px";
+    document.documentElement.style.overflow = "hidden";
+  } else {
+    document.documentElement.style.width = "";
+    document.documentElement.style.height = "";
+    document.documentElement.style.overflow = "";
+  }
   document.body.classList.toggle("pi-kiosk", Boolean(state.config?.pi));
   scaleStage();
 }
