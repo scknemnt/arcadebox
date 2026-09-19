@@ -62,22 +62,17 @@ HOME_DIR="$(getent passwd "$USER_NAME" 2>/dev/null | cut -d: -f6)"
 RC="${HOME_DIR}/.xprofile"
 mkdir -p "$(dirname "$RC")"
 cat > "$RC" <<XPROF
-# Arçelik SCART — boot PAL576i, sonra PAL576-SCART dene
-if command -v xrandr >/dev/null 2>&1; then
+# Arçelik SCART — xrandr PAL modu
+for d in "$ROOT" /mnt/games/ArcadeBox "\$HOME/ArcadeBox"; do
+  if [ -f "\$d/kiosk/crt-xrandr-pal.sh" ]; then
+    sh "\$d/kiosk/crt-xrandr-pal.sh" && break
+  fi
+done
+HPOS="${HPOS}"
+if [ "\$HPOS" != "0" ] && command -v xrandr >/dev/null 2>&1; then
   for out in VGA-1 VGA-0 VGA1; do
     if xrandr --query 2>/dev/null | grep -q "^\${out} connected"; then
-      xrandr --output "\$out" --mode PAL576i 2>/dev/null || \
-      xrandr --output "\$out" --mode 640x480 2>/dev/null || true
-      for m in PAL576-SCART PAL576-AR; do
-        if xrandr --output "\$out" --mode "\$m" 2>/dev/null; then
-          HPOS="${HPOS}"
-          if [ "\$HPOS" != "0" ]; then
-            xrandr --output "\$out" --transform 1,0,\$HPOS,0,1,0,0,0,1 2>/dev/null || \
-            xrandr --output "\$out" --mode PAL576i 2>/dev/null || true
-          fi
-          break
-        fi
-      done
+      xrandr --output "\$out" --transform 1,0,\$HPOS,0,1,0,0,0,1 2>/dev/null || true
       break
     fi
   done

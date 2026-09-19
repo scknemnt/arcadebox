@@ -68,33 +68,13 @@ if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
       continue
     fi
     if [ "$CRT_VGA" = 1 ]; then
-      _crt_out="$out"
-      _crt_ok=0
-      for _m in PAL576-SCART PAL576-AR PAL576i; do
-        for _try in 1 2 3 4 5 6 7 8 9 10; do
-          if xrandr --output "$out" --mode "$_m" 2>/dev/null; then
-            _crt_ok=1
-            echo "CRT mod: $_m on $out"
-            break 2
-          fi
-          sleep 1
-        done
-      done
-      if [ "$_crt_ok" = 0 ]; then
-        echo "UYARI: PAL576 modu henuz yok — 640x480 / auto deneniyor"
+      if [ -f "$ROOT/kiosk/crt-xrandr-pal.sh" ]; then
+        sh "$ROOT/kiosk/crt-xrandr-pal.sh" && echo "CRT: crt-xrandr-pal.sh OK" || \
+          echo "UYARI: crt-xrandr-pal.sh basarisiz"
+      else
         xrandr --output "$out" --mode 640x480 2>/dev/null || \
         xrandr --output "$out" --auto 2>/dev/null || true
       fi
-      (
-        sleep 3
-        o="${_crt_out:-VGA-1}"
-        for _n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-          for _m in PAL576-SCART PAL576-AR PAL576i; do
-            xrandr --output "$o" --mode "$_m" 2>/dev/null && exit 0
-          done
-          sleep 2
-        done
-      ) &
       break
     fi
     xrandr --output "$out" --auto 2>/dev/null && break
