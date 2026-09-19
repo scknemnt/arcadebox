@@ -17,3 +17,4 @@ git log -1 --oneline
 echo
 echo "CRT kurulum: sudo sh kiosk/crt-arcelik.sh && sudo reboot"
 echo "Ekran gelmiyorsa: sudo sh kiosk/crt-recover.sh && sudo reboot"
+echo "Saga kayma (BIOS da kayik): sh kiosk/crt-timing-scan.sh"

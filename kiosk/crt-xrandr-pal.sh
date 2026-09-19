@@ -22,9 +22,11 @@ add_mode() {
   xrandr --addmode "$OUT" "$name" 2>/dev/null || true
 }
 
+add_mode "PAL576-864" 25.20 720 736 802 864 576 582 587 625 interlace -hsync -vsync
+add_mode "PAL576-L16" 25.20 720 720 798 864 576 582 587 625 interlace -hsync -vsync
+add_mode "PAL576-SCART" 13.50 720 738 846 864 576 582 587 625 interlace -hsync -vsync
 add_mode "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsync -vsync
 add_mode "PAL576-AR" 25.20 720 744 808 1611 576 581 586 625 interlace -hsync -vsync
-add_mode "PAL576-SCART" 13.50 720 738 846 864 576 582 587 625 interlace -hsync -vsync
 add_mode "640x480-pal" 25.18 640 656 672 832 480 490 492 525 -hsync -vsync
 
 xrandr --output "$OUT" --transform 1,0,0,0,1,0,0,0,1 2>/dev/null || true
@@ -42,7 +44,16 @@ PY
 )"
 fi
 
-for m in PAL576i PAL576-AR PAL576-SCART 640x480-pal 640x480; do
+PREF="${PREFERRED_MODE:-}"
+if [ -n "$PREF" ]; then
+  if xrandr --output "$OUT" --mode "$PREF" 2>/dev/null; then
+    echo "OK: $PREF (preferred) on $OUT"
+    xrandr --query | grep -E "connected|\*"
+    exit 0
+  fi
+fi
+
+for m in PAL576-864 PAL576-L16 PAL576-SCART PAL576i PAL576-AR 640x480-pal 640x480; do
   if xrandr --output "$OUT" --mode "$m" 2>/dev/null; then
     xrandr --output "$OUT" --reflect normal 2>/dev/null || true
     if [ "$HPOS" != "0" ] && [ "$HPOS" != "0.0" ]; then

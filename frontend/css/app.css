@@ -1093,40 +1093,30 @@ body.vga-kiosk:not(.crt-display) #stage {
   height: 100% !important;
 }
 
-/* Kabin CRT 720×576 — 100vw Firefox'ta genis raporlanir, saga kayma yapar */
+/* Kabin CRT — 720×576 cikis; ic layout uniform olcek (amiga-crt.css) */
 body.vga-kiosk.crt-display {
   --stage-w: 720px;
   --stage-h: 576px;
-  width: 720px;
-  height: 576px;
-  max-width: 720px;
-  max-height: 576px;
-  overflow: hidden;
 }
 
 body.vga-kiosk.crt-display #bezel {
   position: fixed !important;
   left: 0 !important;
   top: 0 !important;
-  inset: auto !important;
   width: 720px !important;
   height: 576px !important;
-  max-width: 720px !important;
-  max-height: 576px !important;
   padding: 0;
   border-radius: 0;
-  background: var(--bg);
+  background: #0a0810;
   box-shadow: none;
   overflow: hidden;
-  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px)) !important;
+  transform: none !important;
 }
 
 body.vga-kiosk.crt-display #tube,
 body.vga-kiosk.crt-display #stage {
   width: 720px !important;
   height: 576px !important;
-  max-width: 720px !important;
-  max-height: 576px !important;
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
