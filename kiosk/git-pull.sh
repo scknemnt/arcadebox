@@ -1,5 +1,5 @@
 #!/bin/sh
-# Kabin: uzak repoyla birebir esitle (yerel diff silinir).
+# Kabin: uzak repoyla birebir esitle.
 #   sh kiosk/git-pull.sh
 
 set -eu
@@ -15,12 +15,5 @@ echo
 echo "Guncel:"
 git log -1 --oneline
 echo
-echo "Yatay cizgi / resim yok: sh kiosk/crt-lines-fix.sh"
-echo "profile fi hatasi: sudo sh kiosk/crt-fix-profile.sh"
-echo "GORUNTU GITTİ / renk test sonrasi:"
-echo "  sudo sh kiosk/crt-rollback.sh && sudo reboot"
-echo
-echo "CRT ilk kurulum: sudo sh kiosk/crt-arcelik.sh && sudo reboot"
-echo "Kayma ince ayar: sh kiosk/crt-pan.sh -120"
-echo "SCART kart HW: cat kiosk/CRT-SCART-HW.txt"
-
+echo "Yatay cizgi / goruntu yok:"
+echo "  sudo sh kiosk/crt-stock.sh && sudo reboot"

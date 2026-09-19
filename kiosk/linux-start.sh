@@ -59,25 +59,11 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
 fi
 
 if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
-  CRT_VGA=0
-  if [ -f "$ROOT/config.json" ] && grep -q '"crt"[[:space:]]*:[[:space:]]*true' "$ROOT/config.json" 2>/dev/null; then
-    CRT_VGA=1
-  fi
+  # ee6f0d6: stok VGA. PAL576i TV'de yatay cizgi yapar — zorlama.
   for out in VGA-1 VGA-0 VGA1; do
-    if ! xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
-      continue
+    if xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
+      xrandr --output "$out" --auto 2>/dev/null && echo "VGA: $out --auto" && break
     fi
-    if [ "$CRT_VGA" = 1 ]; then
-      if [ -f "$ROOT/kiosk/crt-xrandr-pal.sh" ]; then
-        sh "$ROOT/kiosk/crt-xrandr-pal.sh" && echo "CRT: crt-xrandr-pal.sh OK" || \
-          echo "UYARI: crt-xrandr-pal.sh basarisiz"
-      else
-        xrandr --output "$out" --mode 640x480 2>/dev/null || \
-        xrandr --output "$out" --auto 2>/dev/null || true
-      fi
-      break
-    fi
-    xrandr --output "$out" --auto 2>/dev/null && break
   done
 fi
 
@@ -156,14 +142,7 @@ EOF
     sleep 0.1
   done
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY profile=$FF_PROF"
-  pkill firefox-esr 2>/dev/null || true
-  sleep 1
-  while true; do
-    echo "firefox baslat $(date)"
-    firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL" \
-      || echo "firefox cikti code=$? $(date)" >>"$LOG"
-    sleep 3
-  done
+  exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL"
 fi
 
 exec python3 backend/arcadebox.py --kiosk
