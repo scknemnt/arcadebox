@@ -1,27 +1,33 @@
 #!/bin/sh
-# X calismiyor — autologin + startx + PAL576i duzelt.
+# X + menu boot duzelt — MUTLAKA root ile:
 #   cd /mnt/games/ArcadeBox
 #   sh kiosk/git-pull.sh
-#   sh kiosk/crt-fix-boot.sh
+#   sudo sh kiosk/crt-fix-boot.sh
 #   sudo reboot
-# SSH aninda: sh kiosk/crt-start-x.sh
+#
+# SSH'den X ACILMAZ (vt1 izni). Reboot veya:
+#   sudo systemctl start arcadebox-kiosk.service
 
 set -eu
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "sudo sh kiosk/crt-fix-boot.sh"
+  exit 1
+fi
+
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-HOME_DIR="${HOME:-/home/arcadebox}"
-USER_NAME="$(whoami)"
+USER_NAME="${SUDO_USER:-arcadebox}"
+HOME_DIR="$(getent passwd "$USER_NAME" 2>/dev/null | cut -d: -f6)"
+[ -n "$HOME_DIR" ] || HOME_DIR="/home/$USER_NAME"
 CFG="$ROOT/config.json"
 
-echo "=== CRT boot duzeltme ==="
-echo "ArcadeBox: $ROOT"
+echo "=== CRT boot duzeltme (root) ==="
+echo "Kullanici: $USER_NAME  ArcadeBox: $ROOT"
 
-mount /mnt/games 2>/dev/null || sudo mount -a 2>/dev/null || true
+mount /mnt/games 2>/dev/null || mount -a 2>/dev/null || true
+ln -sfn /mnt/games/ArcadeBox "$HOME_DIR/ArcadeBox" 2>/dev/null || true
 
-if [ -d /mnt/games/ArcadeBox ] && [ ! -L "$HOME_DIR/ArcadeBox" ]; then
-  rm -rf "$HOME_DIR/ArcadeBox" 2>/dev/null || true
-  ln -sfn /mnt/games/ArcadeBox "$HOME_DIR/ArcadeBox" 2>/dev/null || true
-  echo "OK: ~/ArcadeBox -> /mnt/games/ArcadeBox"
-fi
+usermod -aG video,tty,input,audio,render,sudo "$USER_NAME" 2>/dev/null || true
 
 python3 - "$CFG" <<'PY'
 import json, sys
@@ -72,38 +78,18 @@ sleep 120
 XINIT
 chmod +x "$HOME_DIR/.xinitrc"
 
-STARTX_BLOCK='# Arcade Box PC kiosk — startx on tty1
-if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-  exec startx "$HOME/.xinitrc" -- :0 vt1 -nocursor
-fi'
-
-for prof in "$HOME_DIR/.bash_profile" "$HOME_DIR/.profile"; do
+# Eski bozuk "exec startx" satirlarini sil — systemd kiosk kullan
+for prof in "$HOME_DIR/.profile" "$HOME_DIR/.bash_profile"; do
+  if [ -f "$prof" ]; then
+    grep -v "Arcade Box" "$prof" | grep -v "exec startx" | grep -v "startx.*xinitrc" > "${prof}.new" || true
+    mv "${prof}.new" "$prof"
+  fi
   touch "$prof"
-  grep -v "Arcade Box" "$prof" 2>/dev/null | grep -v "startx.*xinitrc" > "${prof}.tmp" || true
-  mv "${prof}.tmp" "$prof"
-  printf '\n%s\n' "$STARTX_BLOCK" >> "$prof"
-  echo "OK: $prof"
 done
+echo "OK: .profile temizlendi (startx kaldirildi — systemd kullanilir)"
 
-if [ "$(id -u)" -eq 0 ]; then
-  _sudo=1
-else
-  echo "getty autologin + xorg (sudo sifresi):"
-  sudo -v && _sudo=1 || _sudo=0
-fi
-
-if [ "${_sudo:-0}" = "1" ]; then
-  mkdir -p /etc/systemd/system/getty@tty1.service.d
-  cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin ${USER_NAME} --noclear %I \$TERM
-EOF
-  systemctl daemon-reload 2>/dev/null || true
-  echo "OK: getty autologin ($USER_NAME)"
-
-  mkdir -p /etc/X11/xorg.conf.d
-  cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<'EOF'
+mkdir -p /etc/X11/xorg.conf.d
+cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<'EOF'
 Section "Device"
     Identifier "IntelGPU"
     Driver "modesetting"
@@ -118,11 +104,26 @@ Section "ServerLayout"
     Screen 0 "Screen0"
 EndSection
 EOF
-  systemctl disable arcadebox-kiosk.service 2>/dev/null || true
-  systemctl stop arcadebox-kiosk.service 2>/dev/null || true
-  echo "OK: minimal Xorg"
+
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin ${USER_NAME} --noclear %I \$TERM
+EOF
+
+if [ -f "$ROOT/kiosk/arcadebox-kiosk.service" ]; then
+  sed "s|/home/arcadebox|$HOME_DIR|g" "$ROOT/kiosk/arcadebox-kiosk.service" \
+    > /etc/systemd/system/arcadebox-kiosk.service
+  systemctl daemon-reload
+  systemctl enable arcadebox-kiosk.service
+  echo "OK: arcadebox-kiosk.service etkin"
 fi
 
+chown "$USER_NAME:$USER_NAME" "$HOME_DIR/.xprofile" "$HOME_DIR/.xinitrc" \
+  "$HOME_DIR/.profile" "$HOME_DIR/.bash_profile" 2>/dev/null || true
+
 echo
-echo "1) sudo reboot   (normal yol)"
-echo "2) sh kiosk/crt-start-x.sh   (SSH aninda X ac)"
+echo ">>> sudo reboot <<<"
+echo "Acil test (reboot oncesi): sudo systemctl start arcadebox-kiosk.service"
+echo "Log: journalctl -u arcadebox-kiosk.service -n 30 --no-pager"
