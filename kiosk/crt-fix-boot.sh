@@ -105,19 +105,15 @@ Section "ServerLayout"
 EndSection
 EOF
 
-mkdir -p /etc/systemd/system/getty@tty1.service.d
-cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin ${USER_NAME} --noclear %I \$TERM
-EOF
-
 if [ -f "$ROOT/kiosk/arcadebox-kiosk.service" ]; then
   sed "s|/home/arcadebox|$HOME_DIR|g" "$ROOT/kiosk/arcadebox-kiosk.service" \
     > /etc/systemd/system/arcadebox-kiosk.service
   systemctl daemon-reload
+  systemctl stop getty@tty1.service 2>/dev/null || true
+  systemctl disable getty@tty1.service 2>/dev/null || true
+  rm -rf /etc/systemd/system/getty@tty1.service.d/autologin.conf 2>/dev/null || true
   systemctl enable arcadebox-kiosk.service
-  echo "OK: arcadebox-kiosk.service etkin"
+  echo "OK: arcadebox-kiosk.service etkin (getty@tty1 kapali)"
 fi
 
 chown "$USER_NAME:$USER_NAME" "$HOME_DIR/.xprofile" "$HOME_DIR/.xinitrc" \
