@@ -37,8 +37,6 @@ cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<EOF
 # Arcade Box — guvenli boot PAL576i; ince ayar xrandr ile (.xprofile)
 Section "Monitor"
     Identifier "VGA-SCART"
-    Modeline "PAL576-SCART" 13.50 720 738 846 864 576 582 587 625 interlace -hsync -vsync
-    Modeline "PAL576-AR" 25.20 720 744 808 1611 576 581 586 625 interlace -hsync -vsync
     Modeline "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsync -vsync
     Modeline "640x480" 25.18 640 656 672 832 480 490 492 525 -hsync -vsync
     Option "IgnoreEDID" "true"
@@ -59,7 +57,7 @@ Section "Screen"
     DefaultDepth 24
     SubSection "Display"
         Depth 24
-        Modes "PAL576i" "640x480" "PAL576-AR" "PAL576-SCART"
+        Modes "PAL576i" "640x480"
     EndSubSection
 EndSection
 
