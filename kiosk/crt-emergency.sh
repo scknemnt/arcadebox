@@ -1,9 +1,9 @@
 #!/bin/sh
-# TAM SİYAH EKRAN — SSH acil kurtarma
-#   cd /mnt/games/ArcadeBox
-#   sh kiosk/git-pull.sh
-#   sh kiosk/crt-emergency.sh
-#   sudo reboot
+# TAM SİYAH EKRAN — once crt-rollback dene:
+#   sudo sh kiosk/crt-rollback.sh && sudo reboot
+#
+# Sadece config/xprofile:
+#   sh kiosk/crt-emergency.sh && sudo reboot
 #
 # sudo OLMADAN calistir (arcadebox kullanicisi). Root gerekirse script sorar.
 

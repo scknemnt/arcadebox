@@ -1,10 +1,9 @@
 #!/bin/sh
-# VGA-SCART: PAL576i + hpos (Arçelik — baska modlar goruntu vermeyebilir).
+# VGA-SCART: PAL modlarini xrandr ile ekle ve sec (Xorg config yuklenmese bile).
 #   export DISPLAY=:0
 #   sh kiosk/crt-xrandr-pal.sh
 
 export DISPLAY="${DISPLAY:-:0}"
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 
 OUT=""
 for o in VGA-1 VGA-0 VGA1; do
@@ -13,7 +12,7 @@ for o in VGA-1 VGA-0 VGA1; do
     break
   fi
 done
-[ -n "$OUT" ] || { echo "VGA yok"; xrandr --query 2>/dev/null; exit 1; }
+[ -n "$OUT" ] || { echo "VGA cikisi yok"; xrandr --query 2>/dev/null; exit 1; }
 
 add_mode() {
   name="$1"
@@ -23,85 +22,20 @@ add_mode() {
 }
 
 add_mode "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsync -vsync
-add_mode "PAL576i-H1" 25.20 720 754 834 1611 576 581 586 625 interlace -hsync -vsync
-add_mode "PAL576i-H2" 25.20 720 748 828 1611 576 581 586 625 interlace -hsync -vsync
-add_mode "PAL576i-H3" 25.20 720 762 842 1611 576 581 586 625 interlace -hsync -vsync
-add_mode "PAL576i-H4" 25.20 720 756 836 1611 576 581 586 625 interlace -hsync -vsync
+add_mode "PAL576-AR" 25.20 720 744 808 1611 576 581 586 625 interlace -hsync -vsync
+add_mode "PAL576-SCART" 13.50 720 738 846 864 576 582 587 625 interlace -hsync -vsync
+add_mode "640x480-pal" 25.18 640 656 672 832 480 490 492 525 -hsync -vsync
 
-PREF="${PREFERRED_MODE:-}"
-HPOS="${HPOS_TRANSFORM:-}"
-if [ -z "$HPOS" ] && [ -f "$ROOT/config.json" ]; then
-  HPOS="$(python3 - "$ROOT/config.json" <<'PY'
-import json, sys
-try:
-    d = json.load(open(sys.argv[1], encoding="utf-8")).get("display", {})
-    print(d.get("hpos", 0))
-except Exception:
-    print(0)
-PY
-)"
-fi
-if [ -z "$PREF" ] && [ -f "$ROOT/config.json" ]; then
-  PREF="$(python3 - "$ROOT/config.json" <<'PY'
-import json, sys
-try:
-    d = json.load(open(sys.argv[1], encoding="utf-8")).get("display", {})
-    print(d.get("preferredMode", "PAL576i"))
-except Exception:
-    print("PAL576i")
-PY
-)"
-fi
-[ -n "$PREF" ] || PREF="PAL576i"
+xrandr --output "$OUT" --transform 1,0,0,0,1,0,0,0,1 2>/dev/null || true
 
-FBPAN="0"
-if [ -f "$ROOT/config.json" ]; then
-  FBPAN="$(python3 - "$ROOT/config.json" <<'PY'
-import json, sys
-try:
-    d = json.load(open(sys.argv[1], encoding="utf-8")).get("display", {})
-    print(d.get("fbPanX", 0))
-except Exception:
-    print(0)
-PY
-)"
-fi
-
-apply_hpos() {
-  if [ -n "$HPOS" ] && [ "$HPOS" != "0" ] && [ "$HPOS" != "0.0" ]; then
-    xrandr --output "$OUT" --transform "1,0,$HPOS,0,1,0,0,0,1" 2>/dev/null && \
-      echo "hpos transform=$HPOS" || echo "UYARI: transform uygulanamadi"
-  else
-    xrandr --output "$OUT" --transform 1,0,0,0,1,0,0,0,1 2>/dev/null || true
-  fi
-}
-
-apply_fb_pan() {
-  # fb pan Intel VGA'da goruntuyu bozar — her zaman 720x576 sifirla
-  xrandr --fb 720x576 2>/dev/null || true
-  xrandr --output "$OUT" --pos 0x0 2>/dev/null || true
-  xrandr --output "$OUT" --transform 1,0,0,0,1,0,0,0,1 2>/dev/null || true
-}
-
-try_mode() {
-  m="$1"
+for m in PAL576i PAL576-AR PAL576-SCART 640x480-pal 640x480; do
   if xrandr --output "$OUT" --mode "$m" 2>/dev/null; then
-    xrandr --output "$OUT" --reflect normal 2>/dev/null || true
-    apply_hpos
-    apply_fb_pan
     echo "OK: $m on $OUT"
     xrandr --query | grep -E "connected|\*"
-    return 0
+    exit 0
   fi
-  return 1
-}
-
-if try_mode "$PREF"; then exit 0; fi
-
-for m in PAL576i PAL576i-H1 PAL576i-H2 PAL576i-H3 PAL576i-H4; do
-  try_mode "$m" && exit 0
 done
 
-echo "PAL576i secilemedi:"
+echo "PAL modu secilemedi — mevcut modlar:"
 xrandr --query
 exit 1
