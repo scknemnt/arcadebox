@@ -77,15 +77,10 @@ apply_hpos() {
 }
 
 apply_fb_pan() {
-  if [ -z "$FBPAN" ] || [ "$FBPAN" = "0" ] || [ "$FBPAN" = "0.0" ]; then
-    return 0
-  fi
-  xrandr --fb 960x576 2>/dev/null || true
-  if xrandr --output "$OUT" --pos "${FBPAN}x0" 2>/dev/null; then
-    echo "fb pan pos=${FBPAN}x0"
-  else
-    echo "UYARI: fb pan uygulanamadi"
-  fi
+  # fb pan Intel VGA'da goruntuyu bozar — her zaman 720x576 sifirla
+  xrandr --fb 720x576 2>/dev/null || true
+  xrandr --output "$OUT" --pos 0x0 2>/dev/null || true
+  xrandr --output "$OUT" --transform 1,0,0,0,1,0,0,0,1 2>/dev/null || true
 }
 
 try_mode() {

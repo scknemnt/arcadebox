@@ -83,9 +83,10 @@ chown "$USER_NAME:$USER_NAME" "$RC" 2>/dev/null || true
 
 echo "Yazildi: 10-arcadebox.conf (PreferredMode=PAL576i) + .xprofile"
 echo
-echo "Reboot OLMADAN hemen dene (SSH):"
+echo "Goruntu gittiyse:"
 echo "  export DISPLAY=:0"
-echo "  sh $ROOT/kiosk/crt-xrandr-pal.sh"
+echo "  sh $ROOT/kiosk/crt-display-reset.sh"
+echo "  sudo reboot"
 echo
 echo "Goruntu gelirse: sudo reboot"
 echo
