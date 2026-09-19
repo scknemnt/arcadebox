@@ -26,12 +26,11 @@ done
 echo "=== CRT sync ($OUT) ==="
 echo "XAUTHORITY=${XAUTHORITY:-yok}"
 echo
-echo "--- su anki GERCEK saat (65 MHz = 31 kHz VGA, TV kayar) ---"
+echo "--- aktif mod (*current). 15.64 kHz = PAL, 31+ kHz = TV kayar ---"
 xrandr --verbose 2>/dev/null | awk '
-  $1=="VGA-1"||$1=="VGA-0"||$1=="VGA1" {p=1}
-  p && /connected/ {print}
-  p && /\*/ {print}
-  p && /h:|v:|Clock/ {print}
+  /\*current/ {print; c=1; next}
+  c && /h:/ {print; next}
+  c && /v:/ {print; c=0}
 '
 
 add() {
