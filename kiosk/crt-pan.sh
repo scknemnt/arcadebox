@@ -19,6 +19,10 @@ case "${1:-}" in
     MODE="xrandr"
     HPOS="${2:-0}"
     ;;
+  fb|fbpan)
+    MODE="fb"
+    PANX="${2:-0}"
+    ;;
   *)
     PANX="${1:-0}"
     PANY="${2:-0}"
@@ -29,7 +33,22 @@ case "${1:-}" in
     ;;
 esac
 
-python3 - "$CFG" "$PANX" "$PANY" "$HPOS" <<'PY'
+if [ "$MODE" = "fb" ]; then
+  python3 - "$CFG" "$PANX" <<'PY'
+import json, sys
+path, fb = sys.argv[1], int(float(sys.argv[2]))
+cfg = json.load(open(path, encoding="utf-8"))
+d = cfg.setdefault("display", {})
+d["fbPanX"] = fb
+d["crt"] = True
+d["preferredMode"] = d.get("preferredMode", "PAL576i")
+json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+open(path, "a").write("\n")
+print(f"fbPanX={fb} -> {path}")
+PY
+  sh "$(dirname "$0")/crt-xrandr-pal.sh" 2>/dev/null || true
+else
+  python3 - "$CFG" "$PANX" "$PANY" "$HPOS" <<'PY'
 import json, sys
 path = sys.argv[1]
 panx, pany, hpos = float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4])
@@ -42,11 +61,13 @@ d["hpos"] = hpos
 d["crt"] = True
 d["width"] = 720
 d["height"] = 576
+d["preferredMode"] = d.get("preferredMode", "PAL576i")
 with open(path, "w", encoding="utf-8") as f:
     json.dump(cfg, f, indent=2, ensure_ascii=False)
     f.write("\n")
 print(f"panX={panx} panY={pany} hpos={hpos} -> {path}")
 PY
+fi
 
 if [ "$HPOS" != "0" ] && command -v xrandr >/dev/null 2>&1; then
   for out in VGA-1 VGA-0 VGA1; do

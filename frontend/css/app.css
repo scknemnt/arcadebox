@@ -1110,7 +1110,7 @@ body.vga-kiosk.crt-display #bezel {
   background: #0a0810;
   box-shadow: none;
   overflow: hidden;
-  transform: none !important;
+  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px)) !important;
 }
 
 body.vga-kiosk.crt-display #tube,

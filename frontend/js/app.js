@@ -425,7 +425,11 @@ function applyCrtLayoutVars() {
     root.style.setProperty("--amiga-layout-h", `${rh}px`);
     root.style.setProperty("--amiga-layout-x", "0px");
     root.style.setProperty("--amiga-layout-y", `${Math.round((vp.h - rh) / 2)}px`);
+    root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
+    root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
   } else {
+    root.style.removeProperty("--crt-pan-x");
+    root.style.removeProperty("--crt-pan-y");
     root.style.removeProperty("--amiga-layout-w");
     root.style.removeProperty("--amiga-layout-h");
     root.style.removeProperty("--amiga-layout-x");
@@ -737,7 +741,10 @@ function scaleStage() {
     document.documentElement.style.setProperty("--stage-h", `${h}px`);
     document.documentElement.classList.add("vga-kiosk");
     document.body.classList.add("vga-kiosk");
-    bezel.style.transform = "none";
+    if (vp) {
+      document.documentElement.style.setProperty("--crt-pan-x", `${vp.panX}px`);
+      document.documentElement.style.setProperty("--crt-pan-y", `${vp.panY}px`);
+    }
     bezel.style.width = `${w}px`;
     bezel.style.height = `${h}px`;
     if (tube) {

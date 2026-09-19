@@ -1,0 +1,43 @@
+SCARTCADE / Tanex tarzi kart — yatay kayma (H-POS yok, TV kumandasi yok)
+================================================================================
+
+Belirti: BIOS (ASUS) + Linux + menü hep saga kayik, solda siyah serit.
+xrandr transform / modeline degisikligi ETKI ETMEDI ise:
+
+1) YAZILIM (once dene)
+   sh kiosk/crt-fb-pan.sh          — framebuffer --pos
+   sh kiosk/crt-pan.sh -200        — Firefox icinde sola kaydir
+   sh kiosk/crt-pan.sh -280
+
+2) SCART KARTI — 74HC86 sync yolu (sematik)
+   HSYNC (VGA pin 13) -> R7 -> C4 -> XOR (U1 74HC86)
+   VSYNC (VGA pin 14) -> R8 -> C5 -> XOR
+   Cikis -> Q1/Q2 -> SCART pin 20 (Composite Sync)
+
+   74HC86 BOZUKSA: genelde resim yok / kayma / RGB moda gecmez.
+   Sabit saga kayma: cogu zaman C4/C5 (sync filtre) veya sync fazasi.
+
+   Kontrol (multimetre / osiloskop):
+   - U1 pin 14 VCC ~5V, pin 7 GND
+   - HSYNC/VSYNC XOR cikisi pin 8 dalgali mi?
+   - C4, C5 (kucuk seramik ~1nF-100nF arasi) lehim/soket saglam mi?
+   - Q1/Q2 (NPN sync buffer) dogru polarite
+
+   Deney (riskli — dikkatli):
+   - C4 degerini %20 degistirmek sync fazini kaydirir (yatay konum)
+   - H-sync hattina seri 47-220 ohm bazen faz duzeltir
+
+3) SCART pinleri
+   W16 Blanking -> RGB modu (TV composite degil RGB gostermeli)
+   W8  Switch    -> SCART kanal secimi
+   R6, R16 direnc degerleri sematige uygun mu?
+
+4) TV (Arçelik 3370 S) kumandasiz servis menusu
+   - On panelde gizli tus: cogu eski TV'de CH+/CH- veya VOL+ ile acilir
+   - Evrensel IR kumanda (Arçelik kodu) veya telefon IR uygulamasi
+   - H-POS servis menusunde — en temiz cozum
+
+5) Kalici yazilim cozumu
+   sudo sh kiosk/crt-set-mode.sh PAL576i
+   sh kiosk/crt-pan.sh -220
+   sudo reboot

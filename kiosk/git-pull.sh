@@ -17,4 +17,5 @@ git log -1 --oneline
 echo
 echo "CRT kurulum: sudo sh kiosk/crt-arcelik.sh && sudo reboot"
 echo "Ekran gelmiyorsa: sudo sh kiosk/crt-recover.sh && sudo reboot"
-echo "PAL576i saga kayma: sh kiosk/crt-pal576i-hpos.sh"
+echo "PAL576i saga kayma: sh kiosk/crt-pan-scan.sh  veya  sh kiosk/crt-fb-pan.sh"
+echo "SCART kart HW: cat kiosk/CRT-SCART-HW.txt"

@@ -54,6 +54,19 @@ PY
 fi
 [ -n "$PREF" ] || PREF="PAL576i"
 
+FBPAN="0"
+if [ -f "$ROOT/config.json" ]; then
+  FBPAN="$(python3 - "$ROOT/config.json" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8")).get("display", {})
+    print(d.get("fbPanX", 0))
+except Exception:
+    print(0)
+PY
+)"
+fi
+
 apply_hpos() {
   if [ -n "$HPOS" ] && [ "$HPOS" != "0" ] && [ "$HPOS" != "0.0" ]; then
     xrandr --output "$OUT" --transform "1,0,$HPOS,0,1,0,0,0,1" 2>/dev/null && \
@@ -63,11 +76,24 @@ apply_hpos() {
   fi
 }
 
+apply_fb_pan() {
+  if [ -z "$FBPAN" ] || [ "$FBPAN" = "0" ] || [ "$FBPAN" = "0.0" ]; then
+    return 0
+  fi
+  xrandr --fb 960x576 2>/dev/null || true
+  if xrandr --output "$OUT" --pos "${FBPAN}x0" 2>/dev/null; then
+    echo "fb pan pos=${FBPAN}x0"
+  else
+    echo "UYARI: fb pan uygulanamadi"
+  fi
+}
+
 try_mode() {
   m="$1"
   if xrandr --output "$OUT" --mode "$m" 2>/dev/null; then
     xrandr --output "$OUT" --reflect normal 2>/dev/null || true
     apply_hpos
+    apply_fb_pan
     echo "OK: $m on $OUT"
     xrandr --query | grep -E "connected|\*"
     return 0
