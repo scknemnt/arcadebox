@@ -70,7 +70,7 @@ if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
     if [ "$CRT_VGA" = 1 ]; then
       _crt_out="$out"
       _crt_ok=0
-      for _m in PAL576-AR PAL576i; do
+      for _m in PAL576-SCART PAL576-AR PAL576i; do
         for _try in 1 2 3 4 5 6 7 8 9 10; do
           if xrandr --output "$out" --mode "$_m" 2>/dev/null; then
             _crt_ok=1
@@ -87,7 +87,7 @@ if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
         sleep 3
         o="${_crt_out:-VGA-1}"
         for _n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-          for _m in PAL576-AR PAL576i; do
+          for _m in PAL576-SCART PAL576-AR PAL576i; do
             xrandr --output "$o" --mode "$_m" 2>/dev/null && exit 0
           done
           sleep 2
