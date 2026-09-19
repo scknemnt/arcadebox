@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>CRT Test 720x576</title>
+  <style>
+    * { margin: 0; box-sizing: border-box; }
+    html, body {
+      width: 720px;
+      height: 576px;
+      overflow: hidden;
+      background: #c00;
+      font: bold 28px Consolas, monospace;
+      color: #ff0;
+    }
+    .bar { position: absolute; left: 0; top: 0; width: 40px; height: 576px; background: #00f; }
+    .bar-r { left: auto; right: 0; background: #0f0; }
+    .label { position: absolute; left: 60px; top: 260px; }
+  </style>
+</head>
+<body>
+  <div class="bar" title="sol mavi 40px"></div>
+  <div class="bar bar-r" title="sag yesil 40px"></div>
+  <div class="label">CRT TEST 720x576 — mavi SOL yesil SAG</div>
+</body>
+</html>

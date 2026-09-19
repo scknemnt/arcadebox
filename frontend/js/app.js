@@ -734,10 +734,12 @@ function scaleStage() {
     document.documentElement.classList.add("vga-kiosk");
     document.body.classList.add("vga-kiosk");
     if (vp) {
-      const tx = vp.panX || 0;
-      const ty = vp.panY || 0;
-      bezel.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : "none";
+      document.documentElement.style.setProperty("--crt-pan-x", `${vp.panX}px`);
+      document.documentElement.style.setProperty("--crt-pan-y", `${vp.panY}px`);
+      bezel.style.removeProperty("transform");
     } else {
+      document.documentElement.style.removeProperty("--crt-pan-x");
+      document.documentElement.style.removeProperty("--crt-pan-y");
       bezel.style.transform = "none";
     }
     bezel.style.width = `${w}px`;

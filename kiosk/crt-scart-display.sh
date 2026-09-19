@@ -44,6 +44,7 @@ cfg["display"].update({
     "crt": True,
     "panX": cfg.get("display", {}).get("panX", 0),
     "panY": cfg.get("display", {}).get("panY", 0),
+    "hpos": cfg.get("display", {}).get("hpos", 0),
 })
 p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 print("config.json theme=amiga-crt display=720x576 crt:true")
