@@ -79,6 +79,15 @@ sleep 120
 XINIT
 chmod +x "$HOME_DIR/.xinitrc"
 
+cat > "$HOME_DIR/.profile" <<'PROF'
+# ~/.profile — Arcade Box (temiz)
+if [ -n "$BASH_VERSION" ]; then
+  if [ -f "$HOME/.bashrc" ]; then
+    . "$HOME/.bashrc"
+  fi
+fi
+PROF
+
 cat > "$HOME_DIR/.bash_profile" <<EOF
 # Arcade Box kiosk
 if [ -f "\$HOME/.profile" ]; then
@@ -142,7 +151,7 @@ EndSection
 EOF
 
 chown "$USER_NAME:$USER_NAME" "$HOME_DIR/.xinitrc" "$HOME_DIR/.xprofile" \
-  "$HOME_DIR/.bash_profile" "$CFG" 2>/dev/null || true
+  "$HOME_DIR/.profile" "$HOME_DIR/.bash_profile" "$CFG" 2>/dev/null || true
 
 systemctl daemon-reload
 systemctl set-default multi-user.target 2>/dev/null || true

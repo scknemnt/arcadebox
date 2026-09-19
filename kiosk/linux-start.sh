@@ -156,7 +156,14 @@ EOF
     sleep 0.1
   done
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY profile=$FF_PROF"
-  exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL"
+  pkill firefox-esr 2>/dev/null || true
+  sleep 1
+  while true; do
+    echo "firefox baslat $(date)"
+    firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL" \
+      || echo "firefox cikti code=$? $(date)" >>"$LOG"
+    sleep 3
+  done
 fi
 
 exec python3 backend/arcadebox.py --kiosk
