@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "resolution": [800, 600],
+  "bg": "media/themes/amiga/arcadebox_bg.png",
+  "quad": {
+    "tl": [568, 185],
+    "tr": [706, 177],
+    "br": [699, 331],
+    "bl": [563, 322]
+  },
+  "carousel": {
+    "x": 105,
+    "pitch": 58,
+    "maxDist": 3,
+    "perspective": 620,
+    "perspectiveOriginX": 42,
+    "perspectiveOriginY": 50
+  },
+  "logo": { "width": 240, "height": 80 },
+  "game": {
+    "thumb": 56,
+    "titleSize": 17,
+    "titleSizeFocus": 21,
+    "rowWidth": 290
+  },
+  "viewport": {
+    "fit": "contain",
+    "insetTop": 0,
+    "insetRight": 0,
+    "insetBottom": 0,
+    "insetLeft": 0,
+    "heroScale": 0.98,
+    "coverScale": 1.0,
+    "heroScaleX": 0.98,
+    "heroScaleY": 1.0,
+    "coverScaleX": 1.0,
+    "coverScaleY": 1.0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "rotateX": 0,
+    "rotateY": 0,
+    "rotateZ": 0,
+    "skewX": 0,
+    "skewY": 0,
+    "imagePerspective": 400
+  }
+}

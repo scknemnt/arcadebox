@@ -1860,12 +1860,19 @@ def main() -> None:
     cfg = config()
     port = int(cfg.get("port", 7842))
     kiosk = cfg.get("kiosk") or ("--kiosk" in sys.argv)
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    bind = str(cfg.get("bindHost") or "")
+    if not bind:
+        bind = "0.0.0.0" if os.name != "nt" and kiosk else "127.0.0.1"
+    server = ThreadingHTTPServer((bind, port), Handler)
     url = f"http://127.0.0.1:{port}/"
+    mockup = f"{url}mockups/amiga-viewport-mockup.html"
     kick_catalog_build()
     if os.name != "nt":
         install_joypad_profiles()
     print("Arcade Box OS  ->  " + url)
+    if bind == "0.0.0.0":
+        print("Ag (mockup)    ->  http://<kabin-ip>:" + str(port) + "/mockups/amiga-viewport-mockup.html")
+    print("Mockup (PC)    ->  " + mockup)
     print("ROM klasoru    ->  " + str(ROMS))
     print("Emulator       ->  " + str(retroarch_exe() or (EMULATORS / "retroarch")))
     if "--no-browser" not in sys.argv:

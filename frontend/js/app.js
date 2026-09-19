@@ -325,9 +325,26 @@ function useAmigaCrt() {
 
 async function loadCrtLayout() {
   try {
-    const response = await fetch("media/themes/amiga/crt-layout.json?v=" + Date.now());
+    const crt = Boolean(state.config?.display?.crt);
+    const layoutFile = crt
+      ? "media/themes/amiga/crt-layout-cabinet.json"
+      : "media/themes/amiga/crt-layout.json";
+    const response = await fetch(layoutFile + "?v=" + Date.now());
+    if (!response.ok && crt) {
+      const fallback = await fetch("media/themes/amiga/crt-layout.json?v=" + Date.now());
+      if (!fallback.ok) return;
+      return loadCrtLayoutFrom(await fallback.json());
+    }
     if (!response.ok) return;
-    const data = await response.json();
+    return loadCrtLayoutFrom(await response.json());
+  } catch (_error) {
+    /* varsayılan */
+  }
+  applyCrtLayoutVars();
+}
+
+function loadCrtLayoutFrom(data) {
+  try {
     crtLayout = {
       ...CRT_LAYOUT_DEFAULT,
       ...data,
@@ -354,8 +371,10 @@ function crtLayoutScale() {
 }
 
 function layoutPx(value, axis) {
-  const { sx, sy, uniform } = crtLayoutScale();
-  if (uniform != null) return Math.round(value * uniform);
+  const { sx, sy, crt } = crtLayoutScale();
+  if (crt && document.body.classList.contains("vga-kiosk")) {
+    return Math.round(value * Math.min(sx, sy));
+  }
   return Math.round(value * (axis === "y" ? sy : sx));
 }
 
@@ -381,10 +400,15 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
   const { sx, sy, crt } = crtLayoutScale();
   if (crt && document.body.classList.contains("vga-kiosk")) {
-    root.style.setProperty("--amiga-layout-w", "100%");
-    root.style.setProperty("--amiga-layout-h", "100%");
-    root.style.setProperty("--amiga-layout-x", "0px");
-    root.style.setProperty("--amiga-layout-y", "0px");
+    const bw = crtLayout.resolution?.[0] || 800;
+    const bh = crtLayout.resolution?.[1] || 600;
+    const s = Math.min(sx, sy);
+    const rw = Math.round(bw * s);
+    const rh = Math.round(bh * s);
+    root.style.setProperty("--amiga-layout-w", `${rw}px`);
+    root.style.setProperty("--amiga-layout-h", `${rh}px`);
+    root.style.setProperty("--amiga-layout-x", `${Math.round((window.innerWidth - rw) / 2)}px`);
+    root.style.setProperty("--amiga-layout-y", `${Math.round((window.innerHeight - rh) / 2)}px`);
   } else {
     root.style.removeProperty("--amiga-layout-w");
     root.style.removeProperty("--amiga-layout-h");
@@ -1088,6 +1112,7 @@ async function loadCatalog() {
     stars();
   }
   applyDisplayProfile();
+  if (useAmigaCrt()) await loadCrtLayout();
   state.music = data.music || [];
   applyCrt();
   syncMusic();
