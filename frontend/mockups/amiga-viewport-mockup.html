@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arcade Box — 800×600 CRT Mockup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      color: #eee;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .toolbar button {
+      background: #2a2a3a;
+      border: 1px solid #555;
+      color: #eee;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .toolbar button.active {
+      background: #4a3a8a;
+      border-color: #8a7aff;
+    }
+    .note {
+      max-width: 820px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.55;
+    }
+    .note code { color: #cce; }
+
+    /* ── Sahne: tam 800×600 (CRT 1:1) ── */
+    .stage-wrap {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      max-width: 96vw;
+      border: 2px solid #444;
+      overflow: hidden;
+      background: #000;
+    }
+    @media (max-width: 820px) {
+      .stage-wrap {
+        width: 96vw;
+        height: calc(96vw * 0.75);
+      }
+    }
+    .stage {
+      position: absolute;
+      inset: 0;
+      width: 800px;
+      height: 600px;
+      transform-origin: top left;
+    }
+    .bg {
+      position: absolute;
+      inset: 0;
+      width: 800px;
+      height: 600px;
+      object-fit: fill;
+      z-index: 1;
+    }
+
+    /* Monitör viewport — clip-path quad (800×600 koordinatları) */
+    .monitor-viewport {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      clip-path: polygon(var(--mq));
+      overflow: hidden;
+      background: #000;
+    }
+    .monitor-inner {
+      position: absolute;
+      left: var(--vp-left);
+      top: var(--vp-top);
+      width: var(--vp-width);
+      height: var(--vp-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      perspective: var(--vp-img-perspective, 800px);
+      transform-style: preserve-3d;
+    }
+    .monitor-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: var(--vp-fit, contain);
+      object-position: center center;
+      transform: var(--vp-img-transform);
+      transform-origin: center center;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      display: block;
+    }
+    .debug-inner {
+      position: absolute;
+      left: var(--vp-left);
+      top: var(--vp-top);
+      width: var(--vp-width);
+      height: var(--vp-height);
+      border: 1px dashed cyan;
+      z-index: 19;
+      pointer-events: none;
+      display: none;
+    }
+    .debug-inner.on { display: block; }
+    .monitor-viewport::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.07) 0px,
+        rgba(0,0,0,0.07) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+    }
+    .debug-quad {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      display: none;
+    }
+    .debug-quad.on { display: block; }
+    .debug-quad svg {
+      width: 800px;
+      height: 600px;
+    }
+
+    /* ── 3D dikey carousel ── */
+    .carousel-rig {
+      position: absolute;
+      left: var(--cx, 158px);
+      top: 50%;
+      width: 270px;
+      height: 420px;
+      transform: translateY(-50%);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .carousel-scene {
+      width: 100%;
+      height: 100%;
+      perspective: 620px;
+      perspective-origin: 42% 50%;
+    }
+    .carousel-track {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+    .carousel-item {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-style: preserve-3d;
+      transition: transform 0.38s cubic-bezier(0.22, 0.85, 0.28, 1),
+                  opacity 0.32s ease,
+                  filter 0.32s ease;
+      will-change: transform, opacity;
+    }
+    .carousel-item.hidden {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+    .carousel-item .logo-img {
+      width: 240px;
+      height: 80px;
+      margin-left: -120px;
+      margin-top: -40px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.85));
+      backface-visibility: hidden;
+    }
+    .carousel-item.focus .logo-img {
+      filter: drop-shadow(0 0 16px rgba(255,210,80,0.4)) drop-shadow(0 4px 14px rgba(0,0,0,0.9));
+    }
+    .carousel-item .game-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: -145px;
+      margin-top: -28px;
+      width: 290px;
+      backface-visibility: hidden;
+    }
+    .carousel-item .thumb {
+      width: 56px;
+      height: 56px;
+      background: #222;
+      border: 2px solid rgba(255,255,255,0.32);
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .carousel-item .game-title {
+      font-size: 17px;
+      font-weight: 600;
+      text-shadow: 0 2px 8px #000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .carousel-item.focus .game-title { font-size: 21px; color: #ffe066; }
+    .carousel-item.focus .thumb { border-color: rgba(255,220,100,0.85); }
+    .export-box {
+      max-width: 820px;
+      width: 100%;
+      font-size: 11px;
+      color: #6a6;
+      display: none;
+      padding: 8px;
+      border: 1px solid #363;
+      background: #121812;
+      word-break: break-all;
+    }
+    .export-box.on { display: block; }
+
+    .hud {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 12;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      text-shadow: 0 1px 4px #000;
+    }
+    .mode-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 12;
+      background: rgba(0,0,0,0.55);
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .res-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 12;
+      font-size: 10px;
+      color: rgba(255,255,255,0.55);
+      background: rgba(0,0,0,0.45);
+      padding: 3px 6px;
+    }
+    .tune-panel {
+      max-width: 820px;
+      width: 100%;
+      font-size: 11px;
+      color: #888;
+      display: none;
+      gap: 6px;
+      flex-direction: column;
+    }
+    .tune-panel.on { display: flex; }
+    .tune-panel label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tune-panel input[type=range] { flex: 1; }
+  </style>
+</head>
+<body>
+  <p class="note">
+    <strong>800×600 CRT</strong> — <code>amiga_memories_bg.png</code> bu çözünürlükte hazırlanmalı;
+    viewport koordinatları bu boyuta göre kalibre edilir (1920×1080’dan ölçekleme yetmez, 4:3 farklı).
+    Kapak/hero monitör quad’ının içinde. ↑↓ ile carousel dene.
+  </p>
+
+  <div class="toolbar">
+    <button id="btn-home" class="active">Ana menü</button>
+    <button id="btn-games">NES oyunları</button>
+    <button id="btn-debug">Monitör quad</button>
+    <button id="btn-tune">Koordinat ayarı</button>
+    <button id="btn-export">JSON dışa aktar</button>
+    <button id="btn-vp-tune">Monitör görsel ayarı</button>
+  </div>
+  <pre class="export-box" id="export-box"></pre>
+
+  <div class="tune-panel" id="tune-panel">
+    <label>TL X <input type="range" id="tlx" min="400" max="650" value="565"></label>
+    <label>TL Y <input type="range" id="tly" min="80" max="220" value="179"></label>
+    <label>TR X <input type="range" id="trx" min="620" max="780" value="708"></label>
+    <label>TR Y <input type="range" id="try" min="80" max="220" value="171"></label>
+    <label>BR X <input type="range" id="brx" min="620" max="780" value="703"></label>
+    <label>BR Y <input type="range" id="bry" min="260" max="400" value="336"></label>
+    <label>BL X <input type="range" id="blx" min="400" max="650" value="561"></label>
+    <label>BL Y <input type="range" id="bly" min="260" max="400" value="326"></label>
+    <label>Carousel X <input type="range" id="cx" min="80" max="260" value="158"></label>
+  </div>
+
+  <div class="tune-panel" id="vp-tune-panel">
+    <strong style="color:#ccc">Monitör içi görsel (hero + kapak)</strong>
+    <label>Üst boşluk <input type="range" id="vp-it" min="0" max="40" value="14"></label>
+    <label>Alt boşluk <input type="range" id="vp-ib" min="0" max="40" value="18"></label>
+    <label>Sol boşluk <input type="range" id="vp-il" min="0" max="40" value="14"></label>
+    <label>Sağ boşluk <input type="range" id="vp-ir" min="0" max="40" value="18"></label>
+    <strong style="color:#aaa;margin-top:4px">Boyut / esnetme (%)</strong>
+    <label>Hero genişlik (en) <input type="range" id="vp-hsx" min="40" max="160" value="90"></label>
+    <label>Hero yükseklik (boy) <input type="range" id="vp-hsy" min="40" max="160" value="90"></label>
+    <label>Kapak genişlik (en) <input type="range" id="vp-csx" min="40" max="160" value="88"></label>
+    <label>Kapak yükseklik (boy) <input type="range" id="vp-csy" min="40" max="160" value="88"></label>
+    <label>Y kaydır <input type="range" id="vp-oy" min="-30" max="30" value="2"></label>
+    <label>X kaydır <input type="range" id="vp-ox" min="-30" max="30" value="0"></label>
+    <strong style="color:#aaa;margin-top:6px">Açı / perspektif</strong>
+    <label>Sağ–sol (rotateY) <input type="range" id="vp-ry" min="-35" max="35" value="0"></label>
+    <label>Yukarı–aşağı (rotateX) <input type="range" id="vp-rx" min="-35" max="35" value="0"></label>
+    <label>Düzlemde döndür (rotateZ) <input type="range" id="vp-rz" min="-25" max="25" value="0"></label>
+    <label>Yatay çapraz (skewX) <input type="range" id="vp-skx" min="-30" max="30" value="0"></label>
+    <label>Dikey çapraz (skewY) <input type="range" id="vp-sky" min="-30" max="30" value="0"></label>
+    <label>Derinlik perspektifi <input type="range" id="vp-persp" min="200" max="2000" step="10" value="800"></label>
+  </div>
+
+  <div class="stage-wrap" id="stage-wrap">
+    <div class="stage" id="stage">
+      <!-- 800×600 bg: amiga_memories_bg.png buraya konacak -->
+      <img class="bg" src="../media/themes/amiga/arcadebox_bg.png" width="800" height="600" alt="800×600 arka plan">
+
+      <div class="monitor-viewport" id="monitor-viewport">
+        <div class="monitor-inner">
+          <img id="screen-img" src="" alt="Monitör içi">
+        </div>
+      </div>
+      <div class="debug-inner" id="debug-inner"></div>
+
+      <div class="debug-quad" id="debug-quad">
+        <svg viewBox="0 0 800 600">
+          <polygon id="debug-poly" fill="none" stroke="lime" stroke-width="2"/>
+          <text x="10" y="590" fill="lime" font-size="11">monitör viewport quad</text>
+        </svg>
+      </div>
+
+      <div class="mode-label" id="mode-label">ANA MENÜ</div>
+      <div class="res-badge">800 × 600</div>
+
+      <div class="carousel-rig" id="carousel-rig">
+        <div class="carousel-scene">
+          <div class="carousel-track" id="carousel"></div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <span id="hud-left">↑↓ Seç · A Gir</span>
+        <span id="hud-right">F2 Servis</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*
+     * 800×600 CRT profili
+     * ─────────────────────
+     * Başlangıç quad: RetroFE 1920×1080 koordinatlarının 800/1920 · 600/1080 ölçeği.
+     * Senin amiga_memories_bg.png @ 800×600 hazır olunca "Koordinat ayarı" ile ince ayar yap.
+     * Final değerler config.json'a yazılacak.
+     */
+    const VIEW = {
+      w: 800,
+      h: 600,
+      // RetroFE → 800×600 lineer ölçek (başlangıç; 4:3 bg ile tekrar ayarlanacak)
+      quad: {
+        tl: [565, 179],
+        tr: [708, 171],
+        br: [703, 336],
+        bl: [561, 326],
+      },
+      carouselX: 158,
+      slotPitch: 58,
+      maxDist: 3,
+      viewport: {
+        fit: "contain",
+        insetTop: 14,
+        insetRight: 18,
+        insetBottom: 18,
+        insetLeft: 14,
+        heroScale: 0.9,
+        coverScale: 0.88,
+        heroScaleX: 0.9,
+        heroScaleY: 0.9,
+        coverScaleX: 0.88,
+        coverScaleY: 0.88,
+        offsetX: 0,
+        offsetY: 2,
+        rotateX: 0,
+        rotateY: 0,
+        rotateZ: 0,
+        skewX: 0,
+        skewY: 0,
+        imagePerspective: 800,
+      },
+    };
+
+    function viewportScales(vp, mode) {
+      if (mode === "cover") {
+        return {
+          sx: vp.coverScaleX ?? vp.coverScale ?? 1,
+          sy: vp.coverScaleY ?? vp.coverScale ?? 1,
+        };
+      }
+      return {
+        sx: vp.heroScaleX ?? vp.heroScale ?? 1,
+        sy: vp.heroScaleY ?? vp.heroScale ?? 1,
+      };
+    }
+
+    function viewportImageTransform(vp, mode) {
+      const { sx, sy } = viewportScales(vp, mode);
+      const ox = vp.offsetX || 0;
+      const oy = vp.offsetY || 0;
+      const rx = vp.rotateX || 0;
+      const ry = vp.rotateY || 0;
+      const rz = vp.rotateZ || 0;
+      const skx = vp.skewX || 0;
+      const sky = vp.skewY || 0;
+      const persp = vp.imagePerspective ?? 800;
+      return [
+        `perspective(${persp}px)`,
+        `translate(${ox}px, ${oy}px)`,
+        `rotateX(${rx}deg)`,
+        `rotateY(${ry}deg)`,
+        `rotateZ(${rz}deg)`,
+        `skewX(${skx}deg)`,
+        `skewY(${sky}deg)`,
+        `scale(${sx}, ${sy})`,
+      ].join(" ");
+    }
+
+    function quadBBox(q) {
+      const xs = [q.tl[0], q.tr[0], q.br[0], q.bl[0]];
+      const ys = [q.tl[1], q.tr[1], q.br[1], q.bl[1]];
+      return {
+        left: Math.min(...xs),
+        top: Math.min(...ys),
+        width: Math.max(...xs) - Math.min(...xs),
+        height: Math.max(...ys) - Math.min(...ys),
+      };
+    }
+
+    const LOGO = "../media/pandora/logos/";
+    const SYSTEMS = [
+      { id: "favorites", logo: LOGO + "favorites.png", hero: "../media/home/system-arcade.jpg" },
+      { id: "atari2600", logo: LOGO + "atari2600.png", hero: "../media/home/system-atari2600.jpg" },
+      { id: "nes", logo: LOGO + "nes.png", hero: "../media/home/system-nes.jpg" },
+      { id: "snes", logo: LOGO + "snes.png", hero: "../media/home/system-snes.jpg" },
+      { id: "megadrive", logo: LOGO + "megadrive.png", hero: "../media/home/system-megadrive.jpg" },
+      { id: "arcade", logo: LOGO + "arcade.png", hero: "../media/home/system-arcade.jpg" },
+      { id: "neogeo", logo: LOGO + "neogeo.png", hero: "../media/home/system-neogeo.jpg" },
+      { id: "psx", logo: LOGO + "psx.png", hero: "../media/home/system-psx.jpg" },
+    ];
+    const GAMES = [
+      { title: "Bomberman", cover: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=80&h=80&fit=crop", hero: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=600&fit=crop" },
+      { title: "Contra", cover: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=80&h=80&fit=crop", hero: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop" },
+      { title: "Super Mario Bros.", cover: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=80&h=80&fit=crop", hero: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600&fit=crop" },
+      { title: "Mega Man 2", cover: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=80&h=80&fit=crop", hero: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=800&h=600&fit=crop" },
+      { title: "Castlevania", cover: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=80&h=80&fit=crop", hero: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=800&h=600&fit=crop" },
+    ];
+
+    let mode = "home";
+    let selected = 2;
+
+    const carousel = document.getElementById("carousel");
+    const screenImg = document.getElementById("screen-img");
+    const stage = document.getElementById("stage");
+    const stageWrap = document.getElementById("stage-wrap");
+    const monitorViewport = document.getElementById("monitor-viewport");
+    const carouselRig = document.getElementById("carousel-rig");
+
+    function quadCss() {
+      const q = VIEW.quad;
+      return `${q.tl[0]}px ${q.tl[1]}px, ${q.tr[0]}px ${q.tr[1]}px, ${q.br[0]}px ${q.br[1]}px, ${q.bl[0]}px ${q.bl[1]}px`;
+    }
+
+    function quadCenter() {
+      const q = VIEW.quad;
+      const cx = (q.tl[0] + q.tr[0] + q.br[0] + q.bl[0]) / 4;
+      const cy = (q.tl[1] + q.tr[1] + q.br[1] + q.bl[1]) / 4;
+      return { cx, cy };
+    }
+
+    function layoutJson() {
+      const vp = VIEW.viewport;
+      return {
+        version: 1,
+        resolution: [VIEW.w, VIEW.h],
+        bg: "media/themes/amiga/arcadebox_bg.png",
+        quad: VIEW.quad,
+        carousel: {
+          x: VIEW.carouselX,
+          pitch: VIEW.slotPitch,
+          maxDist: VIEW.maxDist,
+          perspective: 620,
+          perspectiveOriginX: 42,
+          perspectiveOriginY: 50,
+        },
+        logo: { width: 240, height: 80 },
+        game: { thumb: 56, titleSize: 17, titleSizeFocus: 21, rowWidth: 290 },
+        viewport: {
+          fit: vp.fit,
+          insetTop: vp.insetTop,
+          insetRight: vp.insetRight,
+          insetBottom: vp.insetBottom,
+          insetLeft: vp.insetLeft,
+          heroScale: vp.heroScale,
+          coverScale: vp.coverScale,
+          heroScaleX: vp.heroScaleX,
+          heroScaleY: vp.heroScaleY,
+          coverScaleX: vp.coverScaleX,
+          coverScaleY: vp.coverScaleY,
+          offsetX: vp.offsetX,
+          offsetY: vp.offsetY,
+          rotateX: vp.rotateX,
+          rotateY: vp.rotateY,
+          rotateZ: vp.rotateZ,
+          skewX: vp.skewX,
+          skewY: vp.skewY,
+          imagePerspective: vp.imagePerspective,
+        },
+      };
+    }
+
+    function saveLayoutLocal() {
+      try { localStorage.setItem("arcadebox-crt-layout", JSON.stringify(layoutJson())); } catch (_e) {}
+    }
+
+    function loadLayoutLocal() {
+      try {
+        const raw = localStorage.getItem("arcadebox-crt-layout");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data.quad) VIEW.quad = data.quad;
+        if (data.carousel) {
+          VIEW.carouselX = data.carousel.x ?? VIEW.carouselX;
+          VIEW.slotPitch = data.carousel.pitch ?? VIEW.slotPitch;
+          VIEW.maxDist = data.carousel.maxDist ?? VIEW.maxDist;
+        }
+        if (data.viewport) VIEW.viewport = { ...VIEW.viewport, ...data.viewport };
+      } catch (_e) {}
+    }
+
+    function applyViewport(mode) {
+      const vp = VIEW.viewport;
+      const box = quadBBox(VIEW.quad);
+      const il = vp.insetLeft ?? 14;
+      const ir = vp.insetRight ?? 18;
+      const it = vp.insetTop ?? 14;
+      const ib = vp.insetBottom ?? 18;
+      const root = document.documentElement;
+      root.style.setProperty("--vp-left", `${box.left + il}px`);
+      root.style.setProperty("--vp-top", `${box.top + it}px`);
+      root.style.setProperty("--vp-width", `${Math.max(20, box.width - il - ir)}px`);
+      root.style.setProperty("--vp-height", `${Math.max(20, box.height - it - ib)}px`);
+      root.style.setProperty("--vp-fit", vp.fit || "contain");
+      root.style.setProperty("--vp-img-perspective", `${vp.imagePerspective ?? 800}px`);
+      root.style.setProperty("--vp-img-transform", viewportImageTransform(vp, mode));
+    }
+
+    function applyQuad() {
+      const css = quadCss();
+      monitorViewport.style.setProperty("--mq", css);
+      document.getElementById("debug-poly").setAttribute("points",
+        `${VIEW.quad.tl[0]},${VIEW.quad.tl[1]} ${VIEW.quad.tr[0]},${VIEW.quad.tr[1]} ${VIEW.quad.br[0]},${VIEW.quad.br[1]} ${VIEW.quad.bl[0]},${VIEW.quad.bl[1]}`);
+      carouselRig.style.setProperty("--cx", VIEW.carouselX + "px");
+      applyViewport(mode === "games" ? "cover" : "hero");
+      saveLayoutLocal();
+    }
+
+    /** RetroFE tarzı 3D dikey carousel transform */
+    function carouselTransform(dist) {
+      const abs = Math.abs(dist);
+      if (abs > VIEW.maxDist) return null;
+      const pitch = VIEW.slotPitch;
+      const rotateX = dist * -22;
+      const translateZ = -abs * 55;
+      const scale = Math.max(0.5, 1 - abs * 0.17);
+      const opacity = Math.max(0.15, 1 - abs * 0.3);
+      const blur = abs >= 2 ? (abs - 1) * 0.6 : 0;
+      const translateY = dist * pitch;
+      return {
+        transform: `translate(-50%, -50%) translateY(${translateY}px) translateZ(${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
+        opacity,
+        filter: blur ? `blur(${blur}px)` : "none",
+        zIndex: 10 - abs,
+      };
+    }
+
+    function renderCarousel() {
+      const items = mode === "home" ? SYSTEMS : GAMES;
+      carousel.innerHTML = "";
+
+      items.forEach((item, i) => {
+        const dist = i - selected;
+        const t = carouselTransform(dist);
+        const el = document.createElement("div");
+        el.className = "carousel-item" + (dist === 0 ? " focus" : "");
+        if (!t) {
+          el.classList.add("hidden");
+          el.style.transform = "translate(-50%, -50%) translateY(0) scale(0.4)";
+          el.style.opacity = "0";
+        } else {
+          el.style.transform = t.transform;
+          el.style.opacity = String(t.opacity);
+          el.style.filter = t.filter;
+          el.style.zIndex = String(t.zIndex);
+        }
+        if (mode === "home") {
+          el.innerHTML = `<img class="logo-img" src="${item.logo}" alt="${item.id}">`;
+        } else {
+          el.innerHTML = `
+            <div class="game-row">
+              <img class="thumb" src="${item.cover}" alt="">
+              <span class="game-title">${item.title}</span>
+            </div>`;
+        }
+        carousel.appendChild(el);
+      });
+
+      applyViewport(mode === "games" ? "cover" : "hero");
+      screenImg.src = items[selected].hero;
+      document.getElementById("mode-label").textContent =
+        mode === "home" ? "ANA MENÜ — Konsol" : "NES — Oyun listesi";
+      document.getElementById("hud-left").textContent =
+        mode === "home" ? "↑↓ Konsol · A Gir" : "↑↓ Oyun · A Başlat · B Geri · Y Favori";
+    }
+
+    function setMode(m) {
+      mode = m;
+      selected = Math.min(2, (m === "home" ? SYSTEMS : GAMES).length - 1);
+      document.getElementById("btn-home").classList.toggle("active", m === "home");
+      document.getElementById("btn-games").classList.toggle("active", m === "games");
+      renderCarousel();
+    }
+
+    function scaleStage() {
+      const wrapW = stageWrap.clientWidth;
+      const scale = wrapW / VIEW.w;
+      stage.style.transform = scale < 1 ? `scale(${scale})` : "";
+      if (scale < 1) {
+        stageWrap.style.height = `${VIEW.h * scale}px`;
+      } else {
+        stageWrap.style.height = `${VIEW.h}px`;
+      }
+    }
+
+    function bindTune() {
+      const map = [
+        ["tlx", "tly", "tl"], ["trx", "try", "tr"],
+        ["brx", "bry", "br"], ["blx", "bly", "bl"],
+      ];
+      map.forEach(([xid, yid, key]) => {
+        document.getElementById(xid).addEventListener("input", (e) => {
+          VIEW.quad[key][0] = +e.target.value;
+          applyQuad();
+        });
+        document.getElementById(yid).addEventListener("input", (e) => {
+          VIEW.quad[key][1] = +e.target.value;
+          applyQuad();
+        });
+      });
+      document.getElementById("cx").addEventListener("input", (e) => {
+        VIEW.carouselX = +e.target.value;
+        applyQuad();
+      });
+      // slider başlangıç değerleri
+      document.getElementById("tlx").value = VIEW.quad.tl[0];
+      document.getElementById("tly").value = VIEW.quad.tl[1];
+      document.getElementById("trx").value = VIEW.quad.tr[0];
+      document.getElementById("try").value = VIEW.quad.tr[1];
+      document.getElementById("brx").value = VIEW.quad.br[0];
+      document.getElementById("bry").value = VIEW.quad.br[1];
+      document.getElementById("blx").value = VIEW.quad.bl[0];
+      document.getElementById("bly").value = VIEW.quad.bl[1];
+      document.getElementById("cx").value = VIEW.carouselX;
+    }
+
+    document.getElementById("btn-home").onclick = () => setMode("home");
+    document.getElementById("btn-games").onclick = () => setMode("games");
+    document.getElementById("btn-debug").onclick = () => {
+      document.getElementById("debug-quad").classList.toggle("on");
+      document.getElementById("debug-inner").classList.toggle("on");
+    };
+    document.getElementById("btn-tune").onclick = () => {
+      document.getElementById("tune-panel").classList.toggle("on");
+    };
+    document.getElementById("btn-vp-tune").onclick = () => {
+      document.getElementById("vp-tune-panel").classList.toggle("on");
+    };
+
+    function bindVpTune() {
+      const vp = VIEW.viewport;
+      const map = [
+        ["vp-it", "insetTop"], ["vp-ib", "insetBottom"],
+        ["vp-il", "insetLeft"], ["vp-ir", "insetRight"],
+        ["vp-ox", "offsetX"], ["vp-oy", "offsetY"],
+      ];
+      map.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        el.value = vp[key];
+        el.addEventListener("input", (e) => {
+          vp[key] = +e.target.value;
+          applyQuad();
+        });
+      });
+      const sizeMap = [
+        ["vp-hsx", "heroScaleX"], ["vp-hsy", "heroScaleY"],
+        ["vp-csx", "coverScaleX"], ["vp-csy", "coverScaleY"],
+      ];
+      sizeMap.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        el.value = Math.round((vp[key] ?? 0.9) * 100);
+        el.addEventListener("input", (e) => {
+          vp[key] = +e.target.value / 100;
+          vp.heroScale = vp.heroScaleX;
+          vp.coverScale = vp.coverScaleX;
+          applyQuad();
+        });
+      });
+      const angleMap = [
+        ["vp-rx", "rotateX"], ["vp-ry", "rotateY"], ["vp-rz", "rotateZ"],
+        ["vp-skx", "skewX"], ["vp-sky", "skewY"],
+        ["vp-persp", "imagePerspective"],
+      ];
+      angleMap.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        el.value = vp[key] ?? (key === "imagePerspective" ? 800 : 0);
+        el.addEventListener("input", (e) => {
+          vp[key] = +e.target.value;
+          applyQuad();
+        });
+      });
+    }
+
+    function syncVpSliders() {
+      const vp = VIEW.viewport;
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+      set("vp-it", vp.insetTop);
+      set("vp-ib", vp.insetBottom);
+      set("vp-il", vp.insetLeft);
+      set("vp-ir", vp.insetRight);
+      set("vp-ox", vp.offsetX);
+      set("vp-oy", vp.offsetY);
+      set("vp-hsx", Math.round((vp.heroScaleX ?? vp.heroScale ?? 0.9) * 100));
+      set("vp-hsy", Math.round((vp.heroScaleY ?? vp.heroScale ?? 0.9) * 100));
+      set("vp-csx", Math.round((vp.coverScaleX ?? vp.coverScale ?? 0.88) * 100));
+      set("vp-csy", Math.round((vp.coverScaleY ?? vp.coverScale ?? 0.88) * 100));
+      set("vp-rx", vp.rotateX || 0);
+      set("vp-ry", vp.rotateY || 0);
+      set("vp-rz", vp.rotateZ || 0);
+      set("vp-skx", vp.skewX || 0);
+      set("vp-sky", vp.skewY || 0);
+      set("vp-persp", vp.imagePerspective ?? 800);
+    }
+    document.getElementById("btn-export").onclick = () => {
+      const json = JSON.stringify(layoutJson(), null, 2);
+      const box = document.getElementById("export-box");
+      box.textContent = json + "\n\n→ frontend/media/themes/amiga/crt-layout.json dosyasına yapıştır";
+      box.classList.add("on");
+      navigator.clipboard?.writeText(json);
+    };
+
+    window.addEventListener("resize", scaleStage);
+    window.addEventListener("keydown", (e) => {
+      const items = mode === "home" ? SYSTEMS : GAMES;
+      if (e.key === "ArrowUp" && selected > 0) { selected--; renderCarousel(); }
+      if (e.key === "ArrowDown" && selected < items.length - 1) { selected++; renderCarousel(); }
+    });
+
+    loadLayoutLocal();
+    syncVpSliders();
+    applyQuad();
+    bindTune();
+    bindVpTune();
+    scaleStage();
+    setMode("home");
+  </script>
+</body>
+</html>

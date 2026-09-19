@@ -207,6 +207,282 @@ const FAV_SYSTEM = {
   blurb: "Yıldızladığın oyunlar.",
 };
 
+const CRT_LAYOUT_DEFAULT = {
+  version: 1,
+  resolution: [800, 600],
+  bg: "media/themes/amiga/arcadebox_bg.png",
+  quad: { tl: [565, 179], tr: [708, 171], br: [703, 336], bl: [561, 326] },
+  carousel: { x: 158, pitch: 58, maxDist: 3, perspective: 620, perspectiveOriginX: 42, perspectiveOriginY: 50 },
+  logo: { width: 240, height: 80 },
+  game: { thumb: 72, titleSize: 19, titleSizeFocus: 26, rowWidth: 320 },
+  viewport: {
+    fit: "contain",
+    inset: 16,
+    insetTop: 14,
+    insetRight: 18,
+    insetBottom: 18,
+    insetLeft: 14,
+    scale: 0.92,
+    heroScale: 0.9,
+    coverScale: 0.88,
+    heroScaleX: 0.9,
+    heroScaleY: 0.9,
+    coverScaleX: 0.88,
+    coverScaleY: 0.88,
+    offsetX: 0,
+    offsetY: 2,
+    rotateX: 0,
+    rotateY: 0,
+    rotateZ: 0,
+    skewX: 0,
+    skewY: 0,
+    imagePerspective: 800,
+  },
+};
+
+function viewportScales(vp, mode) {
+  if (mode === "cover") {
+    const ux = vp.coverScaleX ?? vp.coverScale ?? vp.scaleX ?? 1;
+    const uy = vp.coverScaleY ?? vp.coverScale ?? vp.scaleY ?? 1;
+    return { sx: ux, sy: uy };
+  }
+  const ux = vp.heroScaleX ?? vp.heroScale ?? vp.scaleX ?? 1;
+  const uy = vp.heroScaleY ?? vp.heroScale ?? vp.scaleY ?? 1;
+  return { sx: ux, sy: uy };
+}
+
+function viewportImageTransform(vp, mode) {
+  const { sx, sy } = viewportScales(vp, mode);
+  const ox = vp.offsetX || 0;
+  const oy = vp.offsetY || 0;
+  const rx = vp.rotateX || 0;
+  const ry = vp.rotateY || 0;
+  const rz = vp.rotateZ || 0;
+  const skx = vp.skewX || 0;
+  const sky = vp.skewY || 0;
+  const persp = vp.imagePerspective ?? 800;
+  return [
+    `perspective(${persp}px)`,
+    `translate(${ox}px, ${oy}px)`,
+    `rotateX(${rx}deg)`,
+    `rotateY(${ry}deg)`,
+    `rotateZ(${rz}deg)`,
+    `skewX(${skx}deg)`,
+    `skewY(${sky}deg)`,
+    `scale(${sx}, ${sy})`,
+  ].join(" ");
+}
+
+let crtLayout = {
+  ...CRT_LAYOUT_DEFAULT,
+  quad: { ...CRT_LAYOUT_DEFAULT.quad },
+  carousel: { ...CRT_LAYOUT_DEFAULT.carousel },
+  logo: { ...CRT_LAYOUT_DEFAULT.logo },
+  game: { ...CRT_LAYOUT_DEFAULT.game },
+  viewport: { ...CRT_LAYOUT_DEFAULT.viewport },
+};
+
+function quadBBox(q) {
+  const xs = [q.tl[0], q.tr[0], q.br[0], q.bl[0]];
+  const ys = [q.tl[1], q.tr[1], q.br[1], q.bl[1]];
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const right = Math.max(...xs);
+  const bottom = Math.max(...ys);
+  return { left, top, width: right - left, height: bottom - top };
+}
+
+function applyViewportVars(mode) {
+  const root = document.documentElement;
+  const vp = crtLayout.viewport || CRT_LAYOUT_DEFAULT.viewport;
+  const box = quadBBox(crtLayout.quad);
+  const il = vp.insetLeft ?? vp.inset ?? 16;
+  const ir = vp.insetRight ?? vp.inset ?? 16;
+  const it = vp.insetTop ?? vp.inset ?? 14;
+  const ib = vp.insetBottom ?? vp.inset ?? 14;
+  root.style.setProperty("--vp-left", `${box.left + il}px`);
+  root.style.setProperty("--vp-top", `${box.top + it}px`);
+  root.style.setProperty("--vp-width", `${Math.max(20, box.width - il - ir)}px`);
+  root.style.setProperty("--vp-height", `${Math.max(20, box.height - it - ib)}px`);
+  root.style.setProperty("--vp-fit", vp.fit || "contain");
+  root.style.setProperty("--vp-object-pos", "center center");
+  root.style.setProperty("--vp-img-perspective", `${vp.imagePerspective ?? 800}px`);
+  root.style.setProperty("--vp-img-transform", viewportImageTransform(vp, mode));
+}
+
+function useAmigaCrt() {
+  const theme = state.config?.theme;
+  if (theme === "amiga-crt") return true;
+  if (theme === "pandora") return false;
+  return document.body.classList.contains("theme-amiga-crt");
+}
+
+async function loadCrtLayout() {
+  try {
+    const response = await fetch("media/themes/amiga/crt-layout.json?v=" + Date.now());
+    if (!response.ok) return;
+    const data = await response.json();
+    crtLayout = {
+      ...CRT_LAYOUT_DEFAULT,
+      ...data,
+      quad: { ...CRT_LAYOUT_DEFAULT.quad, ...(data.quad || {}) },
+      carousel: { ...CRT_LAYOUT_DEFAULT.carousel, ...(data.carousel || {}) },
+      logo: { ...CRT_LAYOUT_DEFAULT.logo, ...(data.logo || {}) },
+      game: { ...CRT_LAYOUT_DEFAULT.game, ...(data.game || {}) },
+      viewport: { ...CRT_LAYOUT_DEFAULT.viewport, ...(data.viewport || {}) },
+    };
+  } catch (_error) {
+    /* varsayılan */
+  }
+  applyCrtLayoutVars();
+}
+
+function applyCrtLayoutVars() {
+  const root = document.documentElement;
+  const q = crtLayout.quad;
+  const cssQuad = `${q.tl[0]}px ${q.tl[1]}px, ${q.tr[0]}px ${q.tr[1]}px, ${q.br[0]}px ${q.br[1]}px, ${q.bl[0]}px ${q.bl[1]}px`;
+  root.style.setProperty("--amiga-quad", cssQuad);
+  applyViewportVars("hero");
+  const c = crtLayout.carousel;
+  root.style.setProperty("--amiga-cx", `${c.x}px`);
+  root.style.setProperty("--amiga-persp", `${c.perspective}px`);
+  root.style.setProperty("--amiga-persp-origin", `${c.perspectiveOriginX}% ${c.perspectiveOriginY}%`);
+  root.style.setProperty("--amiga-logo-w", `${crtLayout.logo.width}px`);
+  root.style.setProperty("--amiga-logo-h", `${crtLayout.logo.height}px`);
+  root.style.setProperty("--amiga-thumb", `${crtLayout.game.thumb}px`);
+  root.style.setProperty("--amiga-title", `${crtLayout.game.titleSize}px`);
+  root.style.setProperty("--amiga-title-focus", `${crtLayout.game.titleSizeFocus}px`);
+  root.style.setProperty("--amiga-game-row", `${crtLayout.game.rowWidth}px`);
+  const bg = $("amiga-bg");
+  if (bg && crtLayout.bg) bg.src = crtLayout.bg;
+}
+
+function carouselTransform3d(dist) {
+  const c = crtLayout.carousel;
+  const abs = Math.abs(dist);
+  if (abs > c.maxDist) return null;
+  const pitch = c.pitch;
+  const rotateX = dist * -22;
+  const translateZ = -abs * 55;
+  const scale = Math.max(0.5, 1 - abs * 0.17);
+  const opacity = Math.max(0.15, 1 - abs * 0.3);
+  const blur = abs >= 2 ? (abs - 1) * 0.6 : 0;
+  return {
+    transform: `translate(-50%, -50%) translateY(${dist * pitch}px) translateZ(${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
+    opacity,
+    filter: blur ? `blur(${blur}px)` : "none",
+    zIndex: 10 - abs,
+  };
+}
+
+function syncAmigaShell() {
+  const shell = $("amiga-shell");
+  if (!shell) return;
+  const on = useAmigaCrt() && (state.view === "home" || state.view === "games");
+  shell.classList.toggle("hidden", !on);
+  shell.setAttribute("aria-hidden", on ? "false" : "true");
+}
+
+function tickAmigaClock() {
+  const el = $("amiga-time");
+  if (!el) return;
+  const now = new Date();
+  el.textContent = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+function renderAmigaCarousel(items, selected, mode) {
+  const track = $("amiga-carousel");
+  if (!track) return;
+  track.innerHTML = items
+    .map((item, index) => {
+      const dist = index - selected;
+      const t = carouselTransform3d(dist);
+      const focus = dist === 0;
+      const hidden = !t;
+      const style = t
+        ? `transform:${t.transform};opacity:${t.opacity};filter:${t.filter};z-index:${t.zIndex}`
+        : "";
+      if (mode === "home") {
+        const logo = systemLogo(item.id);
+        return `<div class="amiga-carousel-item${focus ? " is-focus" : ""}${hidden ? " is-hidden" : ""}" style="${style}">
+          <img class="logo-img" src="${logo}" alt="${item.name}">
+        </div>`;
+      }
+      const fav = isFavorite(item.id) ? " ★" : "";
+      const thumb = item.cover
+        ? `<img class="game-thumb" src="${item.cover}" alt="">`
+        : `<span class="game-thumb" style="display:inline-block"></span>`;
+      return `<div class="amiga-carousel-item${focus ? " is-focus" : ""}${hidden ? " is-hidden" : ""}" style="${style}">
+        <div class="game-row">${thumb}<span class="game-title">${item.title}${fav}</span></div>
+      </div>`;
+    })
+    .join("");
+}
+
+function setAmigaScreen(src, mode) {
+  const viewMode = mode === "cover" ? "cover" : "hero";
+  applyViewportVars(viewMode);
+  const img = $("amiga-screen");
+  if (!img || !src) return;
+  const apply = () => applyViewportVars(viewMode);
+  img.onload = apply;
+  if (img.dataset.src !== src || img.dataset.mode !== viewMode) {
+    img.dataset.src = src;
+    img.dataset.mode = viewMode;
+    img.src = src;
+  } else {
+    apply();
+  }
+}
+
+function renderAmiga() {
+  if (!useAmigaCrt()) return;
+  syncAmigaShell();
+  tickAmigaClock();
+  const emptyEl = $("amiga-empty");
+  const system = currentSystem();
+  if (!system) return;
+
+  const letterRail = $("amiga-letter-rail");
+  if (letterRail) letterRail.hidden = true;
+
+  if (state.view === "home") {
+    $("amiga-subtitle").textContent = `${system.name} · ${gameCount(system.id) || 0} oyun`;
+    $("amiga-hint-left").textContent = "↑↓ Konsol · A Gir";
+    $("amiga-hint-right").textContent = "F2 Servis";
+    renderAmigaCarousel(state.systems, state.systemIndex, "home");
+    setAmigaScreen(SYSTEM_HERO[system.id] || SYSTEM_HERO.nes, "hero");
+    if (emptyEl) emptyEl.classList.add("hidden");
+    return;
+  }
+
+  const list = currentGames();
+  $("amiga-subtitle").textContent = `${system.name} · ${list.length} oyun`;
+  $("amiga-hint-left").textContent = "↑↓ Oyun · ←→ Harf · A Başlat · B Geri";
+  $("amiga-hint-right").textContent = "Y Favori · F2 Servis";
+
+  if (!list.length) {
+    renderAmigaCarousel([], 0, "games");
+    setAmigaScreen(SYSTEM_HERO[system.id] || SYSTEM_HERO.nes, "hero");
+    if (emptyEl) {
+      emptyEl.textContent = system.id === "favorites"
+        ? "Favori yok — bir oyunda Y ile yıldızla."
+        : (state.catalogReady ? `ROM'ları roms/${system.romDir}/ içine at.` : "Liste taranıyor…");
+      emptyEl.classList.remove("hidden");
+    }
+    return;
+  }
+
+  if (state.gameIndex >= list.length) state.gameIndex = 0;
+  const game = list[state.gameIndex];
+  renderAmigaCarousel(list, state.gameIndex, "games");
+  paintLetterRail(list, gameLetter(game.title), false, $("amiga-letter-rail"));
+  if (letterRail) letterRail.hidden = list.length < 2;
+  const screenSrc = game.cover || SYSTEM_HERO[system.id] || SYSTEM_HERO.nes;
+  setAmigaScreen(screenSrc, "hero");
+  if (emptyEl) emptyEl.classList.add("hidden");
+}
+
 function systemsWithFav(list) {
   return [FAV_SYSTEM, ...(list || []).filter((item) => item.id !== "favorites")];
 }
@@ -466,6 +742,7 @@ function show(view) {
   ["boot", "home", "games", "launch", "service"].forEach((name) => {
     $("view-" + name).classList.toggle("hidden", name !== view);
   });
+  syncAmigaShell();
   syncMusic();
   syncHomeVideo();
 }
@@ -594,6 +871,10 @@ function systemLogo(id) {
 }
 
 function renderHome() {
+  if (useAmigaCrt()) {
+    renderAmiga();
+    return;
+  }
   const system = currentSystem();
   if (!system) return;
   const count = gameCount(system.id);
@@ -648,13 +929,18 @@ function renderHome() {
 }
 
 let letterRailKey = "";
+let amigaLetterRailKey = "";
 
-function paintLetterRail(list, activeLetter, rebuild) {
-  const rail = $("letter-rail");
-  const key = `${currentSystem()?.id || ""}:${list.length}`;
-  rail.hidden = list.length < 8;
-  if (rebuild || letterRailKey !== key || !rail.children.length) {
-    letterRailKey = key;
+function paintLetterRail(list, activeLetter, rebuild, railEl) {
+  const rail = railEl || $("letter-rail");
+  if (!rail) return;
+  const isAmiga = rail.id === "amiga-letter-rail";
+  const key = `${currentSystem()?.id || ""}:${list.length}:${rail.id}`;
+  if (!isAmiga) rail.hidden = list.length < 8;
+  const keyRef = isAmiga ? amigaLetterRailKey : letterRailKey;
+  if (rebuild || keyRef !== key || !rail.children.length) {
+    if (isAmiga) amigaLetterRailKey = key;
+    else letterRailKey = key;
     const present = lettersIn(list);
     rail.innerHTML = LETTERS.map((letter) => {
       const has = present.has(letter);
@@ -685,6 +971,10 @@ function paintGameWindow(list, game) {
 }
 
 function renderGames(opts) {
+  if (useAmigaCrt()) {
+    renderAmiga();
+    return;
+  }
   const system = currentSystem();
   const list = currentGames();
   if (!system) return;
@@ -745,6 +1035,11 @@ async function loadCatalog() {
   state.config = data.config;
   if (data.config.controls) state.controls = { ...state.controls, ...data.config.controls };
   if (data.config.crtFx) state.crtFx = { ...state.crtFx, ...data.config.crtFx };
+  if (data.config.theme) {
+    state.config.theme = data.config.theme;
+    document.body.classList.toggle("theme-amiga-crt", data.config.theme === "amiga-crt");
+    document.body.classList.toggle("theme-pandora", data.config.theme !== "amiga-crt");
+  }
   if (data.config.pi) {
     document.body.classList.add("pi-kiosk");
     stars();
@@ -1262,8 +1557,9 @@ function bindClicks() {
     confirm();
   });
   $("back-home").addEventListener("click", back);
-  $("open-service").addEventListener("click", openService);
-  $("letter-rail").addEventListener("click", (event) => {
+  $("open-service")?.addEventListener("click", openService);
+  $("amiga-open-service")?.addEventListener("click", openService);
+  function onLetterRailClick(event) {
     const btn = event.target.closest("[data-letter]");
     if (!btn || btn.classList.contains("empty")) return;
     const list = currentGames();
@@ -1272,7 +1568,9 @@ function bindClicks() {
     state.gameIndex = index;
     renderGames();
     sfx("move");
-  });
+  }
+  $("letter-rail")?.addEventListener("click", onLetterRailClick);
+  $("amiga-letter-rail")?.addEventListener("click", onLetterRailClick);
   $("game-list").addEventListener("click", (event) => {
     const row = event.target.closest("li");
     if (!row) return;
@@ -1352,8 +1650,13 @@ function boot() {
   bootPadScan();
   if (!document.body.classList.contains("vga-kiosk")) stars();
   state.systems = systemsWithFav(BOOT_SYSTEMS.slice());
-  show("home");
-  renderHome();
+  loadCrtLayout().then(() => {
+    applyCrtLayoutVars();
+    show("home");
+    renderHome();
+  });
+  window.setInterval(tickAmigaClock, 30000);
+  tickAmigaClock();
   primeAudio();
 
   loadCatalog()

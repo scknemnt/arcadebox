@@ -59,11 +59,23 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
 fi
 
 if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
-  if ! xrandr 2>/dev/null | grep -q ' connected.*[0-9]\+x[0-9]\+'; then
-    for out in VGA-1 VGA-0 HDMI-1; do
-      xrandr --output "$out" --auto 2>/dev/null && break
-    done
+  CRT_VGA=0
+  if [ -f "$ROOT/config.json" ] && grep -q '"crt"[[:space:]]*:[[:space:]]*true' "$ROOT/config.json" 2>/dev/null; then
+    CRT_VGA=1
   fi
+  for out in VGA-1 VGA-0 VGA1; do
+    if ! xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
+      continue
+    fi
+    if [ "$CRT_VGA" = 1 ]; then
+      xrandr --newmode "640x480i" 25.18 640 672 696 832 480 483 486 525 interlace -hsync -vsync 2>/dev/null || true
+      xrandr --addmode "$out" "640x480i" 2>/dev/null || true
+      xrandr --output "$out" --mode 640x480i 2>/dev/null && break
+      xrandr --output "$out" --mode 720x576 --rate 50 2>/dev/null && break
+      xrandr --output "$out" --mode 640x480 --rate 60 2>/dev/null && break
+    fi
+    xrandr --output "$out" --auto 2>/dev/null && break
+  done
 fi
 
 unclutter -idle 0.4 -root >/dev/null 2>&1 &

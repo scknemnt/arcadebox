@@ -1,5 +1,6 @@
 {
   "port": 7842,
+  "theme": "amiga-crt",
   "kiosk": false,
   "fastBoot": true,
   "idleDemoSeconds": 40,
@@ -61,8 +62,8 @@
     ]
   },
   "crtFx": {
-    "scanlines": 0,
-    "flicker": false,
+    "scanlines": 0.55,
+    "flicker": true,
     "rgb": false,
     "sound": true
   }

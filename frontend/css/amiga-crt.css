@@ -1,0 +1,358 @@
+/* Amiga Memories — CRT 800×600 profili */
+
+.theme-amiga-crt .stars,
+.theme-amiga-crt .pandora-bg-video,
+.theme-amiga-crt .pandora-bg,
+.theme-amiga-crt .home-layout,
+.theme-amiga-crt .pandora-hud,
+.theme-amiga-crt .pandora-hint,
+.theme-amiga-crt #view-games .pandora-bg,
+.theme-amiga-crt #view-games .pandora-logo-text,
+.theme-amiga-crt #view-games .pandora-back,
+.theme-amiga-crt #view-games .letter-rail,
+.theme-amiga-crt #view-games .game-list,
+.theme-amiga-crt #view-games .pandora-stage,
+.theme-amiga-crt #view-games .pandora-fav-hint {
+  display: none !important;
+}
+
+.theme-amiga-crt #stage {
+  background: #0a0810;
+}
+
+.theme-amiga-crt #view-home,
+.theme-amiga-crt #view-games {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.theme-amiga-crt .amiga-shell {
+  z-index: 40;
+}
+
+.theme-amiga-crt #view-games:not(.hidden),
+.theme-amiga-crt #view-home:not(.hidden) {
+  display: block;
+}
+
+/* Paylaşılan kabuk — home + games aynı sahne */
+.amiga-shell {
+  position: absolute;
+  inset: 0;
+  width: 800px;
+  height: 600px;
+  overflow: hidden;
+}
+
+.amiga-shell.hidden {
+  display: none !important;
+}
+
+.amiga-bg {
+  position: absolute;
+  inset: 0;
+  width: 800px;
+  height: 600px;
+  object-fit: fill;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.amiga-monitor-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  clip-path: polygon(var(--amiga-quad));
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.amiga-monitor-inner {
+  position: absolute;
+  left: var(--vp-left, 560px);
+  top: var(--vp-top, 170px);
+  width: var(--vp-width, 150px);
+  height: var(--vp-height, 165px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: var(--vp-img-perspective, 800px);
+  transform-style: preserve-3d;
+}
+
+.amiga-monitor-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: var(--vp-fit, contain);
+  object-position: var(--vp-object-pos, center center);
+  transform: var(--vp-img-transform);
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  display: block;
+}
+
+.amiga-monitor-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.06) 0,
+    rgba(0, 0, 0, 0.06) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+
+.amiga-carousel-rig {
+  position: absolute;
+  left: var(--amiga-cx, 158px);
+  top: 50%;
+  width: 320px;
+  height: 440px;
+  transform: translateY(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.amiga-carousel-scene {
+  width: 100%;
+  height: 100%;
+  perspective: var(--amiga-persp, 620px);
+  perspective-origin: var(--amiga-persp-origin, 42% 50%);
+}
+
+.amiga-carousel-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.amiga-carousel-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-style: preserve-3d;
+  transition: transform 0.38s cubic-bezier(0.22, 0.85, 0.28, 1),
+    opacity 0.32s ease,
+    filter 0.32s ease;
+  will-change: transform, opacity;
+}
+
+.amiga-carousel-item.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.amiga-carousel-item .logo-img {
+  display: block;
+  width: var(--amiga-logo-w, 240px);
+  height: var(--amiga-logo-h, 80px);
+  margin-left: calc(var(--amiga-logo-w, 240px) / -2);
+  margin-top: calc(var(--amiga-logo-h, 80px) / -2);
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.85));
+  backface-visibility: hidden;
+}
+
+.amiga-carousel-item.is-focus .logo-img {
+  filter: drop-shadow(0 0 18px rgba(255, 210, 80, 0.45)) drop-shadow(0 4px 14px rgba(0, 0, 0, 0.9));
+}
+
+.amiga-carousel-item .game-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: calc(var(--amiga-game-row, 320px) / -2);
+  margin-top: calc(var(--amiga-thumb, 72px) / -2);
+  width: var(--amiga-game-row, 320px);
+  backface-visibility: hidden;
+}
+
+.amiga-carousel-item .game-thumb {
+  width: var(--amiga-thumb, 72px);
+  height: var(--amiga-thumb, 72px);
+  flex-shrink: 0;
+  object-fit: cover;
+  border: 2px solid rgba(120, 220, 255, 0.45);
+  background: #1a1020;
+  box-shadow: 0 0 6px rgba(0, 180, 255, 0.25);
+}
+
+.amiga-carousel-item .game-title {
+  flex: 1;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: var(--amiga-title, 19px);
+  font-weight: 600;
+  color: #d8ecff;
+  text-shadow:
+    0 0 6px rgba(0, 200, 255, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.amiga-carousel-item.is-focus .game-title {
+  font-size: var(--amiga-title-focus, 26px);
+  font-weight: 700;
+  color: #fff;
+  text-shadow:
+    0 0 8px #0ff,
+    0 0 18px rgba(0, 255, 255, 0.75),
+    0 0 28px rgba(255, 60, 200, 0.45),
+    0 2px 12px rgba(0, 0, 0, 1);
+}
+
+.amiga-carousel-item.is-focus .game-thumb {
+  border-color: rgba(0, 255, 255, 0.9);
+  box-shadow:
+    0 0 10px rgba(0, 255, 255, 0.65),
+    0 0 20px rgba(255, 100, 220, 0.35);
+}
+
+.amiga-hud {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  font: 11px/1.2 Consolas, "Courier New", monospace;
+  color: rgba(255, 248, 230, 0.75);
+  text-shadow: 0 1px 4px #000;
+  pointer-events: none;
+}
+
+.amiga-hud-meta-right {
+  margin-left: auto;
+}
+
+.amiga-letter-rail {
+  position: absolute;
+  left: 8px;
+  top: 12px;
+  bottom: 36px;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 1px;
+  width: 18px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.amiga-letter-rail[hidden] {
+  display: none !important;
+}
+
+.amiga-letter-rail button {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 18px;
+  max-height: 20px;
+  padding: 0;
+  border: 1px solid rgba(0, 200, 255, 0.22);
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(160, 210, 255, 0.4);
+  font: 700 clamp(7px, 1.55vh, 10px)/1 Consolas, "Courier New", monospace;
+  cursor: pointer;
+  text-align: center;
+}
+
+.amiga-letter-rail button.has {
+  color: rgba(200, 240, 255, 0.85);
+  border-color: rgba(0, 220, 255, 0.4);
+}
+
+.amiga-letter-rail button.empty {
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+.amiga-letter-rail button.on {
+  color: #041018;
+  background: #5cf6ff;
+  border-color: #aff;
+  box-shadow:
+    0 0 8px rgba(0, 255, 255, 0.85),
+    0 0 14px rgba(255, 80, 200, 0.45);
+}
+
+.amiga-hud-meta {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.amiga-hud-meta b {
+  color: #ffe066;
+  font-weight: 700;
+}
+
+.amiga-hud .amiga-service {
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffe066;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.amiga-subtitle {
+  position: absolute;
+  top: 10px;
+  left: 32px;
+  z-index: 12;
+  font: 600 12px/1.2 "Segoe UI", system-ui, sans-serif;
+  color: rgba(255, 240, 200, 0.85);
+  text-shadow: 0 1px 6px #000;
+  pointer-events: none;
+}
+
+.amiga-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  right: 10px;
+  z-index: 12;
+  display: flex;
+  justify-content: space-between;
+  font: 11px/1.2 Consolas, monospace;
+  color: rgba(255, 248, 230, 0.65);
+  text-shadow: 0 1px 4px #000;
+  pointer-events: none;
+}
+
+.amiga-empty-msg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  max-width: 280px;
+  text-align: center;
+  font-size: 13px;
+  color: #ffe066;
+  text-shadow: 0 2px 8px #000;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 220, 100, 0.35);
+}

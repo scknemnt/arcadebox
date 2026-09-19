@@ -1649,6 +1649,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "retroarchExists": retroarch_exe() is not None,
                     "fastBoot": bool(config().get("fastBoot")),
                     "idleDemoSeconds": config().get("idleDemoSeconds", 40),
+                    "theme": config().get("theme", "amiga-crt"),
                     "display": config().get("display", {}),
                     "controls": config().get("controls", {}),
                     "crtFx": config().get("crtFx", {}),

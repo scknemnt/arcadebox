@@ -16,8 +16,9 @@
   <link rel="preload" as="image" href="media/pandora/system_main2.png">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/pandora.css">
+  <link rel="stylesheet" href="css/amiga-crt.css">
 </head>
-<body class="theme-pandora theme-red-yellow" data-kiosk="vga">
+<body class="theme-amiga-crt" data-kiosk="vga">
   <div id="splash" aria-hidden="true"><strong>ARCADE BOX</strong><small>YUKLENIYOR</small></div>
   <audio id="bgm-prime" loop preload="none" playsinline></audio>
   <div id="bezel">
@@ -119,6 +120,34 @@
             <span>B ÇIK</span>
           </footer>
         </section>
+
+        <div id="amiga-shell" class="amiga-shell hidden" aria-hidden="true">
+          <img class="amiga-bg" id="amiga-bg" src="media/themes/amiga/arcadebox_bg.png" width="800" height="600" alt="">
+          <div class="amiga-monitor-viewport" id="amiga-viewport">
+            <div class="amiga-monitor-inner">
+              <img id="amiga-screen" src="" alt="">
+            </div>
+          </div>
+          <p class="amiga-empty-msg hidden" id="amiga-empty"></p>
+          <div class="amiga-letter-rail" id="amiga-letter-rail" hidden></div>
+          <header class="amiga-hud">
+            <span class="amiga-hud-meta amiga-hud-meta-right">
+              <span>TIME <b id="amiga-time">00:00</b></span>
+              <span>CREDIT <b>FREE</b></span>
+              <button type="button" class="amiga-service" id="amiga-open-service" title="Servis">⚙</button>
+            </span>
+          </header>
+          <p class="amiga-subtitle" id="amiga-subtitle">Konsol seçimi</p>
+          <div class="amiga-carousel-rig" id="amiga-carousel-rig">
+            <div class="amiga-carousel-scene">
+              <div class="amiga-carousel-track" id="amiga-carousel"></div>
+            </div>
+          </div>
+          <footer class="amiga-hint">
+            <span id="amiga-hint-left">↑↓ Seç · A Gir</span>
+            <span id="amiga-hint-right">F2 Servis</span>
+          </footer>
+        </div>
 
         <div id="toast" class="toast hidden"></div>
       </div>
