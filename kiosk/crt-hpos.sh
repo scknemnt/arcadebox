@@ -4,6 +4,10 @@
 #   sh kiosk/crt-hpos.sh
 #
 # Her adimda CRT'ye bak; en iyi goruntude Ctrl+C, son satirdaki mod/transform'i not al.
+#
+# NOT: Tum modlar AYNI gorunuyorsa sorun X11 degil, Firefox/UI olabilir.
+#   git pull sonrasi config.json crt:true 720x576 olmali.
+#   Ince ayar: config.json icinde "panX": -40 (sola), "panY": 0
 
 export DISPLAY="${DISPLAY:-:0}"
 OUT=""

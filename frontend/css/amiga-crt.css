@@ -46,13 +46,26 @@
   overflow: hidden;
 }
 
-/* PAL576i kabin (720×576, crt:true) — 800×600 tasarimini orantili ortala */
+/* Kabin CRT — sabit 720×576 (Firefox innerWidth guvenilmez) */
+html.vga-kiosk.crt-display #bezel,
+html.vga-kiosk.crt-display #tube,
+html.vga-kiosk.crt-display #stage {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: var(--stage-w, 720px) !important;
+  height: var(--stage-h, 576px) !important;
+  max-width: var(--stage-w, 720px);
+  max-height: var(--stage-h, 576px);
+  overflow: hidden;
+}
+
 html.vga-kiosk.crt-display .amiga-shell {
   inset: auto;
   left: var(--amiga-layout-x, 0);
   top: var(--amiga-layout-y, 0);
-  width: var(--amiga-layout-w, var(--stage-w, 800px));
-  height: var(--amiga-layout-h, var(--stage-h, 600px));
+  width: var(--amiga-layout-w, 720px);
+  height: var(--amiga-layout-h, 576px);
 }
 
 .amiga-shell.hidden {

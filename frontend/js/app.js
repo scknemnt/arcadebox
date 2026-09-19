@@ -373,9 +373,21 @@ function crtLayoutScale() {
 function layoutPx(value, axis) {
   const { sx, sy, crt } = crtLayoutScale();
   if (crt && document.body.classList.contains("vga-kiosk")) {
-    return Math.round(value * Math.min(sx, sy));
+    return Math.round(value * (axis === "y" ? sy : sx));
   }
   return Math.round(value * (axis === "y" ? sy : sx));
+}
+
+function crtViewport() {
+  const crt = Boolean(state.config?.display?.crt);
+  const out = state.config?.display?.output || document.body.dataset.kiosk || "";
+  if (!crt || out !== "vga") return null;
+  return {
+    w: state.config?.display?.width || 720,
+    h: state.config?.display?.height || 576,
+    panX: Number(state.config?.display?.panX) || 0,
+    panY: Number(state.config?.display?.panY) || 0,
+  };
 }
 
 function applyCrtLayoutVars() {
@@ -398,18 +410,17 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-title", `${layoutPx(crtLayout.game.titleSize, "y")}px`);
   root.style.setProperty("--amiga-title-focus", `${layoutPx(crtLayout.game.titleSizeFocus, "y")}px`);
   root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
-  const { sx, sy, crt } = crtLayoutScale();
-  if (crt && document.body.classList.contains("vga-kiosk")) {
-    const bw = crtLayout.resolution?.[0] || 800;
-    const bh = crtLayout.resolution?.[1] || 600;
-    const s = Math.min(sx, sy);
-    const rw = Math.round(bw * s);
-    const rh = Math.round(bh * s);
-    root.style.setProperty("--amiga-layout-w", `${rw}px`);
-    root.style.setProperty("--amiga-layout-h", `${rh}px`);
-    root.style.setProperty("--amiga-layout-x", `${Math.round((window.innerWidth - rw) / 2)}px`);
-    root.style.setProperty("--amiga-layout-y", `${Math.round((window.innerHeight - rh) / 2)}px`);
+  const vp = crtViewport();
+  if (vp && document.body.classList.contains("vga-kiosk")) {
+    root.style.setProperty("--amiga-layout-w", `${vp.w}px`);
+    root.style.setProperty("--amiga-layout-h", `${vp.h}px`);
+    root.style.setProperty("--amiga-layout-x", "0px");
+    root.style.setProperty("--amiga-layout-y", "0px");
+    root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
+    root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
   } else {
+    root.style.removeProperty("--crt-pan-x");
+    root.style.removeProperty("--crt-pan-y");
     root.style.removeProperty("--amiga-layout-w");
     root.style.removeProperty("--amiga-layout-h");
     root.style.removeProperty("--amiga-layout-x");
@@ -714,13 +725,20 @@ function scaleStage() {
   const stage = $("stage");
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
   if (out === "vga") {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const vp = crtViewport();
+    const w = vp ? vp.w : window.innerWidth;
+    const h = vp ? vp.h : window.innerHeight;
     document.documentElement.style.setProperty("--stage-w", `${w}px`);
     document.documentElement.style.setProperty("--stage-h", `${h}px`);
     document.documentElement.classList.add("vga-kiosk");
     document.body.classList.add("vga-kiosk");
-    bezel.style.transform = "none";
+    if (vp) {
+      const tx = vp.panX || 0;
+      const ty = vp.panY || 0;
+      bezel.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : "none";
+    } else {
+      bezel.style.transform = "none";
+    }
     bezel.style.width = `${w}px`;
     bezel.style.height = `${h}px`;
     if (tube) {
