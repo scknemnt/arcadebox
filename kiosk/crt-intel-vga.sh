@@ -13,8 +13,9 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+PREF="${1:-PAL576i}"
 
-echo "=== Intel onboard VGA + SCART ==="
+echo "=== Intel onboard VGA + SCART (PreferredMode: $PREF) ==="
 
 # NVIDIA varsa X onu secer; Intel VGA bos kalir
 if lspci -nn 2>/dev/null | grep -qiE 'nvidia|10de:'; then
@@ -31,14 +32,15 @@ fi
 mkdir -p /etc/X11/xorg.conf.d
 rm -f /etc/X11/xorg.conf.d/20-arcade-scart.conf
 
-cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<'EOF'
-# Arcade Box — Intel onboard VGA, SCART PAL576i (~15.6 kHz)
+cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<EOF
+# Arcade Box — Intel onboard VGA, SCART PAL (~15.6 kHz)
 Section "Monitor"
     Identifier "VGA-SCART"
+    Modeline "PAL576-TV" 27.00 720 732 796 864 576 581 586 625 interlace -hsync -vsync
     Modeline "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsync -vsync
     Modeline "640x480" 25.18 640 656 672 832 480 490 492 525 -hsync -vsync
     Option "IgnoreEDID" "true"
-    Option "PreferredMode" "PAL576i"
+    Option "PreferredMode" "$PREF"
 EndSection
 
 Section "Device"
@@ -55,7 +57,7 @@ Section "Screen"
     DefaultDepth 24
     SubSection "Display"
         Depth 24
-        Modes "PAL576i" "640x480"
+        Modes "PAL576-TV" "PAL576i" "640x480"
     EndSubSection
 EndSection
 

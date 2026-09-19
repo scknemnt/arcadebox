@@ -68,7 +68,12 @@ if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
       continue
     fi
     if [ "$CRT_VGA" = 1 ]; then
-      xrandr --output "$out" --mode PAL576i 2>/dev/null && break
+      for _try in 1 2 3 4 5; do
+        if xrandr --output "$out" --mode PAL576i 2>/dev/null; then
+          break 2
+        fi
+        sleep 1
+      done
       xrandr --output "$out" --mode 640x480 --rate 60 2>/dev/null && break
     fi
     xrandr --output "$out" --auto 2>/dev/null && break
