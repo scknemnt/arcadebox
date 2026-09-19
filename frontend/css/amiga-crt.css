@@ -46,8 +46,8 @@
   overflow: hidden;
 }
 
-/* PAL576i (720×576) — 800×600 tasarimini orantili ortala, kaymayi onler */
-html.vga-kiosk .amiga-shell {
+/* PAL576i kabin (720×576, crt:true) — 800×600 tasarimini orantili ortala */
+html.vga-kiosk.crt-display .amiga-shell {
   inset: auto;
   left: var(--amiga-layout-x, 0);
   top: var(--amiga-layout-y, 0);

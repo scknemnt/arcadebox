@@ -5,12 +5,12 @@
   "fastBoot": true,
   "idleDemoSeconds": 40,
   "display": {
-    "width": 720,
-    "height": 576,
+    "width": 800,
+    "height": 600,
     "aspect": "4:3",
     "scale": "fill",
     "output": "vga",
-    "crt": true
+    "crt": false
   },
   "retroarch": {
     "exe": "emulators/retroarch/retroarch.exe",

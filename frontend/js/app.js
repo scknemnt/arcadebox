@@ -349,7 +349,9 @@ function crtLayoutScale() {
   const dh = state.config?.display?.height || window.innerHeight || base[1];
   const sx = dw / base[0];
   const sy = dh / base[1];
-  const uniform = document.body.classList.contains("vga-kiosk") ? Math.min(sx, sy) : null;
+  const crt = Boolean(state.config?.display?.crt);
+  const uniform =
+    crt && document.body.classList.contains("vga-kiosk") ? Math.min(sx, sy) : null;
   return { sx, sy, uniform };
 }
 
@@ -734,7 +736,9 @@ function scaleStage() {
 
 function applyDisplayProfile() {
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
+  const crt = Boolean(state.config?.display?.crt);
   document.body.classList.toggle("vga-kiosk", out === "vga");
+  document.body.classList.toggle("crt-display", out === "vga" && crt);
   document.body.classList.toggle("pi-kiosk", Boolean(state.config?.pi));
   scaleStage();
 }
