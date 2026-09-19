@@ -7,6 +7,18 @@
 export DISPLAY="${DISPLAY:-:0}"
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 CFG="$ROOT/config.json"
+HOME_DIR="${HOME:-/home/arcadebox}"
+
+if [ -z "${XAUTHORITY:-}" ]; then
+  [ -f "$HOME_DIR/.Xauthority" ] && export XAUTHORITY="$HOME_DIR/.Xauthority"
+  _auth="$(ps aux 2>/dev/null | awk '/Xorg.*:0/{for(i=1;i<=NF;i++) if($i ~ /^-auth$/){print $(i+1); exit}}')"
+  [ -n "$_auth" ] && [ -f "$_auth" ] && export XAUTHORITY="$_auth"
+fi
+
+if ! xrandr --query >/dev/null 2>&1; then
+  echo "HATA: X erisilemiyor (DISPLAY=$DISPLAY). Once: sh kiosk/crt-emergency.sh && sudo reboot"
+  exit 1
+fi
 
 echo "=== CRT display reset ==="
 
