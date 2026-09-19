@@ -15,5 +15,5 @@ echo
 echo "Guncel:"
 git log -1 --oneline
 echo
-echo "Yatay cizgi / goruntu yok:"
-echo "  sudo sh kiosk/crt-stock.sh && sudo reboot"
+echo "LCD OK, TV senkron degil: sh kiosk/crt-tv.sh"
+echo "X/menu yok: cd /mnt/games/ArcadeBox && sudo sh kiosk/crt-stock.sh && sudo reboot"

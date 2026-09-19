@@ -60,8 +60,10 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
   xrandr -r 50 2>/dev/null || true
 fi
 
-# xrandr --auto ekrani kesebiliyor — acilista dokunma.
-# unclutter imleci gizler; frontend gelene kadar kapali.
+# X ayakta kalsin; TV icin PAL576i (31 kHz SCART'ta kayar).
+if [ -f "$ROOT/kiosk/crt-xrandr-pal.sh" ]; then
+  sh "$ROOT/kiosk/crt-xrandr-pal.sh" || echo "UYARI: PAL576i uygulanamadi"
+fi
 
 # Ses, ekrani bekletmesin — arka planda
 uid="$(id -u)"
