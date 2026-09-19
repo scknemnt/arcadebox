@@ -86,19 +86,23 @@ EOF
 
 cat > "$HOME_DIR/.xinitrc" <<'XINIT'
 #!/bin/sh
-xsetroot -solid "#1a0505" 2>/dev/null || true
+xsetroot -solid "#8b1a1a" 2>/dev/null || true
 xset s off
 xset -dpms
 xset s noblank
-openbox &
 mount /mnt/games 2>/dev/null || mount -a 2>/dev/null || true
+if [ -f "$HOME/ArcadeBox/kiosk/openbox-rc.xml" ]; then
+  openbox --config-file "$HOME/ArcadeBox/kiosk/openbox-rc.xml" &
+else
+  openbox &
+fi
 for d in "$HOME/ArcadeBox" /mnt/games/ArcadeBox; do
   if [ -f "$d/kiosk/linux-start.sh" ]; then
     exec sh "$d/kiosk/linux-start.sh"
   fi
 done
 echo "ArcadeBox bulunamadi" >> /tmp/arcadebox-kiosk.log
-sleep 120
+sleep 3600
 XINIT
 chmod +x "$HOME_DIR/.xinitrc"
 
@@ -124,7 +128,7 @@ if [ -f "\$HOME/.profile" ]; then
   . "\$HOME/.profile"
 fi
 if [ -z "\$DISPLAY" ] && [ "\$(tty)" = "/dev/tty1" ]; then
-  exec startx "$HOME_DIR/.xinitrc" -- :0 vt1 -nocursor
+  exec startx "$HOME_DIR/.xinitrc" -- :0 vt1
 fi
 EOF
 

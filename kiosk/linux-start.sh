@@ -7,7 +7,9 @@ exec >>"$LOG" 2>&1
 echo "=== $(date) linux-start ==="
 
 export DISPLAY="${DISPLAY:-:0}"
-xsetroot -solid "#1a0505" 2>/dev/null || true
+export MOZ_ENABLE_WAYLAND=0
+export GDK_BACKEND=x11
+xsetroot -solid "#8b1a1a" 2>/dev/null || true
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 if [ ! -f "$ROOT/backend/arcadebox.py" ]; then
@@ -58,16 +60,8 @@ if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>
   xrandr -r 50 2>/dev/null || true
 fi
 
-if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
-  # ee6f0d6: stok VGA. PAL576i TV'de yatay cizgi yapar — zorlama.
-  for out in VGA-1 VGA-0 VGA1; do
-    if xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
-      xrandr --output "$out" --auto 2>/dev/null && echo "VGA: $out --auto" && break
-    fi
-  done
-fi
-
-unclutter -idle 0.4 -root >/dev/null 2>&1 &
+# xrandr --auto ekrani kesebiliyor — acilista dokunma.
+# unclutter imleci gizler; frontend gelene kadar kapali.
 
 # Ses, ekrani bekletmesin — arka planda
 uid="$(id -u)"
@@ -114,8 +108,10 @@ user_pref("media.autoplay.allow-muted", true);
 user_pref("media.block-autoplay-until-in-foreground", false);
 user_pref("dom.gamepad.enabled", true);
 user_pref("dom.gamepad.non_standard_events.enabled", true);
-user_pref("browser.display.background_color", "#120404");
+user_pref("browser.display.background_color", "#8b1a1a");
 user_pref("browser.display.use_system_colors", false);
+user_pref("layers.acceleration.disabled", true);
+user_pref("gfx.webrender.software", true);
 user_pref("browser.cache.disk.enable", true);
 user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("browser.aboutwelcome.enabled", false);
@@ -126,23 +122,35 @@ user_pref("toolkit.telemetry.enabled", false);
 user_pref("app.update.enabled", false);
 user_pref("extensions.pocket.enabled", false);
 EOF
-  python3 backend/arcadebox.py --kiosk --no-browser &
-  srv=$!
-  n=0
-  while [ "$n" -lt 40 ]; do
-    if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7842/', timeout=0.2)" >/dev/null 2>&1; then
-      break
+  if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7842/', timeout=0.4)" >/dev/null 2>&1; then
+    echo "python server zaten acik"
+  else
+    python3 backend/arcadebox.py --kiosk --no-browser &
+    srv=$!
+    n=0
+    while [ "$n" -lt 50 ]; do
+      if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7842/', timeout=0.2)" >/dev/null 2>&1; then
+        break
+      fi
+      n=$((n + 1))
+      sleep 0.1
+    done
+    if ! python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7842/', timeout=0.4)" >/dev/null 2>&1; then
+      echo "UYARI: python 7842 yanit vermedi — firefox yine de acilacak"
+    else
+      echo "python pid=$srv"
     fi
-    if ! kill -0 "$srv" 2>/dev/null; then
-      echo "HATA: python server hemen kapandi"
-      wait "$srv" 2>/dev/null || true
-      exit 1
-    fi
-    n=$((n + 1))
-    sleep 0.1
-  done
+  fi
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY profile=$FF_PROF"
-  exec firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL"
+  rm -f "$FF_PROF/lock" "$FF_PROF/.parentlock" "$FF_PROF/parent.lock" 2>/dev/null || true
+  pkill -x firefox-esr 2>/dev/null || true
+  sleep 1
+  while true; do
+    echo "firefox start $(date)"
+    firefox-esr --kiosk --no-first-run --disable-session-restore --no-remote --profile "$FF_PROF" "$URL"
+    echo "firefox cikti $? $(date) — 2sn sonra tekrar"
+    sleep 2
+  done
 fi
 
 exec python3 backend/arcadebox.py --kiosk
