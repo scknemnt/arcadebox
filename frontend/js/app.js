@@ -295,11 +295,17 @@ function quadBBox(q) {
 function applyViewportVars(mode) {
   const root = document.documentElement;
   const vp = crtLayout.viewport || CRT_LAYOUT_DEFAULT.viewport;
-  const box = quadBBox(crtLayout.quad);
-  const il = vp.insetLeft ?? vp.inset ?? 16;
-  const ir = vp.insetRight ?? vp.inset ?? 16;
-  const it = vp.insetTop ?? vp.inset ?? 14;
-  const ib = vp.insetBottom ?? vp.inset ?? 14;
+  const q = crtLayout.quad;
+  const box = quadBBox({
+    tl: [layoutPx(q.tl[0], "x"), layoutPx(q.tl[1], "y")],
+    tr: [layoutPx(q.tr[0], "x"), layoutPx(q.tr[1], "y")],
+    br: [layoutPx(q.br[0], "x"), layoutPx(q.br[1], "y")],
+    bl: [layoutPx(q.bl[0], "x"), layoutPx(q.bl[1], "y")],
+  });
+  const il = layoutPx(vp.insetLeft ?? vp.inset ?? 16, "x");
+  const ir = layoutPx(vp.insetRight ?? vp.inset ?? 16, "x");
+  const it = layoutPx(vp.insetTop ?? vp.inset ?? 14, "y");
+  const ib = layoutPx(vp.insetBottom ?? vp.inset ?? 14, "y");
   root.style.setProperty("--vp-left", `${box.left + il}px`);
   root.style.setProperty("--vp-top", `${box.top + it}px`);
   root.style.setProperty("--vp-width", `${Math.max(20, box.width - il - ir)}px`);
@@ -337,22 +343,62 @@ async function loadCrtLayout() {
   applyCrtLayoutVars();
 }
 
+function crtLayoutScale() {
+  const base = crtLayout.resolution || [800, 600];
+  const dw = state.config?.display?.width || window.innerWidth || base[0];
+  const dh = state.config?.display?.height || window.innerHeight || base[1];
+  const sx = dw / base[0];
+  const sy = dh / base[1];
+  const uniform = document.body.classList.contains("vga-kiosk") ? Math.min(sx, sy) : null;
+  return { sx, sy, uniform };
+}
+
+function layoutPx(value, axis) {
+  const { sx, sy, uniform } = crtLayoutScale();
+  if (uniform != null) return Math.round(value * uniform);
+  return Math.round(value * (axis === "y" ? sy : sx));
+}
+
 function applyCrtLayoutVars() {
   const root = document.documentElement;
   const q = crtLayout.quad;
-  const cssQuad = `${q.tl[0]}px ${q.tl[1]}px, ${q.tr[0]}px ${q.tr[1]}px, ${q.br[0]}px ${q.br[1]}px, ${q.bl[0]}px ${q.bl[1]}px`;
+  const tl = [layoutPx(q.tl[0], "x"), layoutPx(q.tl[1], "y")];
+  const tr = [layoutPx(q.tr[0], "x"), layoutPx(q.tr[1], "y")];
+  const br = [layoutPx(q.br[0], "x"), layoutPx(q.br[1], "y")];
+  const bl = [layoutPx(q.bl[0], "x"), layoutPx(q.bl[1], "y")];
+  const cssQuad = `${tl[0]}px ${tl[1]}px, ${tr[0]}px ${tr[1]}px, ${br[0]}px ${br[1]}px, ${bl[0]}px ${bl[1]}px`;
   root.style.setProperty("--amiga-quad", cssQuad);
   applyViewportVars("hero");
   const c = crtLayout.carousel;
-  root.style.setProperty("--amiga-cx", `${c.x}px`);
-  root.style.setProperty("--amiga-persp", `${c.perspective}px`);
+  root.style.setProperty("--amiga-cx", `${layoutPx(c.x, "x")}px`);
+  root.style.setProperty("--amiga-persp", `${layoutPx(c.perspective, "x")}px`);
   root.style.setProperty("--amiga-persp-origin", `${c.perspectiveOriginX}% ${c.perspectiveOriginY}%`);
-  root.style.setProperty("--amiga-logo-w", `${crtLayout.logo.width}px`);
-  root.style.setProperty("--amiga-logo-h", `${crtLayout.logo.height}px`);
-  root.style.setProperty("--amiga-thumb", `${crtLayout.game.thumb}px`);
-  root.style.setProperty("--amiga-title", `${crtLayout.game.titleSize}px`);
-  root.style.setProperty("--amiga-title-focus", `${crtLayout.game.titleSizeFocus}px`);
-  root.style.setProperty("--amiga-game-row", `${crtLayout.game.rowWidth}px`);
+  root.style.setProperty("--amiga-logo-w", `${layoutPx(crtLayout.logo.width, "x")}px`);
+  root.style.setProperty("--amiga-logo-h", `${layoutPx(crtLayout.logo.height, "y")}px`);
+  root.style.setProperty("--amiga-thumb", `${layoutPx(crtLayout.game.thumb, "x")}px`);
+  root.style.setProperty("--amiga-title", `${layoutPx(crtLayout.game.titleSize, "y")}px`);
+  root.style.setProperty("--amiga-title-focus", `${layoutPx(crtLayout.game.titleSizeFocus, "y")}px`);
+  root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
+  const { sx, sy, uniform } = crtLayoutScale();
+  if (uniform != null) {
+    const bw = crtLayout.resolution?.[0] || 800;
+    const bh = crtLayout.resolution?.[1] || 600;
+    const rw = Math.round(bw * uniform);
+    const rh = Math.round(bh * uniform);
+    const ox = Math.round((window.innerWidth - rw) / 2);
+    const oy = Math.round((window.innerHeight - rh) / 2);
+    root.style.setProperty("--amiga-layout-w", `${rw}px`);
+    root.style.setProperty("--amiga-layout-h", `${rh}px`);
+    root.style.setProperty("--amiga-layout-x", `${ox}px`);
+    root.style.setProperty("--amiga-layout-y", `${oy}px`);
+  } else {
+    root.style.removeProperty("--amiga-layout-w");
+    root.style.removeProperty("--amiga-layout-h");
+    root.style.removeProperty("--amiga-layout-x");
+    root.style.removeProperty("--amiga-layout-y");
+  }
+  root.style.setProperty("--amiga-scale-x", String(uniform ?? sx));
+  root.style.setProperty("--amiga-scale-y", String(uniform ?? sy));
   const bg = $("amiga-bg");
   if (bg && crtLayout.bg) bg.src = crtLayout.bg;
 }
@@ -667,6 +713,7 @@ function scaleStage() {
       stage.style.width = `${w}px`;
       stage.style.height = `${h}px`;
     }
+    if (useAmigaCrt()) applyCrtLayoutVars();
     return;
   }
   document.documentElement.classList.remove("vga-kiosk");
