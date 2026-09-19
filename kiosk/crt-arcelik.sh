@@ -3,7 +3,7 @@
 #   sudo sh kiosk/crt-arcelik.sh
 #   sudo reboot
 #
-# Sol siyah serit / saga kayma: PAL576-SCART (htotal 864, 13.5 MHz).
+# Boot: PAL576i (25.2 MHz — guvenli). Hizalama: xrandr ile PAL576-SCART dene.
 
 set -eu
 
@@ -30,7 +30,7 @@ Section "Monitor"
     Modeline "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsync -vsync
     Modeline "640x480" 25.18 640 656 672 832 480 490 492 525 -hsync -vsync
     Option "IgnoreEDID" "true"
-    Option "PreferredMode" "PAL576-SCART"
+    Option "PreferredMode" "PAL576i"
 EndSection
 
 Section "Device"
@@ -47,7 +47,7 @@ Section "Screen"
     DefaultDepth 24
     SubSection "Display"
         Depth 24
-        Modes "PAL576-SCART" "PAL576-AR" "PAL576i" "640x480"
+        Modes "PAL576i" "640x480" "PAL576-AR" "PAL576-SCART"
     EndSubSection
 EndSection
 
@@ -62,19 +62,23 @@ HOME_DIR="$(getent passwd "$USER_NAME" 2>/dev/null | cut -d: -f6)"
 RC="${HOME_DIR}/.xprofile"
 mkdir -p "$(dirname "$RC")"
 cat > "$RC" <<XPROF
-# Arçelik SCART — PAL576-SCART (htotal 864)
+# Arçelik SCART — boot PAL576i, sonra PAL576-SCART dene
 if command -v xrandr >/dev/null 2>&1; then
   for out in VGA-1 VGA-0 VGA1; do
     if xrandr --query 2>/dev/null | grep -q "^\${out} connected"; then
-      for m in PAL576-SCART PAL576-AR PAL576i; do
+      xrandr --output "\$out" --mode PAL576i 2>/dev/null || \
+      xrandr --output "\$out" --mode 640x480 2>/dev/null || true
+      for m in PAL576-SCART PAL576-AR; do
         if xrandr --output "\$out" --mode "\$m" 2>/dev/null; then
           HPOS="${HPOS}"
           if [ "\$HPOS" != "0" ]; then
-            xrandr --output "\$out" --transform 1,0,\$HPOS,0,1,0,0,0,1 2>/dev/null || true
+            xrandr --output "\$out" --transform 1,0,\$HPOS,0,1,0,0,0,1 2>/dev/null || \
+            xrandr --output "\$out" --mode PAL576i 2>/dev/null || true
           fi
-          break 2
+          break
         fi
       done
+      break
     fi
   done
 fi

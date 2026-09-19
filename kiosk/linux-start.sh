@@ -81,7 +81,9 @@ if [ "$(uname -m)" = "x86_64" ] && command -v xrandr >/dev/null 2>&1; then
         done
       done
       if [ "$_crt_ok" = 0 ]; then
-        echo "UYARI: PAL576 modu henuz yok — arka planda tekrar denenecek"
+        echo "UYARI: PAL576 modu henuz yok — 640x480 / auto deneniyor"
+        xrandr --output "$out" --mode 640x480 2>/dev/null || \
+        xrandr --output "$out" --auto 2>/dev/null || true
       fi
       (
         sleep 3

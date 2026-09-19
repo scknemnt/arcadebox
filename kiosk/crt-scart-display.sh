@@ -18,13 +18,15 @@ RC="${HOME_DIR}/.xprofile"
 
 mkdir -p "$(dirname "$RC")"
 cat > "$RC" <<'XPROF'
-# Arcade Box — VGA → SCART (PAL576i — Xorg modeline, SCART TV)
+# Arcade Box — VGA → SCART (boot PAL576i, sonra PAL576-SCART)
 if command -v xrandr >/dev/null 2>&1; then
   for out in VGA-1 VGA-0 VGA1; do
     if xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
-      xrandr --output "$out" --mode PAL576-SCART 2>/dev/null && break
-      xrandr --output "$out" --mode PAL576i 2>/dev/null && break
-      xrandr --output "$out" --mode PAL576-AR 2>/dev/null && break
+      xrandr --output "$out" --mode PAL576i 2>/dev/null || \
+      xrandr --output "$out" --mode 640x480 2>/dev/null || true
+      xrandr --output "$out" --mode PAL576-SCART 2>/dev/null || \
+      xrandr --output "$out" --mode PAL576-AR 2>/dev/null || true
+      break
     fi
   done
 fi

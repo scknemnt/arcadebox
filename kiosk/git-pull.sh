@@ -16,3 +16,4 @@ echo "Guncel:"
 git log -1 --oneline
 echo
 echo "CRT kurulum: sudo sh kiosk/crt-arcelik.sh && sudo reboot"
+echo "Ekran gelmiyorsa: sudo sh kiosk/crt-recover.sh && sudo reboot"
