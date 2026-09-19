@@ -17,7 +17,8 @@ git log -1 --oneline
 echo
 echo "CRT kurulum: sudo sh kiosk/crt-arcelik.sh && sudo reboot"
 echo "Ekran gelmiyorsa: sudo sh kiosk/crt-recover.sh && sudo reboot"
-echo "X yok / siyah: sh kiosk/crt-fix-boot.sh && sudo reboot"
+echo "X yok: sh kiosk/crt-fix-boot.sh && sh kiosk/crt-start-x.sh"
+echo "       veya sudo reboot"
 echo "TAM SİYAH: sh kiosk/crt-emergency.sh && sudo reboot"
 echo "Goruntu bozuksa: sh kiosk/crt-display-reset.sh && sudo reboot"
 echo "Saga kayma: sh kiosk/crt-pan-scan.sh"

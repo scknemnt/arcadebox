@@ -1,19 +1,27 @@
 #!/bin/sh
-# X calismiyor / siyah ekran — boot zincirini duzelt.
+# X calismiyor — autologin + startx + PAL576i duzelt.
 #   cd /mnt/games/ArcadeBox
 #   sh kiosk/git-pull.sh
 #   sh kiosk/crt-fix-boot.sh
 #   sudo reboot
-#
-# arcadebox kullanicisi ile calistir (sudo sadece xorg icin sorulur).
+# SSH aninda: sh kiosk/crt-start-x.sh
 
 set -eu
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 HOME_DIR="${HOME:-/home/arcadebox}"
+USER_NAME="$(whoami)"
 CFG="$ROOT/config.json"
 
 echo "=== CRT boot duzeltme ==="
 echo "ArcadeBox: $ROOT"
+
+mount /mnt/games 2>/dev/null || sudo mount -a 2>/dev/null || true
+
+if [ -d /mnt/games/ArcadeBox ] && [ ! -L "$HOME_DIR/ArcadeBox" ]; then
+  rm -rf "$HOME_DIR/ArcadeBox" 2>/dev/null || true
+  ln -sfn /mnt/games/ArcadeBox "$HOME_DIR/ArcadeBox" 2>/dev/null || true
+  echo "OK: ~/ArcadeBox -> /mnt/games/ArcadeBox"
+fi
 
 python3 - "$CFG" <<'PY'
 import json, sys
@@ -34,14 +42,13 @@ open(p, "a").write("\n")
 print("config.json OK")
 PY
 
-cat > "$HOME_DIR/.xprofile" <<XPROF
-export DISPLAY="\${DISPLAY:-:0}"
+cat > "$HOME_DIR/.xprofile" <<'XPROF'
+export DISPLAY="${DISPLAY:-:0}"
 sleep 2
-for d in /mnt/games/ArcadeBox "$ROOT" "$HOME/ArcadeBox"; do
-  [ -f "\$d/kiosk/crt-xrandr-pal.sh" ] && sh "\$d/kiosk/crt-xrandr-pal.sh" && break
+for d in /mnt/games/ArcadeBox "$HOME/ArcadeBox"; do
+  [ -f "$d/kiosk/crt-xrandr-pal.sh" ] && sh "$d/kiosk/crt-xrandr-pal.sh" && break
 done
 XPROF
-echo "OK: $HOME_DIR/.xprofile"
 
 cat > "$HOME_DIR/.xinitrc" <<'XINIT'
 #!/bin/sh
@@ -49,45 +56,52 @@ xset s off 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s noblank 2>/dev/null || true
 openbox &
+mount /mnt/games 2>/dev/null || mount -a 2>/dev/null || true
 i=0
 while [ "$i" -lt 60 ]; do
-  for d in /mnt/games/ArcadeBox /mnt/arcade/ArcadeBox "$HOME/ArcadeBox"; do
+  for d in /mnt/games/ArcadeBox "$HOME/ArcadeBox"; do
     if [ -f "$d/kiosk/linux-start.sh" ]; then
       exec sh "$d/kiosk/linux-start.sh"
     fi
   done
-  mount /mnt/games 2>/dev/null || mount -a 2>/dev/null || true
-  i=$((i + 1))
   sleep 1
+  i=$((i + 1))
 done
-echo "ArcadeBox bulunamadi"
-sleep 60
+echo "ArcadeBox bulunamadi" >> /tmp/arcadebox-kiosk.log
+sleep 120
 XINIT
 chmod +x "$HOME_DIR/.xinitrc"
-echo "OK: $HOME_DIR/.xinitrc (/mnt/games oncelikli)"
 
-PROFILE="$HOME_DIR/.bash_profile"
-touch "$PROFILE"
-if ! grep -q "Arcade Box PC kiosk" "$PROFILE" 2>/dev/null; then
-  cat >> "$PROFILE" <<'PROF'
-
-# Arcade Box PC kiosk
+STARTX_BLOCK='# Arcade Box PC kiosk — startx on tty1
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
   exec startx "$HOME/.xinitrc" -- :0 vt1 -nocursor
-fi
-PROF
-  echo "OK: .bash_profile startx eklendi"
-else
-  echo "OK: .bash_profile zaten var"
-fi
+fi'
+
+for prof in "$HOME_DIR/.bash_profile" "$HOME_DIR/.profile"; do
+  touch "$prof"
+  grep -v "Arcade Box" "$prof" 2>/dev/null | grep -v "startx.*xinitrc" > "${prof}.tmp" || true
+  mv "${prof}.tmp" "$prof"
+  printf '\n%s\n' "$STARTX_BLOCK" >> "$prof"
+  echo "OK: $prof"
+done
 
 if [ "$(id -u)" -eq 0 ]; then
-  _xorg=1
+  _sudo=1
 else
-  echo "Xorg sadelestirme (sudo):"
-  sudo -v && _xorg=1 || _xorg=0
+  echo "getty autologin + xorg (sudo sifresi):"
+  sudo -v && _sudo=1 || _sudo=0
 fi
-if [ "${_xorg:-0}" = "1" ]; then
+
+if [ "${_sudo:-0}" = "1" ]; then
+  mkdir -p /etc/systemd/system/getty@tty1.service.d
+  cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin ${USER_NAME} --noclear %I \$TERM
+EOF
+  systemctl daemon-reload 2>/dev/null || true
+  echo "OK: getty autologin ($USER_NAME)"
+
   mkdir -p /etc/X11/xorg.conf.d
   cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<'EOF'
 Section "Device"
@@ -104,10 +118,11 @@ Section "ServerLayout"
     Screen 0 "Screen0"
 EndSection
 EOF
-  echo "OK: minimal Xorg"
   systemctl disable arcadebox-kiosk.service 2>/dev/null || true
+  systemctl stop arcadebox-kiosk.service 2>/dev/null || true
+  echo "OK: minimal Xorg"
 fi
 
 echo
-echo ">>> sudo reboot <<<"
-echo "SSH ile X baslatma (alternatif): sudo systemctl start getty@tty1.service"
+echo "1) sudo reboot   (normal yol)"
+echo "2) sh kiosk/crt-start-x.sh   (SSH aninda X ac)"
