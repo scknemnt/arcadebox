@@ -1,6 +1,8 @@
 #!/bin/sh
-# Arçelik SCART — standart PAL satir (htotal 864, 1611 degil).
-# BIOS + menü saga kayiksa timing sorunu; her modda CRT'ye bak.
+# DEPRECATED — Arçelik'te sadece PAL576i calisiyorsa:
+#   sh kiosk/crt-pal576i-hpos.sh
+#
+# Eski: standart PAL 864 modlari (cogu TV'de goruntu vermez).
 #   export DISPLAY=:0
 #   sh kiosk/crt-timing-scan.sh
 
