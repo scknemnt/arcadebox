@@ -15,21 +15,44 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-has_intel() {
-  lspci -nn 2>/dev/null | grep -iE 'VGA|Display|Graphics' | grep -qi intel
+LSPCI=""
+for c in /usr/bin/lspci /usr/sbin/lspci lspci; do
+  if [ -x "$c" ]; then
+    LSPCI="$c"
+    break
+  fi
+done
+
+lspci_list() {
+  if [ -n "$LSPCI" ]; then
+    "$LSPCI" -nn 2>/dev/null || true
+  fi
 }
 
 has_nvidia() {
-  lspci -nn 2>/dev/null | grep -iE 'VGA|3D' | grep -qi nvidia
+  lspci_list | grep -iE 'VGA|Display|Graphics|3D' | grep -qiE 'nvidia|10de:'
+}
+
+has_intel() {
+  lspci_list | grep -iE 'VGA|Display|Graphics|3D' | grep -qiE 'intel|8086:'
 }
 
 if [ "$MODE" = "auto" ]; then
+  if [ -z "$LSPCI" ]; then
+    echo "lspci bulunamadi. Kur: apt-get install -y pciutils"
+    echo "VGA kablo ekran kartindaysa: sudo sh kiosk/crt-scart-xorg.sh nvidia"
+    echo "VGA kablo anakarttaysa:     sudo sh kiosk/crt-scart-xorg.sh intel"
+    exit 1
+  fi
   if has_nvidia; then
     MODE="nvidia"
   elif has_intel; then
     MODE="intel"
   else
-    echo "VGA bulunamadi."
+    echo "VGA bulunamadi. lspci ciktisi:"
+    lspci_list | grep -iE 'vga|display|graphics|3d' || lspci_list | head -5
+    echo "Elle dene: sudo sh kiosk/crt-scart-xorg.sh nvidia   (ekran karti VGA)"
+    echo "           sudo sh kiosk/crt-scart-xorg.sh intel    (anakart VGA)"
     exit 1
   fi
 fi
@@ -74,8 +97,10 @@ EOF
     ;;
   intel)
     echo "SCART Xorg: modesetting (anakart VGA)"
-    cat > "$CONF" <<EOF
-# Arcade Box — VGA-SCART PAL (Intel)
+    echo "Not: Anakart VGA icin tek conf onerilir: sudo sh kiosk/crt-intel-vga.sh"
+    MAIN="/etc/X11/xorg.conf.d/10-arcadebox.conf"
+    cat > "$MAIN" <<EOF
+# Arcade Box — Intel onboard VGA, SCART PAL576i
 Section "Monitor"
     Identifier "VGA-SCART"
     $PAL_MODE
@@ -85,15 +110,15 @@ Section "Monitor"
 EndSection
 
 Section "Device"
-    Identifier "ArcadeGPU"
+    Identifier "IntelGPU"
     Driver "modesetting"
+    BusID "PCI:0:2:0"
     Option "UseEDID" "false"
-    Option "Monitor-VGA-SCART" "PreferredMode PAL576i"
 EndSection
 
 Section "Screen"
     Identifier "Screen0"
-    Device "ArcadeGPU"
+    Device "IntelGPU"
     Monitor "VGA-SCART"
     DefaultDepth 24
     SubSection "Display"
@@ -101,7 +126,17 @@ Section "Screen"
         Modes "PAL576i" "640x480"
     EndSubSection
 EndSection
+
+Section "ServerLayout"
+    Identifier "Layout0"
+    Screen 0 "Screen0"
+EndSection
 EOF
+    rm -f "$CONF"
+    CONF="$MAIN"
+    if lspci_list | grep -qiE 'nvidia|10de:'; then
+      echo "NVIDIA algilandi — nouveau blacklist icin: sudo sh kiosk/crt-intel-vga.sh"
+    fi
     ;;
   *)
     echo "Kullanim: sudo sh kiosk/crt-scart-xorg.sh [nvidia|intel|auto]"
@@ -112,4 +147,4 @@ esac
 echo "Yazildi: $CONF"
 echo "Kalici VGA modu: sudo sh kiosk/crt-scart-display.sh"
 echo "sudo reboot"
-lspci -nn 2>/dev/null | grep -iE 'vga|display|3d' || true
+lspci_list | grep -iE 'vga|display|3d' || true

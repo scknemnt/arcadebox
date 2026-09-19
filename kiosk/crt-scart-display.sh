@@ -18,16 +18,11 @@ RC="${HOME_DIR}/.xprofile"
 
 mkdir -p "$(dirname "$RC")"
 cat > "$RC" <<'XPROF'
-# Arcade Box — VGA → SCART (auto on login / startx)
+# Arcade Box — VGA → SCART (PAL576i — Xorg modeline, SCART TV)
 if command -v xrandr >/dev/null 2>&1; then
   for out in VGA-1 VGA-0 VGA1; do
     if xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
-      xrandr --newmode "576i-pal" 13.50 720 738 846 978 576 582 587 625 interlace -hsync -vsync 2>/dev/null || true
-      xrandr --addmode "$out" "576i-pal" 2>/dev/null || true
-      xrandr --output "$out" --mode 576i-pal 2>/dev/null && break
-      xrandr --newmode "640x480-15k" 15.750 640 664 736 840 480 491 501 525 -hsync -vsync 2>/dev/null || true
-      xrandr --addmode "$out" "640x480-15k" 2>/dev/null || true
-      xrandr --output "$out" --mode 640x480-15k 2>/dev/null && break
+      xrandr --output "$out" --mode PAL576i 2>/dev/null && break
       xrandr --output "$out" --mode 640x480 --rate 60 2>/dev/null && break
       xrandr --output "$out" --auto 2>/dev/null && break
     fi
@@ -44,15 +39,15 @@ p = Path("$ROOT/config.json")
 cfg = json.loads(p.read_text(encoding="utf-8"))
 cfg.setdefault("display", {})
 cfg["display"].update({
-    "width": 640,
-    "height": 480,
+    "width": 720,
+    "height": 576,
     "aspect": "4:3",
     "scale": "fill",
     "output": "vga",
     "crt": True,
 })
 p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-print("config.json display -> 640x480 crt:true")
+print("config.json display -> 720x576 PAL576i crt:true")
 PY
 
 echo "Yazildi: $RC"
