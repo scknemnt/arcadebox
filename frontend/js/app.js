@@ -379,8 +379,8 @@ function layoutPx(value, axis) {
 }
 
 function crtViewport() {
-  const crt = Boolean(state.config?.display?.crt);
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
+  const crt = Boolean(state.config?.display?.crt) || (out === "vga" && document.body.classList.contains("crt-display"));
   if (!crt || out !== "vga") return null;
   return {
     w: state.config?.display?.width || 720,
@@ -410,6 +410,7 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-title", `${layoutPx(crtLayout.game.titleSize, "y")}px`);
   root.style.setProperty("--amiga-title-focus", `${layoutPx(crtLayout.game.titleSizeFocus, "y")}px`);
   root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
+  const { sx, sy } = crtLayoutScale();
   const vp = crtViewport();
   if (vp && document.body.classList.contains("vga-kiosk")) {
     root.style.setProperty("--amiga-layout-w", `${vp.w}px`);
@@ -773,6 +774,15 @@ function applyDisplayProfile() {
   const crt = Boolean(state.config?.display?.crt);
   document.body.classList.toggle("vga-kiosk", out === "vga");
   document.body.classList.toggle("crt-display", out === "vga" && crt);
+  if (out === "vga" && crt) {
+    document.documentElement.style.width = "720px";
+    document.documentElement.style.height = "576px";
+    document.documentElement.style.overflow = "hidden";
+  } else {
+    document.documentElement.style.width = "";
+    document.documentElement.style.height = "";
+    document.documentElement.style.overflow = "";
+  }
   document.body.classList.toggle("pi-kiosk", Boolean(state.config?.pi));
   scaleStage();
 }
@@ -1732,18 +1742,11 @@ function hideSplash() {
 
 function boot() {
   hideSplash();
-  primeKioskDisplay();
   bootPadScan();
+  primeKioskDisplay();
   if (!document.body.classList.contains("vga-kiosk")) stars();
-  state.systems = systemsWithFav(BOOT_SYSTEMS.slice());
-  loadCrtLayout().then(() => {
-    applyCrtLayoutVars();
-    show("home");
-    renderHome();
-  });
   window.setInterval(tickAmigaClock, 30000);
   tickAmigaClock();
-  primeAudio();
 
   loadCatalog()
     .then(async () => {
@@ -1751,7 +1754,10 @@ function boot() {
       applyCrt();
       primeAudio();
       if (state.config.fastBoot) {
+        show("home");
         renderHome();
+        applyCrtLayoutVars();
+        scaleStage();
         pollCatalog();
         return;
       }

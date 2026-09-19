@@ -10,7 +10,8 @@
     #splash strong { font: 52px Impact, sans-serif; color: #ffdc4c; letter-spacing: 0.08em; text-shadow: 0 0 24px #ff6b2c; }
     #splash small { color: #ffb347; letter-spacing: 0.28em; font: 10px Consolas, monospace; }
     #bezel, #tube, #stage { background: #120404; min-height: 100vh; }
-    body[data-kiosk="vga"] #bezel { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    body[data-kiosk="vga"]:not(.crt-display) #bezel { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    body[data-kiosk="vga"].crt-display #bezel { position: fixed; left: 0; top: 0; width: 720px; height: 576px; overflow: hidden; }
     .hidden { display: none !important; }
   </style>
   <link rel="preload" as="image" href="media/pandora/system_main2.png">
