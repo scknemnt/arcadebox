@@ -1,0 +1,237 @@
+(footprint "BC847"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "SOT-323_2020")
+	(tags "Transistor BJT NPN")
+	(property "Reference" "Q**"
+		(at 0 3 0)
+		(layer "F.SilkS")
+		(uuid "0e9cc969-8704-4599-b93c-7d56c0e69aa3")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+			)
+		)
+	)
+	(property "Value" "BC847"
+		(at 0 0 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "ef903fd6-362a-4cda-8cba-ef3fd84532e0")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "96c82cae-e225-481a-9749-d41e776e8133")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b649f4dd-3427-4867-b11b-573f01bae9fe")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -1.575 -1.15)
+		(end -0.525 -1.15)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a0f122bf-8488-42c4-b4f5-bdc951af6608")
+	)
+	(fp_line
+		(start -0.175 -1.05)
+		(end 0.175 -1.05)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "b59c329b-4465-4593-a18e-c78fa7545fbd")
+	)
+	(fp_line
+		(start -0.175 1.05)
+		(end -0.175 -1.05)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "568460f3-f1cd-43b9-ab27-5ee3c7cb04e7")
+	)
+	(fp_line
+		(start 0.175 -1.05)
+		(end 0.175 1.05)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "bbf2c277-ac85-47ed-a341-5f8ac15108b2")
+	)
+	(fp_line
+		(start 0.175 1.05)
+		(end -0.175 1.05)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "4295f25b-f2c6-4123-9694-fb6f86eb9331")
+	)
+	(fp_line
+		(start -1.825 -1.35)
+		(end 1.825 -1.35)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "e655684b-31c3-4f41-9004-220c7ad14db5")
+	)
+	(fp_line
+		(start -1.825 1.35)
+		(end -1.825 -1.35)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "d48325e3-ff94-410a-a655-251a994d2c9e")
+	)
+	(fp_line
+		(start 1.825 -1.35)
+		(end 1.825 1.35)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "475db1f9-1703-48e9-9294-1eacc190bfc0")
+	)
+	(fp_line
+		(start 1.825 1.35)
+		(end -1.825 1.35)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "32927f1a-f280-4188-b124-184221702ff4")
+	)
+	(fp_line
+		(start -0.625 -1.05)
+		(end 0.625 -1.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "79263d63-8288-4b63-82da-60fb719ca594")
+	)
+	(fp_line
+		(start -0.625 -0.4)
+		(end 0.025 -1.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "4cac3228-91a0-4c4f-bb07-c1eba2e16e56")
+	)
+	(fp_line
+		(start -0.625 1.05)
+		(end -0.625 -1.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "40d7b4cb-47d7-44c9-bd56-4b29108930a7")
+	)
+	(fp_line
+		(start 0.625 -1.05)
+		(end 0.625 1.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "664bc76c-c7c6-46d9-a0e7-24eb18a3e1b7")
+	)
+	(fp_line
+		(start 0.625 1.05)
+		(end -0.625 1.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "0ff34b99-d1cd-4ad1-a964-1b8b9cf5252d")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -0.5 -3 0)
+		(layer "F.Fab")
+		(uuid "3375dfa9-4936-4110-b814-e6b5072bb5c2")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -1.05 -0.65 90)
+		(size 0.5 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "9d2124fb-5ec2-4852-9c40-2110e218fd58")
+	)
+	(pad "2" smd rect
+		(at -1.05 0.65 90)
+		(size 0.5 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "b3a54270-f860-4dcf-80b9-b2f9963e88b0")
+	)
+	(pad "3" smd rect
+		(at 1.05 0 90)
+		(size 0.5 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "a949fe5f-3908-4bba-8848-15f53cd6cf01")
+	)
+	(embedded_fonts no)
+	(model "BC847A-G.stp"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

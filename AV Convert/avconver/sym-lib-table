@@ -1,0 +1,7 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "K-SCARTX-022")(type "KiCad")(uri "${KIPRJMOD}/K-SCARTX-022.kicad_sym")(options "")(descr ""))
+  (lib (name "74HC86D-Q100_118")(type "KiCad")(uri "${KIPRJMOD}/74HC86D-Q100_118.kicad_sym")(options "")(descr ""))
+  (lib (name "BC847A-G")(type "KiCad")(uri "${KIPRJMOD}/BC847A-G.kicad_sym")(options "")(descr ""))
+  (lib (name "MSS1583-104KED")(type "KiCad")(uri "${KIPRJMOD}/MSS1583-104KED.kicad_sym")(options "")(descr ""))
+)

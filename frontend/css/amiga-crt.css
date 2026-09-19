@@ -69,6 +69,11 @@ html.vga-kiosk.crt-display .amiga-shell {
   pointer-events: none;
 }
 
+html.vga-kiosk.crt-display .amiga-bg {
+  width: 100%;
+  height: 100%;
+}
+
 .amiga-monitor-viewport {
   position: absolute;
   inset: 0;

@@ -350,9 +350,7 @@ function crtLayoutScale() {
   const sx = dw / base[0];
   const sy = dh / base[1];
   const crt = Boolean(state.config?.display?.crt);
-  const uniform =
-    crt && document.body.classList.contains("vga-kiosk") ? Math.min(sx, sy) : null;
-  return { sx, sy, uniform };
+  return { sx, sy, uniform: null, crt };
 }
 
 function layoutPx(value, axis) {
@@ -381,26 +379,20 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-title", `${layoutPx(crtLayout.game.titleSize, "y")}px`);
   root.style.setProperty("--amiga-title-focus", `${layoutPx(crtLayout.game.titleSizeFocus, "y")}px`);
   root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
-  const { sx, sy, uniform } = crtLayoutScale();
-  if (uniform != null) {
-    const bw = crtLayout.resolution?.[0] || 800;
-    const bh = crtLayout.resolution?.[1] || 600;
-    const rw = Math.round(bw * uniform);
-    const rh = Math.round(bh * uniform);
-    const ox = Math.round((window.innerWidth - rw) / 2);
-    const oy = Math.round((window.innerHeight - rh) / 2);
-    root.style.setProperty("--amiga-layout-w", `${rw}px`);
-    root.style.setProperty("--amiga-layout-h", `${rh}px`);
-    root.style.setProperty("--amiga-layout-x", `${ox}px`);
-    root.style.setProperty("--amiga-layout-y", `${oy}px`);
+  const { sx, sy, crt } = crtLayoutScale();
+  if (crt && document.body.classList.contains("vga-kiosk")) {
+    root.style.setProperty("--amiga-layout-w", "100%");
+    root.style.setProperty("--amiga-layout-h", "100%");
+    root.style.setProperty("--amiga-layout-x", "0px");
+    root.style.setProperty("--amiga-layout-y", "0px");
   } else {
     root.style.removeProperty("--amiga-layout-w");
     root.style.removeProperty("--amiga-layout-h");
     root.style.removeProperty("--amiga-layout-x");
     root.style.removeProperty("--amiga-layout-y");
   }
-  root.style.setProperty("--amiga-scale-x", String(uniform ?? sx));
-  root.style.setProperty("--amiga-scale-y", String(uniform ?? sy));
+  root.style.setProperty("--amiga-scale-x", String(sx));
+  root.style.setProperty("--amiga-scale-y", String(sy));
   const bg = $("amiga-bg");
   if (bg && crtLayout.bg) bg.src = crtLayout.bg;
 }

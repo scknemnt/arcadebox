@@ -22,8 +22,8 @@ cat > "$RC" <<'XPROF'
 if command -v xrandr >/dev/null 2>&1; then
   for out in VGA-1 VGA-0 VGA1; do
     if xrandr --query 2>/dev/null | grep -q "^${out} connected"; then
-      xrandr --output "$out" --mode PAL576-AR 2>/dev/null && break
       xrandr --output "$out" --mode PAL576i 2>/dev/null && break
+      xrandr --output "$out" --mode PAL576-AR 2>/dev/null && break
     fi
   done
 fi
@@ -36,6 +36,7 @@ import json
 from pathlib import Path
 p = Path("$ROOT/config.json")
 cfg = json.loads(p.read_text(encoding="utf-8"))
+cfg["theme"] = "amiga-crt"
 cfg.setdefault("display", {})
 cfg["display"].update({
     "width": 720,
@@ -46,7 +47,7 @@ cfg["display"].update({
     "crt": True,
 })
 p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-print("config.json display -> 720x576 PAL576i crt:true")
+print("config.json theme=amiga-crt display=720x576 crt:true")
 PY
 
 echo "Yazildi: $RC"

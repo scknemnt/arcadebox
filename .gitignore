@@ -30,3 +30,26 @@ __pycache__/
 Thumbs.db
 data/fbneo-gamelist.txt
 frontend/_theme_inspect/
+
+# Referans tema arsivi (cabinet calismasi icin gerekmez)
+frontend/one_sauce_themes/
+frontend/pandora retropie theme/
+
+# AV Convert yedek / uretim dosyalari
+AV Convert/avconver/_backup*/
+AV Convert/avconver/_backup_old/
+AV Convert/avconver/avconver-backups/
+AV Convert/avconver/*.zip
+AV Convert/avconver/fp-info-cache
+AV Convert/avconver/*.stp
+AV Convert/avconver/*.bak
+AV Convert/avconver/*.dcm
+AV Convert/avconver/*.lib
+AV Convert/avconver/*.mod
+
+# Kisisel referans
+PBDX.pdf
+PBDXSpecial.pdf
+Pandoras-9D-GAME-LIST.pdf
+avconver-drc.json
+ff5ec9fba096ec90d9446570003d1465.jpg

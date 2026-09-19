@@ -1,0 +1,78 @@
+Parça Listesi:
+Parça   Değer
+C1   100nF
+C2   330nF
+C3   680uF
+C4,5   22uF
+D1   1N5818
+D2   LED
+J1    Sıra 15 Pin Dişi D-Sub Konnektör - 90C / 90 Derece
+J2,3   RCA kırmızı - siyah
+L1   100uH
+Q1,2   BC237
+R1,3,7,8,10,11,12   2K2
+R2   15K
+R4,5,6,9   1K
+R13,14,15   47R
+R16   150R
+U1   74HC86
+U2   LM2577-ADJ
+TOS Kablo streo jaklı
+SCART Kablo veya Scart soketi şase
+Kablo tutucu
+Bakır plaket
+Delikli Plaket
+Tanex fotoğraf kağıdı
+
+
+
+C1   100nF   
+C2   330nF   
+C3   680uF   
+C4   22uF   
+C5   22uF   
+D1   1N5822   
+D2      
+J1   VGA   
+J2   LINE IN L   
+J3   LINE IN R   
+J4   AUDIO GND   
+J5   LED Anode   
+J6   LED Catode   
+L1   100uH   
+Q1   BC237   
+Q2   BC237   
+R1   2K2   
+R2   15K   
+R3   2K2   
+R4   1K   
+R5   1K   
+R6   1K   
+R7   2K2   
+R8   2K2   
+R9   2K2   
+R10   2K2   
+R11   2K2   
+R12   2K2   
+R13   47R   
+R14   47R   
+R15   47R   
+R16   150R   
+U1   74HC86   
+U2   LM2577-ADJ   
+W2   AUDIO IN R   
+W4   AUDIO GND   
+W5   BLUE GND   
+W6   AUDIO IN L   
+W7   BLUE   
+W8   SWITCH   
+W9   GREEN GND   
+W11   GREEN   
+W13   RED GND   
+W14   DATA GND   
+W15   RED   
+W16   BLNK   
+W17   COMP GND   
+W18   BLNK GND   
+W20   CVBS IN   
+W21   SHIELD G
