@@ -1,12 +1,9 @@
 #!/bin/sh
-# X + menu boot duzelt — MUTLAKA root ile:
+# X + CRT menu boot duzelt — MUTLAKA root ile:
 #   cd /mnt/games/ArcadeBox
 #   sh kiosk/git-pull.sh
 #   sudo sh kiosk/crt-fix-boot.sh
 #   sudo reboot
-#
-# SSH'den X ACILMAZ (vt1 izni). Reboot veya:
-#   sudo systemctl start arcadebox-kiosk.service
 
 set -eu
 
@@ -28,6 +25,7 @@ mount /mnt/games 2>/dev/null || mount -a 2>/dev/null || true
 ln -sfn /mnt/games/ArcadeBox "$HOME_DIR/ArcadeBox" 2>/dev/null || true
 
 usermod -aG video,tty,input,audio,render,sudo "$USER_NAME" 2>/dev/null || true
+loginctl enable-linger "$USER_NAME" 2>/dev/null || true
 
 python3 - "$CFG" <<'PY'
 import json, sys
@@ -78,15 +76,45 @@ sleep 120
 XINIT
 chmod +x "$HOME_DIR/.xinitrc"
 
-# Eski bozuk "exec startx" satirlarini sil — systemd kiosk kullan
-for prof in "$HOME_DIR/.profile" "$HOME_DIR/.bash_profile"; do
-  if [ -f "$prof" ]; then
-    grep -v "Arcade Box" "$prof" | grep -v "exec startx" | grep -v "startx.*xinitrc" > "${prof}.new" || true
-    mv "${prof}.new" "$prof"
-  fi
-  touch "$prof"
-done
-echo "OK: .profile temizlendi (startx kaldirildi — systemd kullanilir)"
+# Bozuk eski startx bloklarini sil — temiz dosya yaz
+cat > "$HOME_DIR/.bash_profile" <<EOF
+# Arcade Box CRT kiosk
+if [ -f "\$HOME/.profile" ]; then
+  . "\$HOME/.profile"
+fi
+if [ -z "\$DISPLAY" ] && [ "\$(tty)" = "/dev/tty1" ]; then
+  exec startx "$HOME_DIR/.xinitrc" -- :0 vt1 -nocursor
+fi
+EOF
+
+if [ -f "$HOME_DIR/.profile" ]; then
+  python3 - "$HOME_DIR/.profile" <<'PY'
+import re, sys
+p = sys.argv[1]
+try:
+    t = open(p, encoding="utf-8").read()
+except OSError:
+    sys.exit(0)
+t = re.sub(
+    r"\n# Arcade Box[^\n]*\nif \[ -z \"\$DISPLAY\"[^\n]*\n[^\n]*\nfi\n?",
+    "\n",
+    t,
+    flags=re.MULTILINE,
+)
+t = re.sub(r"\nif \[ -z \"\$DISPLAY\"[^\n]*\n\s*exec startx[^\n]*\nfi\n?", "\n", t)
+t = re.sub(r"\n\s*exec startx[^\n]*\n", "\n", t)
+open(p, "w", encoding="utf-8").write(t.rstrip() + "\n")
+print("OK: .profile temizlendi")
+PY
+else
+  cat > "$HOME_DIR/.profile" <<'PROF'
+# ~/.profile
+if [ -f "$HOME/.bashrc" ]; then
+  . "$HOME/.bashrc"
+fi
+PROF
+fi
+echo "OK: .bash_profile yenilendi"
 
 mkdir -p /etc/X11/xorg.conf.d
 cat > /etc/X11/xorg.conf.d/10-arcadebox.conf <<'EOF'
@@ -105,21 +133,24 @@ Section "ServerLayout"
 EndSection
 EOF
 
-if [ -f "$ROOT/kiosk/arcadebox-kiosk.service" ]; then
-  sed "s|/home/arcadebox|$HOME_DIR|g" "$ROOT/kiosk/arcadebox-kiosk.service" \
-    > /etc/systemd/system/arcadebox-kiosk.service
-  systemctl daemon-reload
-  systemctl stop getty@tty1.service 2>/dev/null || true
-  systemctl disable getty@tty1.service 2>/dev/null || true
-  rm -rf /etc/systemd/system/getty@tty1.service.d/autologin.conf 2>/dev/null || true
-  systemctl enable arcadebox-kiosk.service
-  echo "OK: arcadebox-kiosk.service etkin (getty@tty1 kapali)"
-fi
+# getty autologin + startx (systemd kiosk ile cakismasin)
+systemctl disable arcadebox-kiosk.service 2>/dev/null || true
+systemctl stop arcadebox-kiosk.service 2>/dev/null || true
+
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin ${USER_NAME} --noclear %I \$TERM
+EOF
+systemctl enable getty@tty1.service 2>/dev/null || true
+systemctl daemon-reload
+echo "OK: getty autologin tty1"
 
 chown "$USER_NAME:$USER_NAME" "$HOME_DIR/.xprofile" "$HOME_DIR/.xinitrc" \
   "$HOME_DIR/.profile" "$HOME_DIR/.bash_profile" 2>/dev/null || true
 
 echo
 echo ">>> sudo reboot <<<"
-echo "Acil test (reboot oncesi): sudo systemctl start arcadebox-kiosk.service"
-echo "Log: journalctl -u arcadebox-kiosk.service -n 30 --no-pager"
+echo "SSH hatasi gitti mi: bash -l  (fi hatasi olmamali)"
+echo "Log: tail -30 /tmp/arcadebox-startx.log"
