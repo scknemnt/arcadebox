@@ -19,6 +19,10 @@ echo "--- lspci VGA ---"
 lspci -nn 2>/dev/null | grep -iE 'vga|display|3d' || echo "(lspci yok)"
 echo
 
+echo "--- X provider (hangi GPU aktif?) ---"
+xrandr --listproviders 2>/dev/null || true
+echo
+
 if ! command -v xrandr >/dev/null 2>&1; then
   echo "xrandr yok. Kur: sudo apt-get install -y x11-xserver-utils"
   exit 1
@@ -67,19 +71,25 @@ try_mode() {
   return 1
 }
 
-# PAL TV / SCART icin once 640x480 ve 720x576 dene (readme: 640x480i ideal)
-try_mode "640x480 @60" --mode 640x480 --rate 60 || true
-try_mode "720x576 @50 PAL" --mode 720x576 --rate 50 || true
+add_mode() {
+  name="$1"
+  shift
+  echo ">>> Modeline: $name"
+  xrandr --newmode "$name" "$@" 2>&1 || true
+  xrandr --addmode "$VGA" "$name" 2>&1 || true
+}
+
+# SCART TV cogu 15.625 kHz PAL bekler; 640x480@60 VGA ~31 kHz'tir (TV siyah kalabilir)
+add_mode "576i-pal" 13.50 720 738 846 978 576 582 587 625 interlace -hsync -vsync
+add_mode "640x480-15k" 15.750 640 664 736 840 480 491 501 525 -hsync -vsync
+add_mode "640x512i-pal" 13.50 640 664 760 840 512 517 523 561 interlace -hsync -vsync
+
+try_mode "576i-pal (15.6 kHz — SCART TV icin oncelik)" --mode 576i-pal || true
+try_mode "640x480-15k (arcade/15kHz)" --mode 640x480-15k || true
+try_mode "640x512i-pal" --mode 640x512i-pal || true
+try_mode "640x480 @60 (~31 kHz VGA)" --mode 640x480 --rate 60 || true
 try_mode "800x600 @60" --mode 800x600 --rate 60 || true
 try_mode "auto" --auto || true
-
-# Ozel 640x480i modeline (interlaced — bazi SCART TV icin sart)
-if ! xrandr --query | grep -q '640x480i'; then
-  echo ">>> 640x480i modeline ekleniyor..."
-  xrandr --newmode "640x480i" 25.18 640 672 696 832 480 483 486 525 interlace -hsync -vsync 2>/dev/null || true
-  xrandr --addmode "$VGA" "640x480i" 2>/dev/null || true
-fi
-try_mode "640x480i interlaced" --mode 640x480i 2>/dev/null || true
 
 echo
 echo "--- Mevcut mod ---"
@@ -91,6 +101,10 @@ echo "2. SCART pin 16 ~1-3V — blanking (RGB acik)"
 echo "3. Sync: pin 20 composite sync — 74HC86 cikisi"
 echo "4. Kablo VGA'dan mi gidiyor? (HDMI degil)"
 echo "5. POST/BIOS ekranda hic gorunuyor mu? Hayir = kablo/sync donanim"
-echo "6. readme.txt: progressive 640x480 yetmeyebilir — 640x480i veya Soft15khz"
+echo "6. SCART TV genelde 15 kHz PAL ister; 640x480@60 = 31 kHz (siyah ekran normal olabilir)"
+echo "7. VGA monitor tak — PC cikisi var mi? (varsa sorun TV tarama / SCART donanim)"
+echo "8. Baska cihazdan SCART (DVD/konsol) — TV calisiyor mu?"
+echo "9. Multimetre: SCART pin 8 ~9-12V (LM2577), pin 16 ~1-3V (RGB blanking)"
 echo
 echo "Arcade Box kalici mod: sudo sh kiosk/crt-scart-display.sh"
+echo "15 kHz xrandr reddediyorsa: sudo sh kiosk/crt-scart-xorg.sh auto && sudo reboot"
