@@ -80,6 +80,6 @@ for H in 945 1020 1100 1180 1240; do
   sleep 8
 done
 
-apply_w 1100 || apply_w 945 || true
+apply_w 1240 || apply_w 1180 || apply_w 1100 || true
 echo
-echo "Sag kenar oturunca: sh kiosk/crt-hsize.sh 1100 && sh kiosk/linux-start.sh"
+echo "Sag kenar: sh kiosk/crt-hsize.sh 1240 && sh kiosk/linux-start.sh"

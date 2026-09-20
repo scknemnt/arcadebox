@@ -26,7 +26,7 @@ xrandr --addmode "$OUT" PAL576i 2>/dev/null || true
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 # Arcelik: w840, b350 merkez → back=290. Config varsa onu kullan.
-HDISP="945"
+HDISP="1240"
 BACK="238"
 if [ -f "$ROOT/config.json" ]; then
   eval "$(python3 - "$ROOT/config.json" <<'PY'

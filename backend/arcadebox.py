@@ -1149,14 +1149,20 @@ def rom_inventory() -> dict[str, bool]:
     return present
 
 
-def _crt_output() -> bool:
+def _crt_cabinet() -> bool:
     disp = config().get("display") or {}
-    return str(disp.get("output", "hdmi")).lower() == "crt"
+    if disp.get("crt"):
+        return True
+    return str(disp.get("output", "")).lower() in {"crt", "vga"}
+
+
+def _crt_output() -> bool:
+    return _crt_cabinet()
 
 
 def _aspect_ratio_index() -> str:
-    if _crt_output():
-        return "0"
+    if _crt_cabinet():
+        return "23"
     aspect = str((config().get("display") or {}).get("aspect") or "16:9").lower().replace(" ", "")
     if aspect in {"4:3", "4/3"}:
         return "0"
@@ -1477,13 +1483,20 @@ def launch_game(game_id: str) -> dict:
                 ]
             )
     lines.extend(retroarch_exit_lines())
-    if _crt_output():
+    if _crt_cabinet():
+        disp = config().get("display") or {}
+        vw = int(disp.get("hdisplay") or disp.get("width") or 1240)
+        vh = int(disp.get("height") or 576)
         lines.extend(
             [
                 'video_smooth = "false"',
-                'video_scale_integer = "true"',
-                'custom_viewport_width = "800"',
-                'custom_viewport_height = "600"',
+                'video_scale_integer = "false"',
+                'video_force_aspect = "false"',
+                'aspect_ratio_index = "23"',
+                f'custom_viewport_width = "{vw}"',
+                f'custom_viewport_height = "{vh}"',
+                f'video_fullscreen_x = "{vw}"',
+                f'video_fullscreen_y = "{vh}"',
             ]
         )
     else:

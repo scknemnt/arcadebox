@@ -61,14 +61,19 @@ html.vga-kiosk.crt-display #stage {
 }
 
 html.vga-kiosk.crt-display .amiga-shell {
-  inset: auto;
-  left: 0;
-  top: 0;
-  width: 800px !important;
-  height: 600px !important;
-  transform: scale(var(--amiga-fit-x, 1), var(--amiga-fit-y, 1)) !important;
-  transform-origin: top left !important;
+  inset: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: none !important;
   overflow: hidden;
+}
+
+html.vga-kiosk.crt-display .amiga-shell .amiga-bg {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill !important;
 }
 
 .amiga-shell.hidden {
@@ -83,12 +88,6 @@ html.vga-kiosk.crt-display .amiga-shell {
   object-fit: fill;
   z-index: 1;
   pointer-events: none;
-}
-
-html.vga-kiosk.crt-display .amiga-shell .amiga-bg {
-  width: 800px;
-  height: 600px;
-  object-fit: fill;
 }
 
 .amiga-monitor-viewport {

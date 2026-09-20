@@ -362,15 +362,16 @@ function loadCrtLayoutFrom(data) {
 
 function crtLayoutScale() {
   const base = crtLayout.resolution || [800, 600];
-  const crt = Boolean(state.config?.display?.crt);
-  if (crt && document.body.classList.contains("vga-kiosk")) {
-    return { sx: 1, sy: 1, uniform: 1, crt: true };
+  if (document.body.dataset.kiosk === "vga") {
+    const aw = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0, 800);
+    const ah = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0, 576);
+    return { sx: aw / base[0], sy: ah / base[1], uniform: null, crt: true };
   }
   const dw = state.config?.display?.width || window.innerWidth || base[0];
   const dh = state.config?.display?.height || window.innerHeight || base[1];
   const sx = dw / base[0];
   const sy = dh / base[1];
-  return { sx, sy, uniform: null, crt };
+  return { sx, sy, uniform: null, crt: Boolean(state.config?.display?.crt) };
 }
 
 function crtAnalogSize() {
@@ -421,28 +422,31 @@ function applyCrtLayoutVars() {
   const vp = crtViewport();
   const [lw, lh] = crtLayout.resolution || [800, 600];
   if (vp && document.body.dataset.kiosk === "vga") {
-    const aw = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
-    const ah = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
-    const fitX = aw / lw;
-    const fitY = ah / lh;
-    root.style.setProperty("--amiga-layout-w", `${lw}px`);
-    root.style.setProperty("--amiga-layout-h", `${lh}px`);
+    root.style.setProperty("--amiga-layout-w", "100%");
+    root.style.setProperty("--amiga-layout-h", "100%");
     root.style.setProperty("--amiga-layout-x", "0px");
     root.style.setProperty("--amiga-layout-y", "0px");
-    root.style.setProperty("--amiga-fit-x", String(fitX));
-    root.style.setProperty("--amiga-fit-y", String(fitY));
+    root.style.setProperty("--amiga-fit-x", "1");
+    root.style.setProperty("--amiga-fit-y", "1");
     root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
     root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
     const shell = $("amiga-shell");
     if (shell) {
-      shell.style.width = `${lw}px`;
-      shell.style.height = `${lh}px`;
-      shell.style.maxWidth = "none";
-      shell.style.maxHeight = "none";
-      shell.style.transformOrigin = "0 0";
-      shell.style.webkitTransformOrigin = "0 0";
-      shell.style.transform = `scale(${fitX}, ${fitY})`;
-      shell.style.webkitTransform = `scale(${fitX}, ${fitY})`;
+      shell.style.position = "fixed";
+      shell.style.left = "0";
+      shell.style.top = "0";
+      shell.style.right = "0";
+      shell.style.bottom = "0";
+      shell.style.width = "100%";
+      shell.style.height = "100%";
+      shell.style.transform = "none";
+      shell.style.webkitTransform = "none";
+    }
+    const bg = $("amiga-bg");
+    if (bg) {
+      bg.style.width = "100%";
+      bg.style.height = "100%";
+      bg.style.objectFit = "fill";
     }
   } else {
     const shell = $("amiga-shell");
