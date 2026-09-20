@@ -46,17 +46,17 @@
   overflow: hidden;
 }
 
-/* Kabin CRT — sabit 720×576 (Firefox innerWidth guvenilmez) */
+/* Kabin CRT — analog tam ekran; 800x600 shell JS scale ile uzar */
 html.vga-kiosk.crt-display #bezel,
 html.vga-kiosk.crt-display #tube,
 html.vga-kiosk.crt-display #stage {
   position: fixed !important;
   left: 0 !important;
   top: 0 !important;
-  width: var(--stage-w, 720px) !important;
-  height: var(--stage-h, 576px) !important;
-  max-width: var(--stage-w, 720px);
-  max-height: var(--stage-h, 576px);
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   overflow: hidden;
 }
 
@@ -64,10 +64,10 @@ html.vga-kiosk.crt-display .amiga-shell {
   inset: auto;
   left: 0;
   top: 0;
-  width: var(--amiga-layout-w, 800px);
-  height: var(--amiga-layout-h, 600px);
-  transform: scale(var(--amiga-fit-x, 1), var(--amiga-fit-y, 1));
-  transform-origin: top left;
+  width: 800px !important;
+  height: 600px !important;
+  transform: scale(var(--amiga-fit-x, 1), var(--amiga-fit-y, 1)) !important;
+  transform-origin: top left !important;
   overflow: hidden;
 }
 

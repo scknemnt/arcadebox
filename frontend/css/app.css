@@ -1093,39 +1093,34 @@ body.vga-kiosk:not(.crt-display) #stage {
   height: 100% !important;
 }
 
-/* Kabin CRT — sahne --stage-w / --stage-h (JS, modeline hdisplay) */
-body.vga-kiosk.crt-display {
-  width: var(--stage-w, 720px);
-  height: var(--stage-h, 576px);
-  max-width: 100%;
-  max-height: 100%;
+/* Kabin CRT — analog framebuffer tam dolsun; 800x600 shell scale ile uzar */
+body.vga-kiosk.crt-display,
+html.vga-kiosk.crt-display {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   overflow: hidden;
 }
 
-body.vga-kiosk.crt-display #bezel {
+body.vga-kiosk.crt-display #bezel,
+body.vga-kiosk.crt-display #tube,
+body.vga-kiosk.crt-display #stage,
+html.vga-kiosk.crt-display #bezel,
+html.vga-kiosk.crt-display #tube,
+html.vga-kiosk.crt-display #stage {
   position: fixed !important;
   left: 0 !important;
   top: 0 !important;
-  inset: auto !important;
-  width: var(--stage-w) !important;
-  height: var(--stage-h) !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   padding: 0;
   border-radius: 0;
-  background: var(--bg);
-  box-shadow: none;
-  overflow: hidden;
-  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px)) !important;
-}
-
-body.vga-kiosk.crt-display #tube,
-body.vga-kiosk.crt-display #stage {
-  width: var(--stage-w) !important;
-  height: var(--stage-h) !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  border-radius: 0;
+  background: var(--bg, #120404);
   box-shadow: none;
   overflow: hidden;
 }

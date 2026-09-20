@@ -382,8 +382,7 @@ function crtAnalogSize() {
 
 function crtViewport() {
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
-  const crt = Boolean(state.config?.display?.crt) || (out === "vga" && document.body.classList.contains("crt-display"));
-  if (!crt || out !== "vga") return null;
+  if (out !== "vga") return null;
   const analog = crtAnalogSize();
   return {
     w: analog.w,
@@ -421,16 +420,31 @@ function applyCrtLayoutVars() {
   const { sx, sy } = crtLayoutScale();
   const vp = crtViewport();
   const [lw, lh] = crtLayout.resolution || [800, 600];
-  if (vp && document.body.classList.contains("vga-kiosk")) {
+  if (vp && document.body.dataset.kiosk === "vga") {
+    const fitX = vp.w / lw;
+    const fitY = vp.h / lh;
     root.style.setProperty("--amiga-layout-w", `${lw}px`);
     root.style.setProperty("--amiga-layout-h", `${lh}px`);
     root.style.setProperty("--amiga-layout-x", "0px");
     root.style.setProperty("--amiga-layout-y", "0px");
-    root.style.setProperty("--amiga-fit-x", String(vp.w / lw));
-    root.style.setProperty("--amiga-fit-y", String(vp.h / lh));
+    root.style.setProperty("--amiga-fit-x", String(fitX));
+    root.style.setProperty("--amiga-fit-y", String(fitY));
     root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
     root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
+    const shell = $("amiga-shell");
+    if (shell) {
+      shell.style.width = `${lw}px`;
+      shell.style.height = `${lh}px`;
+      shell.style.transformOrigin = "top left";
+      shell.style.transform = `scale(${fitX}, ${fitY})`;
+    }
   } else {
+    const shell = $("amiga-shell");
+    if (shell) {
+      shell.style.width = "";
+      shell.style.height = "";
+      shell.style.transform = "";
+    }
     root.style.removeProperty("--crt-pan-x");
     root.style.removeProperty("--crt-pan-y");
     root.style.removeProperty("--amiga-layout-w");
@@ -744,8 +758,8 @@ function scaleStage() {
     const h = vp ? vp.h : window.innerHeight;
     document.documentElement.style.setProperty("--stage-w", `${w}px`);
     document.documentElement.style.setProperty("--stage-h", `${h}px`);
-    document.documentElement.classList.add("vga-kiosk");
-    document.body.classList.add("vga-kiosk");
+    document.documentElement.classList.add("vga-kiosk", "crt-display");
+    document.body.classList.add("vga-kiosk", "crt-display");
     if (vp) {
       const tx = vp.panX || 0;
       const ty = vp.panY || 0;
@@ -784,11 +798,11 @@ function scaleStage() {
 
 function applyDisplayProfile() {
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
-  const crt = Boolean(state.config?.display?.crt);
+  const crt = Boolean(state.config?.display?.crt) || out === "vga";
   document.documentElement.classList.toggle("vga-kiosk", out === "vga");
-  document.documentElement.classList.toggle("crt-display", out === "vga" && crt);
+  document.documentElement.classList.toggle("crt-display", out === "vga");
   document.body.classList.toggle("vga-kiosk", out === "vga");
-  document.body.classList.toggle("crt-display", out === "vga" && crt);
+  document.body.classList.toggle("crt-display", out === "vga");
   if (out === "vga" && crt) {
     document.documentElement.style.width = "";
     document.documentElement.style.height = "";
