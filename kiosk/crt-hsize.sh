@@ -1,7 +1,7 @@
 #!/bin/sh
-# PAL576i-b250 merkezli, aktif genislik tarama (15.64 kHz, htotal 1611).
-#   sh kiosk/crt-hsize.sh           # 8 sn adimlar
-#   sh kiosk/crt-hsize.sh 1000      # kalici
+# PAL576i-b350 merkezli, sadece yatay genislik (V 576 ayni).
+#   sh kiosk/crt-hsize.sh        # tarama
+#   sh kiosk/crt-hsize.sh 840    # Arcelik: w840, b350 merkez
 
 export DISPLAY="${DISPLAY:-:0}"
 HOME_DIR="${HOME:-/home/arcadebox}"
@@ -23,7 +23,7 @@ CLK="25.20"
 HTOT=1611
 SYNCW=118
 H0=720
-B0=250
+B0=350
 VT="576 581 586 625 interlace -hsync -vsync"
 
 apply_w() {
@@ -66,7 +66,7 @@ print("config: hdisplay=%s hsyncBack=%s" % (w, b))
 PY
 }
 
-echo "=== PAL576i genislik ($OUT)  merkez=b250 ==="
+echo "=== PAL576i genislik ($OUT)  merkez=b350 (dikey 576 sabit) ==="
 echo "H buyuyunce TV'de sag-sol dolar. Kilit bozulursa bir onceki."
 echo
 
@@ -77,13 +77,12 @@ if [ -n "${1:-}" ]; then
   exit 0
 fi
 
-for H in 720 840 920 1000 1080 1140; do
+for H in 720 840 880 920 960; do
   apply_w "$H" || true
   sleep 8
 done
 
-apply_w 1000 || apply_w 920 || true
+apply_w 840 || true
 echo
-echo "En iyi genislik:"
-echo "  sh kiosk/crt-hsize.sh 1000"
+echo "Arcelik kilidi: sh kiosk/crt-hsize.sh 840"
 echo "Sonra: pkill firefox-esr; sh kiosk/linux-start.sh"

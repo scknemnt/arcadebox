@@ -25,18 +25,22 @@ xrandr --newmode "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsy
 xrandr --addmode "$OUT" PAL576i 2>/dev/null || true
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-HDISP=""
-BACK=""
+# Arcelik: w840, b350 merkez → back=290. Config varsa onu kullan.
+HDISP="840"
+BACK="290"
 if [ -f "$ROOT/config.json" ]; then
   eval "$(python3 - "$ROOT/config.json" <<'PY'
 import json, sys
 try:
     d = json.load(open(sys.argv[1], encoding="utf-8")).get("display", {})
-    print("HDISP=%s" % (d.get("hdisplay") or d.get("width") or ""))
-    print("BACK=%s" % (d.get("hsyncBack") or ""))
+    hd = d.get("hdisplay")
+    bk = d.get("hsyncBack")
+    if hd and int(hd) != 720:
+        print("HDISP=%s" % hd)
+        if bk:
+            print("BACK=%s" % bk)
 except Exception:
-    print("HDISP=")
-    print("BACK=")
+    pass
 PY
 )"
 fi
