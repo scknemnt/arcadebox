@@ -1,7 +1,9 @@
 #!/bin/sh
-# PAL576i-b350 merkezli, sadece yatay genislik (V 576 ayni).
-#   sh kiosk/crt-hsize.sh        # tarama
-#   sh kiosk/crt-hsize.sh 840    # Arcelik: w840, b350 merkez
+# Sol kenar kilitli (945'te sola sifir). H buyuyunce SADECE saga genisler.
+# Back porch sabit 238 (b350 + w945). Dikey 576 ayni.
+#
+#   sh kiosk/crt-hsize.sh           # saga tarama
+#   sh kiosk/crt-hsize.sh 1100      # kilitle + firefox kapat
 
 export DISPLAY="${DISPLAY:-:0}"
 HOME_DIR="${HOME:-/home/arcadebox}"
@@ -22,23 +24,20 @@ done
 CLK="25.20"
 HTOT=1611
 SYNCW=118
-H0=720
-B0=350
+BACK=238
 VT="576 581 586 625 interlace -hsync -vsync"
 
 apply_w() {
   H="$1"
-  d=$((H - H0))
-  back=$((B0 - d / 2))
-  hse=$((HTOT - back))
+  hse=$((HTOT - BACK))
   hss=$((hse - SYNCW))
   front=$((hss - H))
-  if [ "$back" -lt 40 ] || [ "$front" -lt 8 ] || [ "$hss" -le "$H" ]; then
-    echo "atla H=$H back=$back front=$front"
+  if [ "$front" -lt 8 ] || [ "$H" -ge "$hss" ]; then
+    echo "atla H=$H front=$front (max ~$((hss - 8)))"
     return 1
   fi
   name="PAL576i-w${H}"
-  echo ">>> $name  $H $hss $hse $HTOT  front=$front sync=$SYNCW back=$back"
+  echo ">>> $name  $H $hss $hse $HTOT  front=$front sync=$SYNCW back=$BACK (sol kilit)"
   xrandr --newmode "$name" $CLK $H $hss $hse $HTOT $VT 2>/dev/null || true
   xrandr --addmode "$OUT" "$name" 2>/dev/null || true
   xrandr --output "$OUT" --mode "$name" 2>/dev/null || { echo "    secilemedi"; return 1; }
@@ -47,9 +46,7 @@ apply_w() {
 
 save_cfg() {
   H="$1"
-  d=$((H - H0))
-  back=$((B0 - d / 2))
-  python3 - "$ROOT/config.json" "$H" "$back" <<'PY'
+  python3 - "$ROOT/config.json" "$H" "$BACK" <<'PY'
 import json, sys
 p, w, b = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 cfg = json.load(open(p, encoding="utf-8"))
@@ -62,27 +59,27 @@ d.update({
 })
 json.dump(cfg, open(p, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 open(p, "a").write("\n")
-print("config: hdisplay=%s hsyncBack=%s" % (w, b))
+print("config: hdisplay=%s hsyncBack=%s (sol kilit)" % (w, b))
 PY
 }
 
-echo "=== PAL576i genislik ($OUT)  merkez=b350 (dikey 576 sabit) ==="
-echo "H buyuyunce TV'de sag-sol dolar. Kilit bozulursa bir onceki."
+echo "=== PAL576i saga genislet ($OUT) sol=back $BACK ==="
+echo "Firefox eski boyutta kalirsa goruntu UZAMAZ. Her kilitlemede pkill sart."
 echo
 
 if [ -n "${1:-}" ]; then
   apply_w "$1" || exit 1
   save_cfg "$1"
-  echo "Firefox: pkill firefox-esr; sh kiosk/linux-start.sh"
+  pkill firefox-esr 2>/dev/null || true
+  echo "Tamam. Simdi: sh kiosk/linux-start.sh"
   exit 0
 fi
 
-for H in 720 840 880 920 960; do
+for H in 945 1020 1100 1180 1240; do
   apply_w "$H" || true
   sleep 8
 done
 
-apply_w 840 || true
+apply_w 1100 || apply_w 945 || true
 echo
-echo "Arcelik kilidi: sh kiosk/crt-hsize.sh 840"
-echo "Sonra: pkill firefox-esr; sh kiosk/linux-start.sh"
+echo "Sag kenar oturunca: sh kiosk/crt-hsize.sh 1100 && sh kiosk/linux-start.sh"

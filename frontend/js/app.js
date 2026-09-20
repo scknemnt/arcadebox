@@ -421,8 +421,10 @@ function applyCrtLayoutVars() {
   const vp = crtViewport();
   const [lw, lh] = crtLayout.resolution || [800, 600];
   if (vp && document.body.dataset.kiosk === "vga") {
-    const fitX = vp.w / lw;
-    const fitY = vp.h / lh;
+    const aw = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
+    const ah = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+    const fitX = aw / lw;
+    const fitY = ah / lh;
     root.style.setProperty("--amiga-layout-w", `${lw}px`);
     root.style.setProperty("--amiga-layout-h", `${lh}px`);
     root.style.setProperty("--amiga-layout-x", "0px");
@@ -435,8 +437,12 @@ function applyCrtLayoutVars() {
     if (shell) {
       shell.style.width = `${lw}px`;
       shell.style.height = `${lh}px`;
-      shell.style.transformOrigin = "top left";
+      shell.style.maxWidth = "none";
+      shell.style.maxHeight = "none";
+      shell.style.transformOrigin = "0 0";
+      shell.style.webkitTransformOrigin = "0 0";
       shell.style.transform = `scale(${fitX}, ${fitY})`;
+      shell.style.webkitTransform = `scale(${fitX}, ${fitY})`;
     }
   } else {
     const shell = $("amiga-shell");
