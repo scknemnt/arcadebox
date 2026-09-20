@@ -24,28 +24,32 @@ done
 xrandr --newmode "PAL576i" 25.20 720 768 848 1611 576 581 586 625 interlace -hsync -vsync 2>/dev/null || true
 xrandr --addmode "$OUT" PAL576i 2>/dev/null || true
 
-BACK=""
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+HDISP=""
+BACK=""
 if [ -f "$ROOT/config.json" ]; then
-  BACK="$(python3 - "$ROOT/config.json" <<'PY'
+  eval "$(python3 - "$ROOT/config.json" <<'PY'
 import json, sys
 try:
-    print(json.load(open(sys.argv[1], encoding="utf-8")).get("display", {}).get("hsyncBack") or "")
+    d = json.load(open(sys.argv[1], encoding="utf-8")).get("display", {})
+    print("HDISP=%s" % (d.get("hdisplay") or d.get("width") or ""))
+    print("BACK=%s" % (d.get("hsyncBack") or ""))
 except Exception:
-    print("")
+    print("HDISP=")
+    print("BACK=")
 PY
 )"
 fi
 
-if [ -n "$BACK" ] && [ "$BACK" != "0" ]; then
+if [ -n "$HDISP" ] && [ -n "$BACK" ] && [ "$HDISP" != "720" -o "$BACK" != "0" ]; then
   hse=$((1611 - BACK))
   hss=$((hse - 118))
-  if [ "$hss" -gt 720 ]; then
-    name="PAL576i-b${BACK}"
-    xrandr --newmode "$name" 25.20 720 $hss $hse 1611 576 581 586 625 interlace -hsync -vsync 2>/dev/null || true
+  if [ "$hss" -gt "$HDISP" ] && [ "$HDISP" -ge 640 ]; then
+    name="PAL576i-w${HDISP}"
+    xrandr --newmode "$name" 25.20 "$HDISP" $hss $hse 1611 576 581 586 625 interlace -hsync -vsync 2>/dev/null || true
     xrandr --addmode "$OUT" "$name" 2>/dev/null || true
     if xrandr --output "$OUT" --mode "$name" 2>/dev/null; then
-      echo "OK: $name back=$BACK on $OUT"
+      echo "OK: $name H=$HDISP back=$BACK on $OUT"
       xrandr --query | grep -E "connected|\*"
       exit 0
     fi

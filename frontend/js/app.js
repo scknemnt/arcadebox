@@ -383,8 +383,8 @@ function crtViewport() {
   const crt = Boolean(state.config?.display?.crt) || (out === "vga" && document.body.classList.contains("crt-display"));
   if (!crt || out !== "vga") return null;
   return {
-    w: state.config?.display?.width || 720,
-    h: state.config?.display?.height || 576,
+    w: Number(state.config?.display?.width) || window.innerWidth || 720,
+    h: Number(state.config?.display?.height) || window.innerHeight || 576,
     panX: Number(state.config?.display?.panX) || 0,
     panY: Number(state.config?.display?.panY) || 0,
   };
@@ -775,8 +775,10 @@ function applyDisplayProfile() {
   document.body.classList.toggle("vga-kiosk", out === "vga");
   document.body.classList.toggle("crt-display", out === "vga" && crt);
   if (out === "vga" && crt) {
-    document.documentElement.style.width = "720px";
-    document.documentElement.style.height = "576px";
+    const w = Number(state.config?.display?.width) || window.innerWidth || 720;
+    const h = Number(state.config?.display?.height) || window.innerHeight || 576;
+    document.documentElement.style.width = `${w}px`;
+    document.documentElement.style.height = `${h}px`;
     document.documentElement.style.overflow = "hidden";
   } else {
     document.documentElement.style.width = "";
