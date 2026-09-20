@@ -114,7 +114,9 @@ user_pref("browser.display.background_color", "#8b1a1a");
 user_pref("browser.display.use_system_colors", false);
 user_pref("layers.acceleration.disabled", true);
 user_pref("gfx.webrender.software", true);
-user_pref("browser.cache.disk.enable", true);
+user_pref("browser.cache.disk.enable", false);
+user_pref("browser.cache.memory.enable", false);
+user_pref("browser.cache.check_doc_frequency", 1);
 user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("browser.aboutwelcome.enabled", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
@@ -145,6 +147,7 @@ EOF
   fi
   echo "python pid=$srv, firefox-esr aciliyor DISPLAY=$DISPLAY profile=$FF_PROF"
   rm -f "$FF_PROF/lock" "$FF_PROF/.parentlock" "$FF_PROF/parent.lock" 2>/dev/null || true
+  rm -rf "$FF_PROF/cache2" "$FF_PROF/startupCache" 2>/dev/null || true
   pkill -x firefox-esr 2>/dev/null || true
   sleep 1
   while true; do

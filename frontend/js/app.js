@@ -218,7 +218,7 @@ const FAV_SYSTEM = {
 const CRT_LAYOUT_DEFAULT = {
   version: 1,
   resolution: [800, 600],
-  bg: "media/themes/amiga/arcadebox_bg.png",
+  bg: "media/themes/amiga/arcadebox_bg.png?v=bg3",
   quad: { tl: [565, 179], tr: [708, 171], br: [703, 336], bl: [561, 326] },
   carousel: { x: 158, pitch: 58, maxDist: 3, perspective: 620, perspectiveOriginX: 42, perspectiveOriginY: 50 },
   logo: { width: 240, height: 80 },
@@ -474,7 +474,10 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-scale-x", String(sx));
   root.style.setProperty("--amiga-scale-y", String(sy));
   const bg = $("amiga-bg");
-  if (bg && crtLayout.bg) bg.src = crtLayout.bg;
+  if (bg && crtLayout.bg) {
+    const path = String(crtLayout.bg).split("?")[0];
+    bg.src = `${path}?v=bg3`;
+  }
 }
 
 function carouselTransform3d(dist) {

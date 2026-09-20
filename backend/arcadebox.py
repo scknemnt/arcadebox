@@ -1634,6 +1634,12 @@ class Handler(SimpleHTTPRequestHandler):
         with path.open("rb") as handle:
             shutil.copyfileobj(handle, self.wfile)
 
+    def end_headers(self) -> None:  # noqa: N802
+        path = urlparse(getattr(self, "path", "") or "").path.lower()
+        if path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".css", ".js", ".json")):
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
+
     def log_message(self, format: str, *args) -> None:
         sys.stderr.write("ArcadeBox: " + (format % args) + "\n")
 
