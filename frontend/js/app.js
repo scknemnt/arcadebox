@@ -362,32 +362,40 @@ function loadCrtLayoutFrom(data) {
 
 function crtLayoutScale() {
   const base = crtLayout.resolution || [800, 600];
+  const crt = Boolean(state.config?.display?.crt);
+  if (crt && document.body.classList.contains("vga-kiosk")) {
+    return { sx: 1, sy: 1, uniform: 1, crt: true };
+  }
   const dw = state.config?.display?.width || window.innerWidth || base[0];
   const dh = state.config?.display?.height || window.innerHeight || base[1];
   const sx = dw / base[0];
   const sy = dh / base[1];
-  const crt = Boolean(state.config?.display?.crt);
   return { sx, sy, uniform: null, crt };
 }
 
-function layoutPx(value, axis) {
-  const { sx, sy, crt } = crtLayoutScale();
-  if (crt && document.body.classList.contains("vga-kiosk")) {
-    return Math.round(value * (axis === "y" ? sy : sx));
-  }
-  return Math.round(value * (axis === "y" ? sy : sx));
+function crtAnalogSize() {
+  return {
+    w: window.innerWidth || 720,
+    h: window.innerHeight || 576,
+  };
 }
 
 function crtViewport() {
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
   const crt = Boolean(state.config?.display?.crt) || (out === "vga" && document.body.classList.contains("crt-display"));
   if (!crt || out !== "vga") return null;
+  const analog = crtAnalogSize();
   return {
-    w: Number(state.config?.display?.width) || window.innerWidth || 720,
-    h: Number(state.config?.display?.height) || window.innerHeight || 576,
+    w: analog.w,
+    h: analog.h,
     panX: Number(state.config?.display?.panX) || 0,
     panY: Number(state.config?.display?.panY) || 0,
   };
+}
+
+function layoutPx(value, axis) {
+  const { sx, sy } = crtLayoutScale();
+  return Math.round(value * (axis === "y" ? sy : sx));
 }
 
 function applyCrtLayoutVars() {
@@ -412,11 +420,14 @@ function applyCrtLayoutVars() {
   root.style.setProperty("--amiga-game-row", `${layoutPx(crtLayout.game.rowWidth, "x")}px`);
   const { sx, sy } = crtLayoutScale();
   const vp = crtViewport();
+  const [lw, lh] = crtLayout.resolution || [800, 600];
   if (vp && document.body.classList.contains("vga-kiosk")) {
-    root.style.setProperty("--amiga-layout-w", `${vp.w}px`);
-    root.style.setProperty("--amiga-layout-h", `${vp.h}px`);
+    root.style.setProperty("--amiga-layout-w", `${lw}px`);
+    root.style.setProperty("--amiga-layout-h", `${lh}px`);
     root.style.setProperty("--amiga-layout-x", "0px");
     root.style.setProperty("--amiga-layout-y", "0px");
+    root.style.setProperty("--amiga-fit-x", String(vp.w / lw));
+    root.style.setProperty("--amiga-fit-y", String(vp.h / lh));
     root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
     root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
   } else {
@@ -426,6 +437,8 @@ function applyCrtLayoutVars() {
     root.style.removeProperty("--amiga-layout-h");
     root.style.removeProperty("--amiga-layout-x");
     root.style.removeProperty("--amiga-layout-y");
+    root.style.removeProperty("--amiga-fit-x");
+    root.style.removeProperty("--amiga-fit-y");
   }
   root.style.setProperty("--amiga-scale-x", String(sx));
   root.style.setProperty("--amiga-scale-y", String(sy));
@@ -772,13 +785,13 @@ function scaleStage() {
 function applyDisplayProfile() {
   const out = state.config?.display?.output || document.body.dataset.kiosk || "";
   const crt = Boolean(state.config?.display?.crt);
+  document.documentElement.classList.toggle("vga-kiosk", out === "vga");
+  document.documentElement.classList.toggle("crt-display", out === "vga" && crt);
   document.body.classList.toggle("vga-kiosk", out === "vga");
   document.body.classList.toggle("crt-display", out === "vga" && crt);
   if (out === "vga" && crt) {
-    const w = Number(state.config?.display?.width) || window.innerWidth || 720;
-    const h = Number(state.config?.display?.height) || window.innerHeight || 576;
-    document.documentElement.style.width = `${w}px`;
-    document.documentElement.style.height = `${h}px`;
+    document.documentElement.style.width = "";
+    document.documentElement.style.height = "";
     document.documentElement.style.overflow = "hidden";
   } else {
     document.documentElement.style.width = "";
