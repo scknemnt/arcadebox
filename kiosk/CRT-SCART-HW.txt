@@ -20,7 +20,8 @@ xrandr transform / modeline degisikligi ETKI ETMEDI ise:
    Kontrol (multimetre / osiloskop):
    - U1 pin 14 VCC ~5V, pin 7 GND
    - HSYNC/VSYNC XOR cikisi pin 8 dalgali mi?
-   - C4, C5 (kucuk seramik ~1nF-100nF arasi) lehim/soket saglam mi?
+   - C4, C5 = 22uF (parca listesi). Senkron AC kuplaj; SOKME.
+     Polariteli elektrolitik, ipek baskiya uy. 16V yeter.
    - Q1/Q2 (NPN sync buffer) dogru polarite
 
    Deney (riskli — dikkatli):

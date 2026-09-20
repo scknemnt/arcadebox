@@ -577,8 +577,8 @@ body.vga-kiosk.theme-pandora .pandora-home-layout {
 }
 
 .theme-pandora .svc-tabs button {
-  min-width: 120px;
-  padding: 12px 18px;
+  min-width: 84px;
+  padding: 12px 14px;
   border: 2px solid rgba(255, 0, 220, 0.4);
   background: rgba(20, 4, 30, 0.75);
   color: #f4c8ff;
@@ -684,6 +684,22 @@ body.vga-kiosk.theme-pandora .pandora-home-layout {
 
 .theme-pandora .bind-row.waiting {
   border-color: #ffdc4c;
+  color: #ffdc4c;
+}
+
+.theme-pandora .crt-shift-pad button,
+.theme-pandora .crt-shift-reset {
+  min-width: 88px;
+  min-height: 52px;
+  border: 2px solid rgba(255, 0, 220, 0.4);
+  background: rgba(20, 4, 30, 0.82);
+  color: #fff8e8;
+  font-family: "Digital Serial", Consolas, monospace;
+  font-size: 18px;
+}
+
+.theme-pandora .crt-shift-read {
+  font-size: 20px;
   color: #ffdc4c;
 }
 

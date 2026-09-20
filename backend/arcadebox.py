@@ -1729,6 +1729,20 @@ class Handler(SimpleHTTPRequestHandler):
                 current["retroarch"]["cores"] = str(Path(body["exe"]).parent / "cores")
             if "controls" in body and isinstance(body["controls"], dict):
                 current["controls"] = body["controls"]
+            if "display" in body and isinstance(body["display"], dict):
+                disp = current.setdefault("display", {})
+                for key, val in body["display"].items():
+                    if key in ("panX", "panY"):
+                        try:
+                            num = int(val)
+                        except (TypeError, ValueError):
+                            continue
+                        if key == "panX":
+                            disp[key] = max(-200, min(200, num))
+                        else:
+                            disp[key] = max(-120, min(120, num))
+                    else:
+                        disp[key] = val
             if "crtFx" in body and isinstance(body["crtFx"], dict):
                 current["crtFx"] = body["crtFx"]
             if "favorites" in body and isinstance(body["favorites"], list):

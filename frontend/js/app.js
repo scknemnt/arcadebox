@@ -22,6 +22,7 @@ const state = {
     fav: ["y", "Y", "Gamepad3"],
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
+  crtPan: { x: 0, y: 0 },
   serviceTab: 0,
   serviceIndex: 0,
   listening: null,
@@ -428,8 +429,6 @@ function applyCrtLayoutVars() {
     root.style.setProperty("--amiga-layout-y", "0px");
     root.style.setProperty("--amiga-fit-x", "1");
     root.style.setProperty("--amiga-fit-y", "1");
-    root.style.setProperty("--crt-pan-x", `${vp.panX}px`);
-    root.style.setProperty("--crt-pan-y", `${vp.panY}px`);
     const shell = $("amiga-shell");
     if (shell) {
       shell.style.position = "fixed";
@@ -439,8 +438,7 @@ function applyCrtLayoutVars() {
       shell.style.bottom = "0";
       shell.style.width = "100%";
       shell.style.height = "100%";
-      shell.style.transform = "none";
-      shell.style.webkitTransform = "none";
+      applyCrtPan();
     }
     const bg = $("amiga-bg");
     if (bg) {
@@ -491,7 +489,11 @@ function carouselTransform3d(dist) {
 function syncAmigaShell() {
   const shell = $("amiga-shell");
   if (!shell) return;
-  const on = useAmigaCrt() && (state.view === "home" || state.view === "games");
+  const on = useAmigaCrt() && (
+    state.view === "home" ||
+    state.view === "games" ||
+    (state.view === "service" && state.serviceTab === 3)
+  );
   shell.classList.toggle("hidden", !on);
   shell.setAttribute("aria-hidden", on ? "false" : "true");
 }
@@ -770,13 +772,7 @@ function scaleStage() {
     document.documentElement.style.setProperty("--stage-h", `${h}px`);
     document.documentElement.classList.add("vga-kiosk", "crt-display");
     document.body.classList.add("vga-kiosk", "crt-display");
-    if (vp) {
-      const tx = vp.panX || 0;
-      const ty = vp.panY || 0;
-      bezel.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : "none";
-    } else {
-      bezel.style.transform = "none";
-    }
+    bezel.style.transform = "none";
     bezel.style.width = `${w}px`;
     bezel.style.height = `${h}px`;
     if (tube) {
@@ -788,6 +784,7 @@ function scaleStage() {
       stage.style.height = `${h}px`;
     }
     if (useAmigaCrt()) applyCrtLayoutVars();
+    applyCrtPan();
     return;
   }
   document.documentElement.classList.remove("vga-kiosk");
@@ -1169,6 +1166,11 @@ async function loadCatalog() {
   state.config = data.config;
   if (data.config.controls) state.controls = { ...state.controls, ...data.config.controls };
   if (data.config.crtFx) state.crtFx = { ...state.crtFx, ...data.config.crtFx };
+  const disp = data.config.display || {};
+  state.crtPan = {
+    x: Number(disp.panX) || 0,
+    y: Number(disp.panY) || 0,
+  };
   if (data.config.theme) {
     state.config.theme = data.config.theme;
     document.body.classList.toggle("theme-amiga-crt", data.config.theme === "amiga-crt");
@@ -1182,6 +1184,7 @@ async function loadCatalog() {
   if (useAmigaCrt()) await loadCrtLayout();
   state.music = data.music || [];
   applyCrt();
+  applyCrtPan();
   syncMusic();
 }
 
@@ -1322,6 +1325,41 @@ function prettyToken(token) {
   return String(token).toUpperCase();
 }
 
+function applyCrtPan() {
+  const x = Number(state.crtPan?.x) || 0;
+  const y = Number(state.crtPan?.y) || 0;
+  document.documentElement.style.setProperty("--crt-pan-x", `${x}px`);
+  document.documentElement.style.setProperty("--crt-pan-y", `${y}px`);
+  if (state.config.display) {
+    state.config.display.panX = x;
+    state.config.display.panY = y;
+  }
+  const read = document.querySelector(".crt-shift-read");
+  if (read) read.innerHTML = `X ${x}<br>Y ${y}`;
+}
+
+let savePanTimer = 0;
+function savePanSoon() {
+  if (savePanTimer) window.clearTimeout(savePanTimer);
+  savePanTimer = window.setTimeout(() => {
+    savePanTimer = 0;
+    saveSettings();
+  }, 450);
+}
+
+function nudgeCrtPan(dx, dy) {
+  state.crtPan.x = Math.max(-200, Math.min(200, (Number(state.crtPan.x) || 0) + dx));
+  state.crtPan.y = Math.max(-120, Math.min(120, (Number(state.crtPan.y) || 0) + dy));
+  applyCrtPan();
+  savePanSoon();
+}
+
+function resetCrtPan() {
+  state.crtPan = { x: 0, y: 0 };
+  applyCrtPan();
+  saveSettings();
+}
+
 function applyCrt() {
   document.documentElement.style.setProperty("--scanline-opacity", String(state.crtFx.scanlines));
   const heavy = state.crtFx.scanlines > 0.2 || state.crtFx.flicker || state.crtFx.rgb;
@@ -1343,6 +1381,11 @@ async function saveSettings() {
         controls: state.controls,
         crtFx: state.crtFx,
         favorites: state.favorites,
+        display: {
+          ...(state.config.display || {}),
+          panX: Number(state.crtPan.x) || 0,
+          panY: Number(state.crtPan.y) || 0,
+        },
       }),
     });
   } catch (_error) {
@@ -1388,15 +1431,24 @@ function closeService() {
 function serviceItems() {
   if (state.serviceTab === 1) return ACTIONS;
   if (state.serviceTab === 2) return [{ id: "sound" }, ...CRT_LEVELS, { id: "flicker" }, { id: "rgb" }];
+  if (state.serviceTab === 3) return [{ id: "crt-screen" }];
   return [];
 }
 
 function renderService() {
-  const tabs = ["TEST", "TUŞLAR", "SES"];
+  const tabs = ["TEST", "TUŞLAR", "SES", "EKRAN"];
+  $("view-service")?.classList.toggle("crt-align", state.serviceTab === 3);
+  syncAmigaShell();
   $("svc-tabs").innerHTML = tabs
     .map((name, index) => `<button type="button" class="${index === state.serviceTab ? "on" : ""}" data-tab="${index}">${name}</button>`)
     .join("");
   $("pad-pill").textContent = state.padName ? "USB PAD HAZIR" : "KOL BEKLENİYOR";
+  const hint = document.querySelector("#view-service .hintbar");
+  if (hint) {
+    hint.innerHTML = state.serviceTab === 3
+      ? "<span>← → SOL SAĞ</span><span>↑ ↓ YUKARI AŞAĞI</span><span>START SIFIRLA</span><span>B ÇIK</span>"
+      : "<span>← → SEKME</span><span>↑ ↓ SEÇ</span><span>A / START DEĞİŞTİR</span><span>B ÇIK</span>";
+  }
 
   if (state.serviceTab === 0) {
     $("service-body").innerHTML = `
@@ -1431,6 +1483,27 @@ function renderService() {
         <span>${waiting ? "TUŞA BAS…" : keys}</span>
       </div>`;
     }).join("")}</div>`;
+    return;
+  }
+
+  if (state.serviceTab === 3) {
+    const x = Number(state.crtPan.x) || 0;
+    const y = Number(state.crtPan.y) || 0;
+    $("service-body").innerHTML = `
+      <div class="crt-shift">
+        <p class="svc-lead">CRT EKRAN AYARI — menü anlık kayar</p>
+        <div class="crt-shift-pad">
+          <button type="button" data-nudge="0,-4">Y −</button>
+          <div class="crt-shift-mid">
+            <button type="button" data-nudge="-4,0">X −</button>
+            <div class="crt-shift-read">X ${x}<br>Y ${y}</div>
+            <button type="button" data-nudge="4,0">X +</button>
+          </div>
+          <button type="button" data-nudge="0,4">Y +</button>
+        </div>
+        <button type="button" class="crt-shift-reset" data-nudge="reset">SIFIRLA</button>
+        <p class="crt-shift-note">Stick ile 4px kaydır, basılı tut hızlanır. Oyun tam ekran ayrı kalır.</p>
+      </div>`;
     return;
   }
 
@@ -1497,7 +1570,8 @@ function tickHold() {
     if (action === "left" || action === "up") move(-1, { silent: true });
     else if (action === "right" || action === "down") move(1, { silent: true });
   } else if (state.view === "service") {
-    if (action === "up" || action === "down") handleService(action);
+    if (state.serviceTab === 3) handleService(action);
+    else if (action === "up" || action === "down") handleService(action);
   }
   HOLD.timer = window.setTimeout(tickHold, wait);
 }
@@ -1514,7 +1588,13 @@ function fireAction(action) {
   if (["ok", "back", "service", "fav"].includes(action)) stopHold(false);
   if (state.view === "boot" || state.view === "launch") return;
   if (action === "service") {
-    if (state.view === "service") return;
+    if (state.view === "service") {
+      sfx("move");
+      state.serviceTab = (state.serviceTab + 1) % 4;
+      state.serviceIndex = 0;
+      renderService();
+      return;
+    }
     openService();
     return;
   }
@@ -1543,16 +1623,24 @@ function handleService(action) {
     closeService();
     return;
   }
+  if (state.serviceTab === 3) {
+    if (action === "left") nudgeCrtPan(-4, 0);
+    else if (action === "right") nudgeCrtPan(4, 0);
+    else if (action === "up") nudgeCrtPan(0, -4);
+    else if (action === "down") nudgeCrtPan(0, 4);
+    else if (action === "ok") resetCrtPan();
+    return;
+  }
   if (action === "left") {
     sfx("move");
-    state.serviceTab = (state.serviceTab + 2) % 3;
+    state.serviceTab = (state.serviceTab + 3) % 4;
     state.serviceIndex = 0;
     renderService();
     return;
   }
   if (action === "right") {
     sfx("move");
-    state.serviceTab = (state.serviceTab + 1) % 3;
+    state.serviceTab = (state.serviceTab + 1) % 4;
     state.serviceIndex = 0;
     renderService();
     return;
@@ -1724,6 +1812,15 @@ function bindClicks() {
     renderService();
   });
   $("service-body").addEventListener("click", (event) => {
+    const nudge = event.target.closest("[data-nudge]");
+    if (nudge) {
+      if (nudge.dataset.nudge === "reset") resetCrtPan();
+      else {
+        const parts = String(nudge.dataset.nudge).split(",");
+        nudgeCrtPan(Number(parts[0]) || 0, Number(parts[1]) || 0);
+      }
+      return;
+    }
     const row = event.target.closest("[data-index]");
     if (!row) return;
     state.serviceIndex = Number(row.dataset.index);
