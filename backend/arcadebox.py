@@ -1742,7 +1742,7 @@ class Handler(SimpleHTTPRequestHandler):
                         elif key == "panY":
                             disp[key] = max(-120, min(120, num))
                         else:
-                            disp[key] = max(100, min(160, num))
+                            disp[key] = max(70, min(160, num))
                     else:
                         disp[key] = val
             if "crtFx" in body and isinstance(body["crtFx"], dict):

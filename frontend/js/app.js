@@ -59,8 +59,8 @@ const CRT_LEVELS = [
 const CRT_FIELDS = [
   { id: "x", label: "KAYDIR X", unit: "px", step: 4, min: -200, max: 200 },
   { id: "y", label: "KAYDIR Y", unit: "px", step: 4, min: -120, max: 120 },
-  { id: "w", label: "BOYUT W", unit: "%", step: 1, min: 100, max: 160 },
-  { id: "h", label: "BOYUT H", unit: "%", step: 1, min: 100, max: 160 },
+  { id: "w", label: "BOYUT W", unit: "%", step: 1, min: 70, max: 160 },
+  { id: "h", label: "BOYUT H", unit: "%", step: 1, min: 70, max: 160 },
 ];
 
 
@@ -1339,8 +1339,8 @@ function prettyToken(token) {
 function applyCrtPan() {
   const x = Number(state.crtPan?.x) || 0;
   const y = Number(state.crtPan?.y) || 0;
-  const w = Math.max(100, Math.min(160, Number(state.crtPan?.w) || 100));
-  const h = Math.max(100, Math.min(160, Number(state.crtPan?.h) || 100));
+  const w = Math.max(70, Math.min(160, Number(state.crtPan?.w) || 100));
+  const h = Math.max(70, Math.min(160, Number(state.crtPan?.h) || 100));
   state.crtPan.w = w;
   state.crtPan.h = h;
   document.documentElement.style.setProperty("--crt-pan-x", `${x}px`);
