@@ -1732,15 +1732,17 @@ class Handler(SimpleHTTPRequestHandler):
             if "display" in body and isinstance(body["display"], dict):
                 disp = current.setdefault("display", {})
                 for key, val in body["display"].items():
-                    if key in ("panX", "panY"):
+                    if key in ("panX", "panY", "zoomW", "zoomH"):
                         try:
                             num = int(val)
                         except (TypeError, ValueError):
                             continue
                         if key == "panX":
                             disp[key] = max(-200, min(200, num))
-                        else:
+                        elif key == "panY":
                             disp[key] = max(-120, min(120, num))
+                        else:
+                            disp[key] = max(100, min(160, num))
                     else:
                         disp[key] = val
             if "crtFx" in body and isinstance(body["crtFx"], dict):

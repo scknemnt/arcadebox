@@ -687,10 +687,26 @@ body.vga-kiosk.theme-pandora .pandora-home-layout {
   color: #ffdc4c;
 }
 
-.theme-pandora .crt-shift-pad button,
-.theme-pandora .crt-shift-reset {
-  min-width: 88px;
+.theme-pandora .crt-shift-list {
+  width: min(640px, 92%);
+  margin: 0 auto;
+}
+
+.theme-pandora .crt-shift-row {
   min-height: 52px;
+  border: 2px solid rgba(255, 0, 220, 0.35);
+  background: rgba(20, 4, 30, 0.82);
+}
+
+.theme-pandora .crt-shift-row.on {
+  border-color: #7cf6ff;
+  box-shadow: inset 6px 0 0 #7cf6ff;
+}
+
+.theme-pandora .crt-shift-row button,
+.theme-pandora .crt-shift-reset {
+  min-width: 48px;
+  min-height: 40px;
   border: 2px solid rgba(255, 0, 220, 0.4);
   background: rgba(20, 4, 30, 0.82);
   color: #fff8e8;
@@ -698,7 +714,7 @@ body.vga-kiosk.theme-pandora .pandora-home-layout {
   font-size: 18px;
 }
 
-.theme-pandora .crt-shift-read {
+.theme-pandora .crt-shift-row span {
   font-size: 20px;
   color: #ffdc4c;
 }

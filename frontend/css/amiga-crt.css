@@ -60,8 +60,11 @@ html.vga-kiosk.crt-display #stage {
   overflow: hidden;
 }
 
-html.vga-kiosk.crt-display #stage {
-  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px));
+html.vga-kiosk.crt-display #bezel {
+  overflow: visible;
+  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px))
+    scale(var(--crt-zoom-x, 1), var(--crt-zoom-y, 1));
+  transform-origin: center center;
 }
 
 html.vga-kiosk.crt-display .amiga-shell {

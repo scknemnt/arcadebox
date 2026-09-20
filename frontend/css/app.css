@@ -1060,29 +1060,54 @@ body.pi-kiosk .stars span {
   padding-top: 8px;
 }
 
-.crt-shift-pad {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-}
-
-.crt-shift-mid {
+.crt-shift-list {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
+  width: min(520px, 92%);
 }
 
-.crt-shift-pad button,
+.crt-shift-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 96px 56px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #243040;
+  background: #0e1620;
+}
+
+.crt-shift-row.on {
+  border-color: var(--cyan);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.crt-shift-row strong {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.crt-shift-row span {
+  text-align: center;
+  font: 16px/1 Consolas, monospace;
+  color: var(--yellow);
+}
+
+.crt-shift-row button,
 .crt-shift-reset {
-  min-width: 72px;
+  min-width: 48px;
   min-height: 40px;
-  padding: 6px 12px;
+  padding: 6px 8px;
   border: 1px solid var(--cyan);
   background: #0e1620;
   color: var(--text);
   font-family: Impact, sans-serif;
   letter-spacing: 0.08em;
   cursor: pointer;
+}
+
+.crt-shift-reset {
+  min-width: 120px;
 }
 
 .crt-shift-read {
@@ -1173,9 +1198,12 @@ html.vga-kiosk.crt-display #stage {
   overflow: hidden;
 }
 
-body.vga-kiosk.crt-display #stage,
-html.vga-kiosk.crt-display #stage {
-  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px));
+body.vga-kiosk.crt-display #bezel,
+html.vga-kiosk.crt-display #bezel {
+  overflow: visible;
+  transform: translate(var(--crt-pan-x, 0px), var(--crt-pan-y, 0px))
+    scale(var(--crt-zoom-x, 1), var(--crt-zoom-y, 1));
+  transform-origin: center center;
 }
 
 body.vga-kiosk #view-home {
