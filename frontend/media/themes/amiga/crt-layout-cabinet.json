@@ -9,14 +9,14 @@
     "bl": [563, 322]
   },
   "carousel": {
-    "x": 105,
+    "x": 140,
     "pitch": 58,
     "maxDist": 3,
     "perspective": 620,
     "perspectiveOriginX": 42,
     "perspectiveOriginY": 50
   },
-  "logo": { "width": 240, "height": 80 },
+  "logo": { "width": 304, "height": 72 },
   "game": {
     "thumb": 56,
     "titleSize": 17,

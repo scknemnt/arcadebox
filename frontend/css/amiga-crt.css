@@ -148,9 +148,9 @@ html.vga-kiosk.crt-display .amiga-shell .amiga-bg {
 
 .amiga-carousel-rig {
   position: absolute;
-  left: var(--amiga-cx, 158px);
+  left: var(--amiga-cx, 140px);
   top: 50%;
-  width: 320px;
+  width: 380px;
   height: 440px;
   transform: translateY(-50%);
   z-index: 10;
@@ -189,10 +189,10 @@ html.vga-kiosk.crt-display .amiga-shell .amiga-bg {
 
 .amiga-carousel-item .logo-img {
   display: block;
-  width: var(--amiga-logo-w, 240px);
-  height: var(--amiga-logo-h, 80px);
-  margin-left: calc(var(--amiga-logo-w, 240px) / -2);
-  margin-top: calc(var(--amiga-logo-h, 80px) / -2);
+  width: var(--amiga-logo-w, 304px);
+  height: var(--amiga-logo-h, 72px);
+  margin-left: calc(var(--amiga-logo-w, 304px) / -2);
+  margin-top: calc(var(--amiga-logo-h, 72px) / -2);
   object-fit: contain;
   object-position: center;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.85));

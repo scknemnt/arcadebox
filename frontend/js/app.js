@@ -220,8 +220,8 @@ const CRT_LAYOUT_DEFAULT = {
   resolution: [800, 600],
   bg: "media/themes/amiga/arcadebox_bg.png?v=bg3",
   quad: { tl: [565, 179], tr: [708, 171], br: [703, 336], bl: [561, 326] },
-  carousel: { x: 158, pitch: 58, maxDist: 3, perspective: 620, perspectiveOriginX: 42, perspectiveOriginY: 50 },
-  logo: { width: 240, height: 80 },
+  carousel: { x: 140, pitch: 58, maxDist: 3, perspective: 620, perspectiveOriginX: 42, perspectiveOriginY: 50 },
+  logo: { width: 304, height: 72 },
   game: { thumb: 72, titleSize: 19, titleSizeFocus: 26, rowWidth: 320 },
   viewport: {
     fit: "contain",
@@ -1010,7 +1010,8 @@ function setMarquee(id, text) {
 }
 
 function systemLogo(id) {
-  return SYSTEM_LOGOS[id] || SYSTEM_LOGOS.nes;
+  const src = SYSTEM_LOGOS[id] || SYSTEM_LOGOS.nes;
+  return `${src.split("?")[0]}?v=logo1`;
 }
 
 function renderHome() {

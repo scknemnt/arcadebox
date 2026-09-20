@@ -164,7 +164,7 @@
 .theme-pandora .sys-logo-item {
   display: block;
   width: min(78%, 280px);
-  height: clamp(28px, 5.6vh, 48px);
+  height: clamp(32px, 6.4vh, 58px);
   object-fit: contain;
   object-position: left center;
   opacity: 0.55;
@@ -249,7 +249,7 @@
   left: calc(1436 / 1920 * 100%);
   top: calc(268 / 1080 * 100%);
   width: calc(400 / 1920 * 100%);
-  height: calc(64 / 1080 * 100%);
+  height: calc(96 / 1080 * 100%);
   object-fit: contain;
   object-position: center;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
