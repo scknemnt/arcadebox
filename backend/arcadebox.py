@@ -2151,6 +2151,28 @@ class Handler(SimpleHTTPRequestHandler):
                             disp[key] = max(70, min(160, num))
                     else:
                         disp[key] = val
+            if "menuLayout" in body and isinstance(body["menuLayout"], dict):
+                limits = {
+                    "logoX": (0, 20),
+                    "logoY": (0, 20),
+                    "logoW": (70, 100),
+                    "logoH": (14, 40),
+                    "tilesX": (0, 16),
+                    "tilesY": (18, 50),
+                    "tilesW": (70, 100),
+                    "tilesH": (30, 70),
+                    "icon": (70, 140),
+                    "text": (10, 24),
+                }
+                layout = dict(current.get("menuLayout") or {})
+                for key, (low, high) in limits.items():
+                    if key not in body["menuLayout"]:
+                        continue
+                    try:
+                        layout[key] = max(low, min(high, int(body["menuLayout"][key])))
+                    except (TypeError, ValueError):
+                        continue
+                current["menuLayout"] = layout
             if "crtFx" in body and isinstance(body["crtFx"], dict):
                 current["crtFx"] = body["crtFx"]
             if "favorites" in body and isinstance(body["favorites"], list):

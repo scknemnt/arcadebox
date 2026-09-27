@@ -23,6 +23,11 @@ const state = {
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
   crtPan: { x: 0, y: 0, w: 100, h: 100 },
+  menuLayout: {
+    logoX: 2, logoY: 3, logoW: 96, logoH: 25,
+    tilesX: 4, tilesY: 33, tilesW: 93, tilesH: 51,
+    icon: 100, text: 15,
+  },
   serviceTab: 0,
   serviceIndex: 0,
   serviceInside: false,
@@ -57,8 +62,13 @@ const SERVICE_PAGES = [
   { name: "TUŞLAR", blurb: "Menü tuş atamaları" },
   { name: "SES", blurb: "Müzik ve CRT efektleri" },
   { name: "EKRAN", blurb: "Kaydırma ve boyut" },
+  { name: "TEMA", blurb: "Menü logo ve ikon" },
   { name: "EKLE", blurb: "USB’den oyun yükle" },
 ];
+
+function tabNamed(name) {
+  return SERVICE_PAGES.findIndex((page) => page.name === name);
+}
 
 const CRT_LEVELS = [
   { label: "TARAMA KAPALI", scanlines: 0 },
@@ -72,6 +82,25 @@ const CRT_FIELDS = [
   { id: "y", label: "KAYDIR Y", unit: "px", step: 4, min: -120, max: 120 },
   { id: "w", label: "BOYUT W", unit: "%", step: 1, min: 70, max: 160 },
   { id: "h", label: "BOYUT H", unit: "%", step: 1, min: 70, max: 160 },
+];
+
+const MENU_LAYOUT_DEFAULT = {
+  logoX: 2, logoY: 3, logoW: 96, logoH: 25,
+  tilesX: 4, tilesY: 33, tilesW: 93, tilesH: 51,
+  icon: 100, text: 15,
+};
+
+const MENU_FIELDS = [
+  { id: "logoX", label: "LOGO X", unit: "%", step: 1, min: 0, max: 20 },
+  { id: "logoY", label: "LOGO Y", unit: "%", step: 1, min: 0, max: 18 },
+  { id: "logoW", label: "LOGO W", unit: "%", step: 1, min: 70, max: 100 },
+  { id: "logoH", label: "LOGO H", unit: "%", step: 1, min: 16, max: 36 },
+  { id: "tilesX", label: "İKON X", unit: "%", step: 1, min: 0, max: 16 },
+  { id: "tilesY", label: "İKON Y", unit: "%", step: 1, min: 20, max: 48 },
+  { id: "tilesW", label: "İKON W", unit: "%", step: 1, min: 70, max: 100 },
+  { id: "tilesH", label: "İKON H", unit: "%", step: 1, min: 32, max: 68 },
+  { id: "icon", label: "İKON BOYUT", unit: "%", step: 2, min: 70, max: 140 },
+  { id: "text", label: "YAZI BOYUT", unit: "px", step: 1, min: 10, max: 24 },
 ];
 
 
@@ -1390,8 +1419,10 @@ async function loadCatalog() {
   applyDisplayProfile();
   if (useAmigaCrt()) await loadCrtLayout();
   state.music = data.music || [];
+  if (data.config.menuLayout) state.menuLayout = clampMenuLayout(data.config.menuLayout);
   applyCrt();
   applyCrtPan();
+  applyMenuLayout();
   syncMusic();
 }
 
@@ -1580,6 +1611,52 @@ function resetCrtPan() {
   saveSettings();
 }
 
+function clampMenuLayout(raw) {
+  const out = { ...MENU_LAYOUT_DEFAULT };
+  MENU_FIELDS.forEach((field) => {
+    const num = Number(raw?.[field.id]);
+    out[field.id] = Number.isFinite(num)
+      ? Math.max(field.min, Math.min(field.max, Math.round(num)))
+      : MENU_LAYOUT_DEFAULT[field.id];
+  });
+  return out;
+}
+
+function applyMenuLayout() {
+  state.menuLayout = clampMenuLayout(state.menuLayout);
+  const menu = state.menuLayout;
+  const root = document.documentElement;
+  root.style.setProperty("--ab-logo-x", `${menu.logoX}%`);
+  root.style.setProperty("--ab-logo-y", `${menu.logoY}%`);
+  root.style.setProperty("--ab-logo-w", `${menu.logoW}%`);
+  root.style.setProperty("--ab-logo-h", `${menu.logoH}%`);
+  root.style.setProperty("--ab-tiles-x", `${menu.tilesX}%`);
+  root.style.setProperty("--ab-tiles-y", `${menu.tilesY}%`);
+  root.style.setProperty("--ab-tiles-w", `${menu.tilesW}%`);
+  root.style.setProperty("--ab-tiles-h", `${menu.tilesH}%`);
+  root.style.setProperty("--ab-icon-scale", String(menu.icon / 100));
+  root.style.setProperty("--ab-text-size", `${menu.text}px`);
+  MENU_FIELDS.forEach((field) => {
+    const node = document.querySelector(`[data-menu-val="${field.id}"]`);
+    if (node) node.textContent = `${state.menuLayout[field.id]}${field.unit}`;
+  });
+}
+
+function nudgeMenuField(id, dir) {
+  const field = MENU_FIELDS.find((item) => item.id === id);
+  if (!field) return;
+  const next = (Number(state.menuLayout[id]) || 0) + field.step * dir;
+  state.menuLayout[id] = Math.max(field.min, Math.min(field.max, next));
+  applyMenuLayout();
+  savePanSoon();
+}
+
+function resetMenuLayout() {
+  state.menuLayout = { ...MENU_LAYOUT_DEFAULT };
+  applyMenuLayout();
+  saveSettings();
+}
+
 function applyCrt() {
   document.documentElement.style.setProperty("--scanline-opacity", String(state.crtFx.scanlines));
   const heavy = state.crtFx.scanlines > 0.2 || state.crtFx.flicker || state.crtFx.rgb;
@@ -1608,6 +1685,7 @@ async function saveSettings() {
           zoomW: Number(state.crtPan.w) || 100,
           zoomH: Number(state.crtPan.h) || 100,
         },
+        menuLayout: state.menuLayout,
       }),
     });
   } catch (_error) {
@@ -1659,7 +1737,7 @@ function enterServicePage(tab) {
   state.listening = null;
   sfx("ok");
   renderService();
-  if (state.serviceTab === 4) refreshUsbStatus();
+  if (state.serviceTab === tabNamed("EKLE")) refreshUsbStatus();
 }
 
 function leaveServicePage() {
@@ -1674,6 +1752,7 @@ function serviceItems() {
   if (state.serviceTab === 1) return ACTIONS;
   if (state.serviceTab === 2) return [{ id: "sound" }, ...CRT_LEVELS, { id: "flicker" }, { id: "rgb" }];
   if (state.serviceTab === 3) return CRT_FIELDS;
+  if (state.serviceTab === tabNamed("TEMA")) return MENU_FIELDS;
   return [];
 }
 
@@ -1699,7 +1778,7 @@ function renderService() {
   if (hint) {
     if (!state.serviceInside) {
       hint.innerHTML = "<span>← → SEÇ</span><span>A GİR</span><span>B ÇIK</span>";
-    } else if (state.serviceTab === 3) {
+    } else if (state.serviceTab === 3 || state.serviceTab === tabNamed("TEMA")) {
       hint.innerHTML = "<span>↑ ↓ SATIR</span><span>← → − / +</span><span>START SIFIRLA</span><span>B MENÜ</span>";
     } else {
       hint.innerHTML = "<span>↑ ↓ SEÇ</span><span>A / START DEĞİŞTİR</span><span>B MENÜ</span>";
@@ -1773,7 +1852,25 @@ function renderService() {
     return;
   }
 
-  if (state.serviceTab === 4) {
+  if (state.serviceTab === tabNamed("TEMA")) {
+    serviceHost().innerHTML = `
+      <div class="crt-shift">
+        <p class="svc-lead">MENÜ TEMA — logo, ikon, yazı</p>
+        <div class="crt-shift-list">${MENU_FIELDS.map((field, index) => `
+          <div class="crt-shift-row ${index === state.serviceIndex ? "on" : ""}">
+            <strong>${field.label}</strong>
+            <button type="button" data-menu="${field.id},-1">−</button>
+            <span data-menu-val="${field.id}">${state.menuLayout[field.id]}${field.unit}</span>
+            <button type="button" data-menu="${field.id},1">+</button>
+          </div>`).join("")}
+        </div>
+        <button type="button" class="crt-shift-reset" data-nudge="menu-reset">SIFIRLA</button>
+        <p class="crt-shift-note">LOGO H / W neon çerçeveyi sıkıştırır. İKON X Y konumu, İKON BOYUT ölçek.</p>
+      </div>`;
+    return;
+  }
+
+  if (state.serviceTab === tabNamed("EKLE")) {
     serviceHost().innerHTML = renderUsbPanel();
     serviceHost().querySelector(".ab-usb-row.on")?.scrollIntoView({ block: "nearest" });
     return;
@@ -1847,7 +1944,7 @@ function tickHold() {
     } else if (state.serviceTab === 0) {
       stopHold(false);
       return;
-    } else if (state.serviceTab === 3) {
+    } else if (state.serviceTab === 3 || state.serviceTab === tabNamed("TEMA")) {
       if (action === "left" || action === "right" || action === "up" || action === "down") handleService(action);
     } else if (action === "up" || action === "down") handleService(action);
   }
@@ -1933,8 +2030,26 @@ function handleService(action) {
     return;
   }
   if (state.serviceTab === 0) return;
-  if (state.serviceTab === 4) {
+  if (state.serviceTab === tabNamed("EKLE")) {
     handleUsbService(action);
+    return;
+  }
+  if (state.serviceTab === tabNamed("TEMA")) {
+    if (action === "up" || action === "down") {
+      sfx("move");
+      state.serviceIndex = (state.serviceIndex + (action === "down" ? 1 : -1) + MENU_FIELDS.length) % MENU_FIELDS.length;
+      renderService();
+      return;
+    }
+    if (action === "left" || action === "right") {
+      const field = MENU_FIELDS[state.serviceIndex] || MENU_FIELDS[0];
+      nudgeMenuField(field.id, action === "right" ? 1 : -1);
+      return;
+    }
+    if (action === "ok") {
+      resetMenuLayout();
+      renderService();
+    }
     return;
   }
   if (state.serviceTab === 3) {
@@ -2019,7 +2134,7 @@ async function refreshUsbStatus() {
   } catch (_error) {
     /* keep last */
   }
-  if (state.view === "service" && state.serviceInside && state.serviceTab === 4) renderService();
+  if (state.view === "service" && state.serviceInside && state.serviceTab === tabNamed("EKLE")) renderService();
   if (state.usb.busy) startUsbPoll();
 }
 
@@ -2032,7 +2147,7 @@ function startUsbPoll() {
     } catch (_error) {
       /* keep last */
     }
-    if (state.view === "service" && state.serviceInside && state.serviceTab === 4) renderService();
+    if (state.view === "service" && state.serviceInside && state.serviceTab === tabNamed("EKLE")) renderService();
     if (!state.usb.busy) {
       window.clearInterval(usbTimer);
       usbTimer = 0;
@@ -2097,7 +2212,7 @@ function handleUsbService(action) {
 }
 
 function activateService() {
-  if (state.serviceTab === 4) {
+  if (state.serviceTab === tabNamed("EKLE")) {
     handleUsbService("ok");
     return;
   }
@@ -2233,6 +2348,16 @@ function bindClicks() {
       return;
     }
     if (!state.serviceInside) return;
+    const menuBtn = event.target.closest("[data-menu]");
+    if (menuBtn) {
+      const parts = String(menuBtn.dataset.menu).split(",");
+      const fieldId = parts[0];
+      const idx = MENU_FIELDS.findIndex((item) => item.id === fieldId);
+      if (idx >= 0) state.serviceIndex = idx;
+      nudgeMenuField(fieldId, Number(parts[1]) || 0);
+      renderService();
+      return;
+    }
     const crtBtn = event.target.closest("[data-crt]");
     if (crtBtn) {
       const parts = String(crtBtn.dataset.crt).split(",");
@@ -2245,10 +2370,9 @@ function bindClicks() {
     }
     const nudge = event.target.closest("[data-nudge]");
     if (nudge) {
-      if (nudge.dataset.nudge === "reset") {
-        resetCrtPan();
-        renderService();
-      }
+      if (nudge.dataset.nudge === "reset") resetCrtPan();
+      if (nudge.dataset.nudge === "menu-reset") resetMenuLayout();
+      renderService();
       return;
     }
     const row = event.target.closest("[data-index]");
@@ -2315,6 +2439,16 @@ function bindClicks() {
       return;
     }
     if (!state.serviceInside) return;
+    const menuBtn = event.target.closest("[data-menu]");
+    if (menuBtn) {
+      const parts = String(menuBtn.dataset.menu).split(",");
+      const fieldId = parts[0];
+      const idx = MENU_FIELDS.findIndex((item) => item.id === fieldId);
+      if (idx >= 0) state.serviceIndex = idx;
+      nudgeMenuField(fieldId, Number(parts[1]) || 0);
+      renderService();
+      return;
+    }
     const crtBtn = event.target.closest("[data-crt]");
     if (crtBtn) {
       const parts = String(crtBtn.dataset.crt).split(",");
@@ -2327,10 +2461,9 @@ function bindClicks() {
     }
     const nudge = event.target.closest("[data-nudge]");
     if (nudge) {
-      if (nudge.dataset.nudge === "reset") {
-        resetCrtPan();
-        renderService();
-      }
+      if (nudge.dataset.nudge === "reset") resetCrtPan();
+      if (nudge.dataset.nudge === "menu-reset") resetMenuLayout();
+      renderService();
       return;
     }
     const row = event.target.closest("[data-index]");
