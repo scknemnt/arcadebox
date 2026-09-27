@@ -1135,6 +1135,12 @@ body.vga-kiosk {
   background: #000;
   overflow: hidden;
 }
+html.vga-kiosk,
+html.vga-kiosk *,
+body.vga-kiosk,
+body.vga-kiosk * {
+  cursor: none !important;
+}
 
 body.vga-kiosk:not(.crt-display) {
   --stage-w: 100vw;

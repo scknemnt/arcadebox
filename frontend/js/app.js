@@ -2327,13 +2327,27 @@ function collectPad(now, pad) {
   });
 }
 
-function pollPad() {
-  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+function readPads() {
+  return navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+}
+
+function notePads(pads) {
   state.padName = pads.map((pad) => pad.id.split("(")[0].trim()).join(" + ");
   if (pads.length && !state.padReady) {
     state.padReady = true;
     unlockAudio().then((ready) => ready && syncMusic());
+    if (state.view === "service") renderService();
   }
+  if (!pads.length && state.padReady) {
+    state.padReady = false;
+    state.padName = "";
+    state.lastPad = {};
+  }
+}
+
+function pollPad() {
+  const pads = readPads();
+  notePads(pads);
   if (!pads.length) {
     state.lastPad = {};
     window.requestAnimationFrame(pollPad);
@@ -2515,19 +2529,7 @@ function attract() {
 }
 
 function bootPadScan() {
-  let ticks = 0;
-  const scan = window.setInterval(() => {
-    ticks += 1;
-    if (navigator.getGamepads) {
-      const pads = [...navigator.getGamepads()].filter(Boolean);
-      if (pads.length) {
-        state.padReady = true;
-        state.padName = pads.map((pad) => pad.id.split("(")[0].trim()).join(" + ");
-        window.clearInterval(scan);
-      }
-    }
-    if (ticks >= 120) window.clearInterval(scan);
-  }, 100);
+  window.setInterval(() => notePads(readPads()), 40);
 }
 
 function hideSplash() {
@@ -2609,8 +2611,11 @@ window.addEventListener("pointerdown", () => {
   syncHomeVideo();
 }, { once: true });
 window.addEventListener("gamepadconnected", () => {
-  state.padReady = true;
+  notePads(readPads());
   unlockAudio().then(() => primeAudio());
+});
+window.addEventListener("gamepaddisconnected", () => {
+  notePads(readPads());
 });
 bindClicks();
 attract();

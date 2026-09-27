@@ -50,6 +50,8 @@ echo "ROOT=$ROOT"
 xset s off 2>/dev/null
 xset -dpms 2>/dev/null
 xset s noblank 2>/dev/null
+unclutter -idle 0 -root >/dev/null 2>&1 &
+modprobe joydev 2>/dev/null || true
 
 if [ -e /sys/firmware/devicetree/base/model ] && command -v xrandr >/dev/null 2>&1; then
   for out in HDMI-1 HDMI-2 HDMI-A-1 HDMI-A-2; do
