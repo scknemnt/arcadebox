@@ -2154,7 +2154,7 @@ class Handler(SimpleHTTPRequestHandler):
             if "menuLayout" in body and isinstance(body["menuLayout"], dict):
                 limits = {
                     "logoX": (0, 20),
-                    "logoY": (0, 20),
+                    "logoY": (0, 40),
                     "logoW": (70, 100),
                     "logoH": (14, 40),
                     "tilesX": (0, 16),

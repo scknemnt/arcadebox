@@ -92,7 +92,7 @@ const MENU_LAYOUT_DEFAULT = {
 
 const MENU_FIELDS = [
   { id: "logoX", label: "LOGO X", unit: "%", step: 1, min: 0, max: 20 },
-  { id: "logoY", label: "LOGO Y", unit: "%", step: 1, min: 0, max: 18 },
+  { id: "logoY", label: "LOGO Y", unit: "%", step: 1, min: 0, max: 40 },
   { id: "logoW", label: "LOGO W", unit: "%", step: 1, min: 70, max: 100 },
   { id: "logoH", label: "LOGO H", unit: "%", step: 1, min: 16, max: 36 },
   { id: "tilesX", label: "İKON X", unit: "%", step: 1, min: 0, max: 16 },
@@ -443,9 +443,13 @@ function syncArcadeboxShell() {
   );
   shell.classList.toggle("hidden", !on);
   shell.setAttribute("aria-hidden", on ? "false" : "true");
-  $("ab-home")?.classList.toggle("hidden", state.view !== "home");
+  const temaLive = useArcadebox() && state.view === "service" && state.serviceInside && state.serviceTab === tabNamed("TEMA");
+  $("ab-home")?.classList.toggle("hidden", state.view !== "home" && !temaLive);
+  $("ab-home")?.classList.toggle("ab-tema-preview", temaLive);
   $("ab-games")?.classList.toggle("hidden", state.view !== "games");
   $("ab-settings")?.classList.toggle("hidden", state.view !== "service");
+  $("ab-settings")?.classList.toggle("ab-tema-live", temaLive);
+  if (temaLive) renderArcadeboxHome();
 }
 
 function shiftBoxLetter(dir) {
