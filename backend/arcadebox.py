@@ -1706,11 +1706,18 @@ def install_joypad_profiles() -> Path:
 
 
 def _shader_file() -> Path | None:
+    return _crt_pixel_shader()
+
+
+def _crt_pixel_shader() -> Path | None:
+    # gl driver on the cabinet: GLSL first. Softens blocky nearest-neighbor on 15 kHz.
     names = [
+        ROOT / "kiosk" / "shaders" / "crt-soft.glslp",
+        Path("/usr/share/libretro/shaders/shaders_glsl/interpolation/sharp-bilinear.glslp"),
+        Path("/usr/share/retroarch/shaders/shaders_glsl/interpolation/sharp-bilinear.glslp"),
+        Path.home() / ".config/retroarch/shaders/shaders_glsl/interpolation/sharp-bilinear.glslp",
         Path.home() / ".config/retroarch/shaders/shaders_slang/interpolation/sharp-bilinear.slangp",
         Path("/usr/share/libretro/shaders/shaders_slang/interpolation/sharp-bilinear.slangp"),
-        Path("/usr/share/retroarch/shaders/shaders_slang/interpolation/sharp-bilinear.slangp"),
-        Path("/usr/share/libretro/shaders/shaders_glsl/interpolation/sharp-bilinear.glslp"),
     ]
     for path in names:
         if path.is_file():
@@ -1884,9 +1891,10 @@ def launch_game(game_id: str) -> dict:
         disp = config().get("display") or {}
         vw = int(disp.get("hdisplay") or disp.get("width") or 1240)
         vh = int(disp.get("height") or 576)
+        soft = disp.get("crtSoft") is not False
+        shader = _crt_pixel_shader() if soft else None
         lines.extend(
             [
-                'video_smooth = "false"',
                 'video_scale_integer = "false"',
                 'video_force_aspect = "false"',
                 'aspect_ratio_index = "23"',
@@ -1896,6 +1904,21 @@ def launch_game(game_id: str) -> dict:
                 f'video_fullscreen_y = "{vh}"',
             ]
         )
+        if shader:
+            lines.extend(
+                [
+                    'video_smooth = "false"',
+                    'video_shader_enable = "true"',
+                    f'video_shader = "{shader.as_posix()}"',
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    f'video_smooth = "{"true" if soft else "false"}"',
+                    'video_shader_enable = "false"',
+                ]
+            )
     else:
         # LCD: 2D nearest (crisp pixels). Bilinear makes NES/SNES look muddy.
         smooth = "true" if system["id"] == "psx" else "false"
