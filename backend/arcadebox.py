@@ -2152,24 +2152,17 @@ class Handler(SimpleHTTPRequestHandler):
                     else:
                         disp[key] = val
             if "menuLayout" in body and isinstance(body["menuLayout"], dict):
-                limits = {
-                    "logoX": (0, 20),
-                    "logoY": (0, 40),
-                    "logoW": (70, 100),
-                    "logoH": (14, 40),
-                    "tilesX": (0, 16),
-                    "tilesY": (18, 50),
-                    "tilesW": (70, 100),
-                    "tilesH": (30, 70),
-                    "icon": (70, 140),
-                    "text": (10, 24),
-                }
+                keys = (
+                    "logoX", "logoY", "logoW", "logoH",
+                    "tilesX", "tilesY", "tilesW", "tilesH",
+                    "icon", "text",
+                )
                 layout = dict(current.get("menuLayout") or {})
-                for key, (low, high) in limits.items():
+                for key in keys:
                     if key not in body["menuLayout"]:
                         continue
                     try:
-                        layout[key] = max(low, min(high, int(body["menuLayout"][key])))
+                        layout[key] = int(body["menuLayout"][key])
                     except (TypeError, ValueError):
                         continue
                 current["menuLayout"] = layout

@@ -91,16 +91,16 @@ const MENU_LAYOUT_DEFAULT = {
 };
 
 const MENU_FIELDS = [
-  { id: "logoX", label: "LOGO X", unit: "%", step: 1, min: 0, max: 20 },
-  { id: "logoY", label: "LOGO Y", unit: "%", step: 1, min: 0, max: 40 },
-  { id: "logoW", label: "LOGO W", unit: "%", step: 1, min: 70, max: 100 },
-  { id: "logoH", label: "LOGO H", unit: "%", step: 1, min: 16, max: 36 },
-  { id: "tilesX", label: "İKON X", unit: "%", step: 1, min: 0, max: 16 },
-  { id: "tilesY", label: "İKON Y", unit: "%", step: 1, min: 20, max: 48 },
-  { id: "tilesW", label: "İKON W", unit: "%", step: 1, min: 70, max: 100 },
-  { id: "tilesH", label: "İKON H", unit: "%", step: 1, min: 32, max: 68 },
-  { id: "icon", label: "İKON BOYUT", unit: "%", step: 2, min: 70, max: 140 },
-  { id: "text", label: "YAZI BOYUT", unit: "px", step: 1, min: 10, max: 24 },
+  { id: "logoX", label: "LOGO X", unit: "%", step: 1 },
+  { id: "logoY", label: "LOGO Y", unit: "%", step: 1 },
+  { id: "logoW", label: "LOGO W", unit: "%", step: 1 },
+  { id: "logoH", label: "LOGO H", unit: "%", step: 1 },
+  { id: "tilesX", label: "İKON X", unit: "%", step: 1 },
+  { id: "tilesY", label: "İKON Y", unit: "%", step: 1 },
+  { id: "tilesW", label: "İKON W", unit: "%", step: 1 },
+  { id: "tilesH", label: "İKON H", unit: "%", step: 1 },
+  { id: "icon", label: "İKON BOYUT", unit: "%", step: 2 },
+  { id: "text", label: "YAZI BOYUT", unit: "px", step: 1 },
 ];
 
 
@@ -1619,9 +1619,11 @@ function clampMenuLayout(raw) {
   const out = { ...MENU_LAYOUT_DEFAULT };
   MENU_FIELDS.forEach((field) => {
     const num = Number(raw?.[field.id]);
-    out[field.id] = Number.isFinite(num)
-      ? Math.max(field.min, Math.min(field.max, Math.round(num)))
-      : MENU_LAYOUT_DEFAULT[field.id];
+    if (!Number.isFinite(num)) return;
+    let next = Math.round(num);
+    if (field.min != null) next = Math.max(field.min, next);
+    if (field.max != null) next = Math.min(field.max, next);
+    out[field.id] = next;
   });
   return out;
 }
@@ -1649,8 +1651,10 @@ function applyMenuLayout() {
 function nudgeMenuField(id, dir) {
   const field = MENU_FIELDS.find((item) => item.id === id);
   if (!field) return;
-  const next = (Number(state.menuLayout[id]) || 0) + field.step * dir;
-  state.menuLayout[id] = Math.max(field.min, Math.min(field.max, next));
+  let next = (Number(state.menuLayout[id]) || 0) + field.step * dir;
+  if (field.min != null) next = Math.max(field.min, next);
+  if (field.max != null) next = Math.min(field.max, next);
+  state.menuLayout[id] = next;
   applyMenuLayout();
   savePanSoon();
 }
