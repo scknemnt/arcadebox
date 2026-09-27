@@ -14,11 +14,12 @@
     .hidden { display: none !important; }
   </style>
   <link rel="preload" as="image" href="media/pandora/system_main2.png">
-  <link rel="stylesheet" href="css/app.css?v=logo1">
-  <link rel="stylesheet" href="css/pandora.css?v=logo1">
-  <link rel="stylesheet" href="css/amiga-crt.css?v=logo1">
+  <link rel="stylesheet" href="css/app.css?v=box1">
+  <link rel="stylesheet" href="css/pandora.css?v=box1">
+  <link rel="stylesheet" href="css/amiga-crt.css?v=box1">
+  <link rel="stylesheet" href="css/arcadebox.css?v=box9">
 </head>
-<body class="theme-amiga-crt" data-kiosk="vga">
+<body class="theme-arcadebox" data-kiosk="vga">
   <div id="splash" aria-hidden="true"><strong>ARCADE BOX</strong><small>YUKLENIYOR</small></div>
   <audio id="bgm-prime" loop preload="none" playsinline></audio>
   <div id="bezel">
@@ -121,6 +122,76 @@
           </footer>
         </section>
 
+        <div id="arcadebox-shell" class="ab-shell hidden" aria-hidden="true">
+          <img class="ab-bg" src="media/themes/arcadebox/menu_asset/back.png?v=box1" alt="">
+          <section id="ab-home" class="ab-view">
+            <div class="ab-home-banner">
+              <img src="media/themes/arcadebox/menu_asset/mainlogo_up.png?v=box1" alt="ARCADEBOX">
+            </div>
+            <div class="ab-tiles" id="ab-tiles"></div>
+            <footer class="ab-foot">
+              <div class="ab-keys">
+                <img src="media/themes/arcadebox/button/navigate.png" alt="NAVIGATE">
+                <img src="media/themes/arcadebox/button/aplay.png" alt="A PLAY">
+                <img src="media/themes/arcadebox/button/bback.png" alt="B BACK">
+                <img src="media/themes/arcadebox/button/favorite.png" alt="X FAVORITE">
+                <img id="ab-y-options" class="ab-y-open" src="media/themes/arcadebox/button/options.png" alt="Y OPTIONS">
+              </div>
+              <div class="ab-legal">
+                <span>v1.0.0</span>
+                <span>RETRO GAMES · TIMELESS FUN · ALWAYS ON</span>
+                <span class="ab-freemod">FREEMOD</span>
+              </div>
+            </footer>
+          </section>
+          <section id="ab-games" class="ab-view hidden">
+            <div class="ab-banner">
+              <img id="ab-logo" src="media/themes/arcadebox/logo_console/nintendones_logo.png?v=box1" alt="">
+              <div class="ab-count" id="ab-count">0 GAMES</div>
+            </div>
+            <div class="ab-letters" id="ab-letters">
+              <span class="all on" data-letter="ALL">ALL</span>
+              <span class="ab-az" id="ab-az"></span>
+            </div>
+            <div class="ab-list-box">
+              <div class="ab-list">
+                <div class="ab-list-inner" id="ab-list"></div>
+              </div>
+            </div>
+            <div class="ab-cover"><img id="ab-cover" alt=""></div>
+            <div class="ab-meta" id="ab-meta"></div>
+            <footer class="ab-foot ab-games-foot">
+              <div class="ab-keys">
+                <img src="media/themes/arcadebox/button/navigate.png" alt="NAVIGATE">
+                <img src="media/themes/arcadebox/button/aplay.png" alt="A PLAY">
+                <img src="media/themes/arcadebox/button/bback.png" alt="B BACK">
+                <img src="media/themes/arcadebox/button/favorite.png" alt="X FAVORITE">
+                <img class="ab-y-open" src="media/themes/arcadebox/button/options.png" alt="Y OPTIONS">
+              </div>
+            </footer>
+          </section>
+          <section id="ab-settings" class="ab-view hidden">
+            <div class="ab-home-banner ab-opt-banner">
+              <img src="media/themes/arcadebox/logo_console/options_logo.png?v=box5" alt="OPTIONS">
+            </div>
+            <div class="ab-svc-tabs" id="ab-svc-tabs"></div>
+            <div class="ab-svc-panel" id="ab-svc-body"></div>
+            <footer class="ab-foot">
+              <div class="ab-keys">
+                <img src="media/themes/arcadebox/button/navigate.png" alt="NAVIGATE">
+                <img src="media/themes/arcadebox/button/aplay.png" alt="A PLAY">
+                <img src="media/themes/arcadebox/button/bback.png" alt="B BACK">
+              </div>
+              <div class="ab-legal">
+                <span>v1.0.0</span>
+                <span id="ab-svc-hint">A GİR  ·  B ÇIK</span>
+                <span class="ab-freemod">FREEMOD</span>
+              </div>
+            </footer>
+          </section>
+          <img class="ab-frame" src="media/themes/arcadebox/menu_asset/outer-glow.png?v=box1" alt="">
+        </div>
+
         <div id="amiga-shell" class="amiga-shell hidden" aria-hidden="true">
           <img class="amiga-bg" id="amiga-bg" src="media/themes/amiga/arcadebox_bg.png?v=bg3" width="800" height="600" alt="">
           <div class="amiga-monitor-viewport" id="amiga-viewport">
@@ -153,6 +224,6 @@
       </div>
     </div>
   </div>
-  <script src="js/app.js?v=logo1"></script>
+  <script src="js/app.js?v=box8"></script>
 </body>
 </html>

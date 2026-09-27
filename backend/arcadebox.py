@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import json
 import math
 import mimetypes
@@ -509,8 +510,8 @@ def psx_archive_playable(path: Path) -> bool:
     return False
 
 
-def iter_rom_files(system: dict):
-    folder = ROMS / system["romDir"]
+def iter_rom_files(system: dict, folder: Path | None = None):
+    folder = Path(folder) if folder is not None else (ROMS / system["romDir"])
     if not folder.exists():
         return
     extensions = tuple(ext.lower() for ext in system.get("extensions", []))
@@ -793,6 +794,402 @@ def cached_catalog(wait: bool = False) -> list:
 def catalog_ready() -> bool:
     with _CATALOG_LOCK:
         return _CATALOG_READY
+
+
+def rebuild_catalog() -> None:
+    global _CATALOG_GAMES, _CATALOG_READY, _CATALOG_BUILDING
+    with _COVER_LOCK:
+        _COVER_INDEX.clear()
+    rows = catalog_with_folder_roms()
+    with _CATALOG_LOCK:
+        _CATALOG_GAMES = rows
+        _CATALOG_READY = True
+        _CATALOG_BUILDING = False
+
+
+_USB_LOCK = threading.Lock()
+_USB = {
+    "busy": False,
+    "phase": "idle",
+    "message": "",
+    "drive": "",
+    "items": [],
+    "copied": 0,
+    "total": 0,
+    "newCount": 0,
+    "existsCount": 0,
+    "errors": [],
+}
+
+_USB_FS = {
+    "vfat",
+    "exfat",
+    "ntfs",
+    "fuseblk",
+    "fuse.exfat",
+    "fuse.ntfs-3g",
+    "fuse.ntfs",
+    "udf",
+    "iso9660",
+}
+_USB_MAX_FILE = 8 * 1024 * 1024 * 1024
+_USB_SIDECARS = {".bin", ".img", ".iso", ".sub", ".mdf"}
+
+
+def usb_snapshot() -> dict:
+    with _USB_LOCK:
+        return {
+            "ok": True,
+            "busy": _USB["busy"],
+            "phase": _USB["phase"],
+            "message": _USB["message"],
+            "drive": _USB["drive"],
+            "items": list(_USB["items"]),
+            "copied": _USB["copied"],
+            "total": _USB["total"],
+            "newCount": _USB["newCount"],
+            "existsCount": _USB["existsCount"],
+            "errors": list(_USB["errors"]),
+        }
+
+
+def _usb_set(**kwargs) -> None:
+    with _USB_LOCK:
+        _USB.update(kwargs)
+
+
+def _windows_removable() -> list[Path]:
+    mounts: list[Path] = []
+    try:
+        kernel = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        mask = kernel.GetLogicalDrives()
+        get_type = kernel.GetDriveTypeW
+    except Exception:
+        return mounts
+    for index in range(26):
+        if not mask & (1 << index):
+            continue
+        letter = f"{chr(65 + index)}:\\"
+        if get_type(letter) == 2:
+            path = Path(letter)
+            if path.is_dir():
+                mounts.append(path)
+    return mounts
+
+
+def _linux_usb_mounts() -> list[Path]:
+    mounts: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path: Path) -> None:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            return
+        if not resolved.is_dir():
+            return
+        if resolved == ROOT.resolve() or resolved == ROMS.resolve():
+            return
+        if str(resolved) in {"/", "/home", "/media", "/mnt", "/run", "/run/media"}:
+            return
+        key = str(resolved)
+        if key in seen:
+            return
+        seen.add(key)
+        mounts.append(resolved)
+
+    try:
+        text = Path("/proc/mounts").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        text = ""
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        raw = parts[1].replace("\\040", " ")
+        fstype = parts[2]
+        if not raw.startswith(("/media/", "/run/media/", "/mnt/")):
+            continue
+        if fstype not in _USB_FS and not raw.startswith(("/media/", "/run/media/")):
+            continue
+        add(Path(raw))
+    for base in (Path("/media"), Path("/run/media"), Path("/mnt")):
+        if not base.is_dir():
+            continue
+        try:
+            children = list(base.iterdir())
+        except OSError:
+            continue
+        for child in children:
+            if child.name.startswith("."):
+                continue
+            if child.is_dir() and child.name not in {"dumping"}:
+                add(child)
+                try:
+                    nested = list(child.iterdir())
+                except OSError:
+                    continue
+                for inner in nested:
+                    if inner.is_dir() and not inner.name.startswith("."):
+                        add(inner)
+    return mounts
+
+
+def usb_mounts() -> list[Path]:
+    if os.name == "nt":
+        return _windows_removable()
+    return _linux_usb_mounts()
+
+
+def _rom_roots_on(mount: Path) -> list[Path]:
+    names = {item["romDir"] for item in systems()}
+    roots: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path: Path) -> None:
+        if not path.is_dir():
+            return
+        key = str(path.resolve()) if path.exists() else str(path)
+        if key in seen:
+            return
+        if not any((path / name).is_dir() for name in names):
+            return
+        seen.add(key)
+        roots.append(path)
+
+    add(mount)
+    add(mount / "roms")
+    add(mount / "Arcade Box" / "roms")
+    add(mount / "arcadebox" / "roms")
+    return roots
+
+
+def _safe_under(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _usb_sidecars(src: Path) -> list[Path]:
+    extras: list[Path] = []
+    if src.suffix.lower() == ".cue":
+        for ext in _USB_SIDECARS:
+            hit = src.with_suffix(ext)
+            if hit.is_file():
+                extras.append(hit)
+    for ext in COVER_EXTS:
+        hit = src.with_name(src.stem + ext)
+        if hit.is_file():
+            extras.append(hit)
+            break
+    return extras
+
+
+def _list_usb_games(roots: list[Path]) -> list[dict]:
+    items: list[dict] = []
+    for system in systems():
+        found: list[Path] = []
+        for root in roots:
+            folder = root / system["romDir"]
+            if folder.is_dir():
+                found.extend(iter_rom_files(system, folder))
+        cues = {path.stem.lower() for path in found if path.suffix.lower() == ".cue"}
+        chds = {path.stem.lower() for path in found if path.suffix.lower() == ".chd"}
+        unpacked = {path.stem.lower() for path in found if path.suffix.lower() not in {".7z", ".zip"}}
+        dest_dir = ROMS / system["romDir"]
+        for path in found:
+            stem = path.stem.lower()
+            if system["id"] == "psx" and path.suffix.lower() == ".bin" and (stem in cues or stem in chds):
+                continue
+            if path.suffix.lower() in {".7z", ".zip"} and stem in unpacked:
+                continue
+            dest = dest_dir / path.name
+            title = pretty_title(path.stem)
+            mapped = arcade_display_title(path.stem)
+            if mapped and (system["id"] in {"arcade", "neogeo"} or bool(re.fullmatch(r"[a-z0-9]+", path.stem.lower() or ""))):
+                title = mapped
+            items.append(
+                {
+                    "system": system["id"],
+                    "systemName": system["short"],
+                    "name": path.name,
+                    "title": title,
+                    "exists": dest.is_file(),
+                    "src": str(path),
+                }
+            )
+            if len(items) >= 400:
+                return items
+    items.sort(key=lambda row: (row["exists"], row["system"], row["title"].lower()))
+    return items
+
+
+def _usb_scan_worker() -> None:
+    try:
+        mounts = usb_mounts()
+        picked = None
+        roots: list[Path] = []
+        for mount in mounts:
+            found = _rom_roots_on(mount)
+            if found:
+                picked = mount
+                roots = found
+                break
+        if not roots:
+            _usb_set(
+                busy=False,
+                phase="error",
+                message="USB bulunamadı. Takıp nes / snes / megadrive / arcade / neogeo / atari2600 / psx klasörlerini koy.",
+                drive="",
+                items=[],
+                copied=0,
+                total=0,
+                newCount=0,
+                existsCount=0,
+                errors=[],
+            )
+            return
+        items = _list_usb_games(roots)
+        new_count = sum(1 for item in items if not item["exists"])
+        exists_count = len(items) - new_count
+        if not items:
+            _usb_set(
+                busy=False,
+                phase="error",
+                message=f"{picked.name or picked} içinde bilinen oyun yok.",
+                drive=str(picked),
+                items=[],
+                copied=0,
+                total=0,
+                newCount=0,
+                existsCount=0,
+                errors=[],
+            )
+            return
+        _usb_set(
+            busy=False,
+            phase="ready",
+            message=f"{new_count} yeni · {exists_count} zaten var",
+            drive=str(picked),
+            items=items,
+            copied=0,
+            total=new_count,
+            newCount=new_count,
+            existsCount=exists_count,
+            errors=[],
+        )
+    except Exception as exc:
+        _usb_set(busy=False, phase="error", message=f"Tarama hatası: {exc}", items=[], errors=[str(exc)])
+
+
+def _usb_copy_file(src: Path, dest_dir: Path, mount: Path) -> Path | None:
+    if not src.is_file() or not _safe_under(src, mount):
+        return None
+    name = src.name
+    if not name or name in {".", ".."} or "/" in name or "\\" in name or ".." in name:
+        return None
+    try:
+        size = src.stat().st_size
+    except OSError:
+        return None
+    if size > _USB_MAX_FILE:
+        return None
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / name
+    try:
+        dest.resolve().relative_to(ROMS.resolve())
+    except ValueError:
+        return None
+    if dest.exists():
+        return dest
+    shutil.copy2(src, dest)
+    return dest
+
+
+def _usb_import_worker() -> None:
+    try:
+        snap = usb_snapshot()
+        items = [item for item in snap["items"] if not item.get("exists")]
+        mount = Path(snap["drive"]) if snap["drive"] else None
+        if not items:
+            _usb_set(busy=False, phase="done", message="Yüklenecek yeni oyun yok.", copied=0, total=0)
+            return
+        if not mount or not mount.is_dir():
+            _usb_set(busy=False, phase="error", message="USB çıktı. Tekrar tara.")
+            return
+        errors: list[str] = []
+        copied = 0
+        _usb_set(phase="copy", message="Kopyalanıyor…", copied=0, total=len(items), errors=[])
+        for item in items:
+            system = system_by_id(str(item.get("system") or ""))
+            src = Path(str(item.get("src") or ""))
+            if not system:
+                errors.append(f"{item.get('name')}: sistem yok")
+                continue
+            dest_dir = ROMS / system["romDir"]
+            try:
+                if _usb_copy_file(src, dest_dir, mount):
+                    copied += 1
+                    for extra in _usb_sidecars(src):
+                        _usb_copy_file(extra, dest_dir, mount)
+                else:
+                    errors.append(f"{src.name}: kopyalanamadı")
+            except OSError as exc:
+                errors.append(f"{src.name}: {exc}")
+            _usb_set(copied=copied, message=f"{copied} / {len(items)}  {src.name}", errors=errors)
+        rebuild_catalog()
+        _usb_set(
+            busy=False,
+            phase="done",
+            message=f"{copied} oyun eklendi." + (f" {len(errors)} atlandı." if errors else ""),
+            copied=copied,
+            total=len(items),
+            errors=errors[:12],
+        )
+    except Exception as exc:
+        _usb_set(busy=False, phase="error", message=f"Yükleme hatası: {exc}")
+
+
+def start_usb_scan() -> dict:
+    with _USB_LOCK:
+        if _USB["busy"]:
+            return usb_snapshot()
+        _USB.update(
+            {
+                "busy": True,
+                "phase": "scan",
+                "message": "USB taranıyor…",
+                "drive": "",
+                "items": [],
+                "copied": 0,
+                "total": 0,
+                "newCount": 0,
+                "existsCount": 0,
+                "errors": [],
+            }
+        )
+    threading.Thread(target=_usb_scan_worker, daemon=True).start()
+    return usb_snapshot()
+
+
+def start_usb_import() -> dict:
+    with _USB_LOCK:
+        if _USB["busy"]:
+            return usb_snapshot()
+        if _USB["phase"] != "ready":
+            return usb_snapshot()
+        if not _USB["newCount"]:
+            _USB["phase"] = "done"
+            _USB["message"] = "Yüklenecek yeni oyun yok."
+            return usb_snapshot()
+        _USB["busy"] = True
+        _USB["phase"] = "copy"
+        _USB["message"] = "Kopyalanıyor…"
+        _USB["copied"] = 0
+    threading.Thread(target=_usb_import_worker, daemon=True).start()
+    return usb_snapshot()
 
 
 def _catalog_match(catalog: list, system: dict, path: Path) -> dict | None:
@@ -1698,6 +2095,9 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if parsed.path == "/api/usb/status":
+            self._json(usb_snapshot())
+            return
         if parsed.path == "/api/music":
             qs = parse_qs(parsed.query)
             name = (qs.get("file") or [""])[0]
@@ -1769,6 +2169,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/audio":
             self._json(handle_audio_command(body))
+            return
+        if parsed.path == "/api/usb/scan":
+            self._json(start_usb_scan())
+            return
+        if parsed.path == "/api/usb/import":
+            self._json(start_usb_import())
             return
         self._json({"ok": False, "error": "Bilinmeyen istek."}, 404)
 

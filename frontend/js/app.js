@@ -25,6 +25,7 @@ const state = {
   crtPan: { x: 0, y: 0, w: 100, h: 100 },
   serviceTab: 0,
   serviceIndex: 0,
+  serviceInside: false,
   listening: null,
   held: {},
   lastPad: {},
@@ -34,6 +35,8 @@ const state = {
   catalogReady: false,
   gameCounts: {},
   favorites: [],
+  letterFilter: "ALL",
+  usb: { phase: "idle", message: "", items: [], copied: 0, total: 0, newCount: 0, existsCount: 0, drive: "", busy: false, errors: [] },
 };
 
 const ACTIONS = [
@@ -47,6 +50,14 @@ const ACTIONS = [
   { id: "hotkey", label: "OYUN HOTKEY" },
   { id: "exit", label: "OYUNDAN ÇIKIŞ" },
   { id: "fav", label: "FAVORİ" },
+];
+
+const SERVICE_PAGES = [
+  { name: "TEST", blurb: "Kol ve tuş ışıkları" },
+  { name: "TUŞLAR", blurb: "Menü tuş atamaları" },
+  { name: "SES", blurb: "Müzik ve CRT efektleri" },
+  { name: "EKRAN", blurb: "Kaydırma ve boyut" },
+  { name: "EKLE", blurb: "USB’den oyun yükle" },
 ];
 
 const CRT_LEVELS = [
@@ -203,6 +214,31 @@ const SYSTEM_HERO = {
   neogeo: "media/home/system-neogeo.jpg",
   psx: "media/home/system-psx.jpg",
 };
+const BOX_ASSET = "media/themes/arcadebox/";
+const BOX_TILES = {
+  favorites: "favorites.png",
+  atari2600: "arcade2600.png",
+  nes: "nintendones.png",
+  snes: "supernintendo.png",
+  megadrive: "megadrive.png",
+  arcade: "arcade.png",
+  neogeo: "neogeo.png",
+  psx: "playstation.png",
+};
+const BOX_BANNERS = {
+  favorites: "favorites_logo.png",
+  atari2600: "atari2600_logo.png",
+  nes: "nintendones_logo.png",
+  snes: "supernintendo_logo.png",
+  megadrive: "megadrive_logo.png",
+  arcade: "arcade_logo.png",
+  neogeo: "neogeo_logo.png",
+  psx: "playstation_logo.png",
+};
+const BOX_ROW_H = 30;
+const BOX_LIST_H = 352;
+const BOX_VISIBLE = Math.floor(BOX_LIST_H / BOX_ROW_H);
+const BOX_MID = 4;
 const FAV_SYSTEM = {
   id: "favorites",
   name: "Favoriler",
@@ -324,11 +360,158 @@ function applyViewportVars(mode) {
   root.style.setProperty("--vp-img-transform", viewportImageTransform(vp, mode));
 }
 
+function useArcadebox() {
+  const theme = state.config?.theme;
+  if (theme === "arcadebox") return true;
+  if (theme === "amiga-crt" || theme === "pandora") return false;
+  return document.body.classList.contains("theme-arcadebox");
+}
+
 function useAmigaCrt() {
   const theme = state.config?.theme;
+  if (theme === "arcadebox") return false;
   if (theme === "amiga-crt") return true;
   if (theme === "pandora") return false;
   return document.body.classList.contains("theme-amiga-crt");
+}
+
+function applyThemeClasses(theme) {
+  document.body.classList.toggle("theme-arcadebox", theme === "arcadebox");
+  document.body.classList.toggle("theme-amiga-crt", theme === "amiga-crt");
+  document.body.classList.toggle("theme-pandora", theme === "pandora");
+}
+
+function boxTile(id) {
+  return `${BOX_ASSET}menu_asset/${BOX_TILES[id] || BOX_TILES.nes}?v=box1`;
+}
+
+function boxBanner(id) {
+  return `${BOX_ASSET}logo_console/${BOX_BANNERS[id] || BOX_BANNERS.nes}?v=box1`;
+}
+
+function listedGames() {
+  const all = gamesFor(currentSystem()?.id);
+  if (!useArcadebox()) return all;
+  const key = state.letterFilter || "ALL";
+  if (key === "ALL") return all;
+  return all.filter((game) => gameLetter(game.title) === key);
+}
+
+function boxListOffset(index, total) {
+  const maxOff = Math.max(0, total - BOX_VISIBLE);
+  if (total <= BOX_VISIBLE || index <= BOX_MID) return 0;
+  if (index >= total - (BOX_VISIBLE - BOX_MID)) return maxOff;
+  return index - BOX_MID;
+}
+
+function syncArcadeboxShell() {
+  const shell = $("arcadebox-shell");
+  if (!shell) return;
+  const on = useArcadebox() && (
+    state.view === "home" ||
+    state.view === "games" ||
+    state.view === "service"
+  );
+  shell.classList.toggle("hidden", !on);
+  shell.setAttribute("aria-hidden", on ? "false" : "true");
+  $("ab-home")?.classList.toggle("hidden", state.view !== "home");
+  $("ab-games")?.classList.toggle("hidden", state.view !== "games");
+  $("ab-settings")?.classList.toggle("hidden", state.view !== "service");
+}
+
+function shiftBoxLetter(dir) {
+  const total = BOX_LETTERS.length;
+  let slot = BOX_LETTERS.indexOf(state.letterFilter || "ALL");
+  if (slot < 0) slot = 0;
+  state.letterFilter = BOX_LETTERS[(slot + dir + total) % total];
+  state.gameIndex = 0;
+  renderGames();
+  sfx("move");
+}
+
+function renderArcadeboxHome() {
+  const tiles = $("ab-tiles");
+  if (!tiles) return;
+  tiles.innerHTML = state.systems.map((item, i) => `
+    <div class="ab-tile ${i === state.systemIndex ? "on" : ""}" data-index="${i}">
+      <img src="${boxTile(item.id)}" alt="${item.name}">
+      <div class="count">${gameCount(item.id) || 0} GAMES</div>
+    </div>`).join("");
+}
+
+function renderArcadeboxGames() {
+  const system = currentSystem();
+  if (!system) return;
+  const logo = $("ab-logo");
+  const src = boxBanner(system.id);
+  if (logo && logo.dataset.src !== src) {
+    logo.dataset.src = src;
+    logo.src = src;
+    logo.alt = system.name;
+  }
+  const all = gamesFor(system.id);
+  $("ab-count").textContent = `${all.length} GAMES`;
+
+  const az = $("ab-az");
+  if (az) {
+    az.innerHTML = LETTERS.map((ch) =>
+      `<span class="${state.letterFilter === ch ? "on" : ""}" data-letter="${ch}">${ch}</span>`
+    ).join("");
+  }
+  document.querySelector("#ab-letters .all")?.classList.toggle("on", state.letterFilter === "ALL");
+
+  const list = listedGames();
+  const host = $("ab-list");
+  if (!host) return;
+  if (state.gameIndex >= list.length) state.gameIndex = Math.max(0, list.length - 1);
+
+  if (!list.length) {
+    host.style.transform = "translateY(0)";
+    host.innerHTML = `<div class="ab-row empty">${
+      system.id === "favorites"
+        ? "Favori yok — bir oyunda Y ile yıldızla."
+        : (state.catalogReady ? `ROM'ları roms/${system.romDir}/ içine at.` : "Liste taranıyor…")
+    }</div>`;
+    $("ab-cover").removeAttribute("src");
+    $("ab-meta").innerHTML = "<h2>—</h2>";
+    return;
+  }
+
+  const game = list[state.gameIndex];
+  host.innerHTML = list.map((item, i) => `
+    <div class="ab-row ${i === state.gameIndex ? "on" : ""}" data-id="${item.id}">
+      <span class="num">${String(i + 1).padStart(4, "0")}</span>
+      <span>${item.title}</span>
+      <span class="star">${isFavorite(item.id) ? "★" : ""}</span>
+    </div>`).join("");
+  host.style.transform = "translateY(" + (-boxListOffset(state.gameIndex, list.length) * BOX_ROW_H) + "px)";
+
+  const cover = $("ab-cover");
+  if (cover) {
+    if (game.cover) {
+      cover.src = game.cover;
+      cover.style.display = "";
+    } else {
+      cover.removeAttribute("src");
+      cover.style.display = "none";
+    }
+  }
+  const hostSys = gameSystem(game) || system;
+  $("ab-meta").innerHTML = `
+    <h2>${game.title}</h2>
+    <table>
+      <tr><td>Year</td><td>${game.year || "—"}</td></tr>
+      <tr><td>System</td><td>${hostSys.name}</td></tr>
+      <tr><td>Genre</td><td>${game.genre || "—"}</td></tr>
+      <tr><td>Players</td><td>${game.players || "—"}</td></tr>
+    </table>`;
+}
+
+function renderArcadebox() {
+  if (!useArcadebox()) return;
+  syncArcadeboxShell();
+  if (state.view === "home") renderArcadeboxHome();
+  else renderArcadeboxGames();
 }
 
 async function loadCrtLayout() {
@@ -504,7 +687,7 @@ function syncAmigaShell() {
   const on = useAmigaCrt() && (
     state.view === "home" ||
     state.view === "games" ||
-    (state.view === "service" && state.serviceTab === 3)
+    (state.view === "service" && state.serviceInside && state.serviceTab === 3)
   );
   shell.classList.toggle("hidden", !on);
   shell.setAttribute("aria-hidden", on ? "false" : "true");
@@ -886,6 +1069,7 @@ function show(view) {
     $("view-" + name).classList.toggle("hidden", name !== view);
   });
   syncAmigaShell();
+  syncArcadeboxShell();
   syncMusic();
   syncHomeVideo();
 }
@@ -947,6 +1131,7 @@ function rebuildGameCounts() {
 }
 
 const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
+const BOX_LETTERS = ["ALL", ...LETTERS];
 
 function gameLetter(title) {
   const stripped = String(title || "")
@@ -986,7 +1171,7 @@ function currentGames() {
 }
 
 function currentGame() {
-  return currentGames()[state.gameIndex];
+  return listedGames()[state.gameIndex];
 }
 
 function posterHtml(game, system) {
@@ -1015,6 +1200,10 @@ function systemLogo(id) {
 }
 
 function renderHome() {
+  if (useArcadebox()) {
+    renderArcadebox();
+    return;
+  }
   if (useAmigaCrt()) {
     renderAmiga();
     return;
@@ -1115,6 +1304,10 @@ function paintGameWindow(list, game) {
 }
 
 function renderGames(opts) {
+  if (useArcadebox()) {
+    renderArcadebox();
+    return;
+  }
   if (useAmigaCrt()) {
     renderAmiga();
     return;
@@ -1188,8 +1381,7 @@ async function loadCatalog() {
   };
   if (data.config.theme) {
     state.config.theme = data.config.theme;
-    document.body.classList.toggle("theme-amiga-crt", data.config.theme === "amiga-crt");
-    document.body.classList.toggle("theme-pandora", data.config.theme !== "amiga-crt");
+    applyThemeClasses(data.config.theme);
   }
   if (data.config.pi) {
     document.body.classList.add("pi-kiosk");
@@ -1285,7 +1477,7 @@ function move(delta, opts) {
     return;
   }
   if (state.view === "games") {
-    const total = currentGames().length;
+    const total = listedGames().length;
     if (!total) return;
     state.gameIndex = (state.gameIndex + delta % total + total) % total;
     if (!skip) renderGames();
@@ -1297,6 +1489,7 @@ function confirm() {
   if (state.view === "home") {
     sfx("ok");
     state.gameIndex = 0;
+    state.letterFilter = "ALL";
     show("games");
     renderGames();
     if (!state.catalogReady) {
@@ -1432,8 +1625,8 @@ function toggleFavorite() {
     : [...state.favorites, game.id];
   rebuildGameCounts();
   if (currentSystem()?.id === "favorites" && had) {
-    if (state.gameIndex >= currentGames().length) {
-      state.gameIndex = Math.max(0, currentGames().length - 1);
+    if (state.gameIndex >= listedGames().length) {
+      state.gameIndex = Math.max(0, listedGames().length - 1);
     }
   }
   renderGames();
@@ -1442,19 +1635,39 @@ function toggleFavorite() {
 }
 
 function openService() {
-  if (state.view === "launch" || state.view === "boot") return;
+  if (state.view === "launch" || state.view === "boot" || state.launching) return;
   state.listening = null;
   state.serviceTab = 0;
   state.serviceIndex = 0;
+  state.serviceInside = false;
   show("service");
   renderService();
 }
 
 function closeService() {
   state.listening = null;
+  state.serviceInside = false;
   sfx("back");
   show("home");
   renderHome();
+}
+
+function enterServicePage(tab) {
+  if (tab != null) state.serviceTab = Number(tab);
+  state.serviceInside = true;
+  state.serviceIndex = 0;
+  state.listening = null;
+  sfx("ok");
+  renderService();
+  if (state.serviceTab === 4) refreshUsbStatus();
+}
+
+function leaveServicePage() {
+  state.listening = null;
+  state.serviceInside = false;
+  state.serviceIndex = 0;
+  sfx("back");
+  renderService();
 }
 
 function serviceItems() {
@@ -1464,23 +1677,50 @@ function serviceItems() {
   return [];
 }
 
+function serviceHost() {
+  return (useArcadebox() && $("ab-svc-body")) || $("service-body");
+}
+
 function renderService() {
-  const tabs = ["TEST", "TUŞLAR", "SES", "EKRAN"];
-  $("view-service")?.classList.toggle("crt-align", state.serviceTab === 3);
+  $("view-service")?.classList.toggle("crt-align", state.serviceInside && state.serviceTab === 3);
+  $("ab-settings")?.classList.toggle("ab-in", state.serviceInside);
   syncAmigaShell();
-  $("svc-tabs").innerHTML = tabs
-    .map((name, index) => `<button type="button" class="${index === state.serviceTab ? "on" : ""}" data-tab="${index}">${name}</button>`)
+  syncArcadeboxShell();
+  if ($("ab-svc-tabs") && useArcadebox()) {
+    $("ab-svc-tabs").innerHTML = SERVICE_PAGES
+      .map((page, index) => `<button type="button" class="ab-svc-tab ${index === state.serviceTab ? "on" : ""}" data-tab="${index}">${page.name}</button>`)
+      .join("");
+  }
+  $("svc-tabs").innerHTML = SERVICE_PAGES
+    .map((page, index) => `<button type="button" class="${index === state.serviceTab ? "on" : ""}" data-tab="${index}">${page.name}</button>`)
     .join("");
   $("pad-pill").textContent = state.padName ? "USB PAD HAZIR" : "KOL BEKLENİYOR";
   const hint = document.querySelector("#view-service .hintbar");
   if (hint) {
-    hint.innerHTML = state.serviceTab === 3
-      ? "<span>↑ ↓ SATIR</span><span>← → − / +</span><span>START SIFIRLA</span><span>B ÇIK</span>"
-      : "<span>← → SEKME</span><span>↑ ↓ SEÇ</span><span>A / START DEĞİŞTİR</span><span>B ÇIK</span>";
+    if (!state.serviceInside) {
+      hint.innerHTML = "<span>← → SEÇ</span><span>A GİR</span><span>B ÇIK</span>";
+    } else if (state.serviceTab === 3) {
+      hint.innerHTML = "<span>↑ ↓ SATIR</span><span>← → − / +</span><span>START SIFIRLA</span><span>B MENÜ</span>";
+    } else {
+      hint.innerHTML = "<span>↑ ↓ SEÇ</span><span>A / START DEĞİŞTİR</span><span>B MENÜ</span>";
+    }
+  }
+  const footHint = $("ab-svc-hint");
+  if (footHint) {
+    footHint.textContent = state.serviceInside ? "B  ·  AYAR MENÜSÜ" : "A GİR  ·  B ÇIK";
+  }
+
+  if (!state.serviceInside) {
+    serviceHost().innerHTML = `<div class="ab-svc-menu">${SERVICE_PAGES.map((page, index) => `
+      <button type="button" class="ab-svc-item ${index === state.serviceTab ? "on" : ""}" data-enter="${index}">
+        <strong>${page.name}</strong>
+        <span>${page.blurb}</span>
+      </button>`).join("")}</div>`;
+    return;
   }
 
   if (state.serviceTab === 0) {
-    $("service-body").innerHTML = `
+    serviceHost().innerHTML = `
       <div class="svc-panel">
         <p class="svc-lead">Kol / encoder tuşuna bas — ışık yanmalı.</p>
         <div class="svc-test">
@@ -1504,7 +1744,7 @@ function renderService() {
   }
 
   if (state.serviceTab === 1) {
-    $("service-body").innerHTML = `<div class="bind-list">${ACTIONS.map((item, index) => {
+    serviceHost().innerHTML = `<div class="bind-list">${ACTIONS.map((item, index) => {
       const waiting = state.listening === item.id;
       const keys = (state.controls[item.id] || []).map(prettyToken).join("  +  ");
       return `<div class="bind-row ${index === state.serviceIndex ? "on" : ""} ${waiting ? "waiting" : ""}" data-index="${index}">
@@ -1516,7 +1756,7 @@ function renderService() {
   }
 
   if (state.serviceTab === 3) {
-    $("service-body").innerHTML = `
+    serviceHost().innerHTML = `
       <div class="crt-shift">
         <p class="svc-lead">CRT EKRAN — kaydır + arka plan boyutu</p>
         <div class="crt-shift-list">${CRT_FIELDS.map((field, index) => `
@@ -1533,6 +1773,12 @@ function renderService() {
     return;
   }
 
+  if (state.serviceTab === 4) {
+    serviceHost().innerHTML = renderUsbPanel();
+    serviceHost().querySelector(".ab-usb-row.on")?.scrollIntoView({ block: "nearest" });
+    return;
+  }
+
   const scanIndex = CRT_LEVELS.findIndex((item) => item.scanlines === state.crtFx.scanlines);
   const rows = [
     { label: state.crtFx.sound !== false ? "MENÜ SESİ  ·  AÇIK" : "MENÜ SESİ  ·  KAPALI", on: state.crtFx.sound !== false },
@@ -1543,13 +1789,13 @@ function renderService() {
     { label: state.crtFx.flicker ? "TİTREŞİM  ·  AÇIK" : "TİTREŞİM  ·  KAPALI", on: state.crtFx.flicker },
     { label: state.crtFx.rgb ? "RGB MASKE  ·  AÇIK" : "RGB MASKE  ·  KAPALI", on: state.crtFx.rgb },
   ];
-  $("service-body").innerHTML = `<div class="crt-opts">${rows
+  serviceHost().innerHTML = `<div class="crt-opts">${rows
     .map((row, index) => `<button type="button" class="${index === state.serviceIndex ? "sel" : ""} ${row.on ? "on" : ""}" data-index="${index}">${row.label}</button>`)
     .join("")}</div>`;
 }
 
 function paintHeld() {
-  if (state.view !== "service" || state.serviceTab !== 0) return;
+  if (state.view !== "service" || !state.serviceInside || state.serviceTab !== 0) return;
   document.querySelectorAll("[data-act]").forEach((node) => {
     node.classList.toggle("hot", Boolean(state.held[node.dataset.act]));
   });
@@ -1596,8 +1842,13 @@ function tickHold() {
     if (action === "left" || action === "up") move(-1, { silent: true });
     else if (action === "right" || action === "down") move(1, { silent: true });
   } else if (state.view === "service") {
-    if (state.serviceTab === 3) {
-      if (action === "left" || action === "right") handleService(action);
+    if (!state.serviceInside) {
+      if (action === "left" || action === "right" || action === "up" || action === "down") handleService(action);
+    } else if (state.serviceTab === 0) {
+      stopHold(false);
+      return;
+    } else if (state.serviceTab === 3) {
+      if (action === "left" || action === "right" || action === "up" || action === "down") handleService(action);
     } else if (action === "up" || action === "down") handleService(action);
   }
   HOLD.timer = window.setTimeout(tickHold, wait);
@@ -1616,10 +1867,12 @@ function fireAction(action) {
   if (state.view === "boot" || state.view === "launch") return;
   if (action === "service") {
     if (state.view === "service") {
-      sfx("move");
-      state.serviceTab = (state.serviceTab + 1) % 4;
-      state.serviceIndex = 0;
-      renderService();
+      if (state.serviceInside) leaveServicePage();
+      else {
+        sfx("move");
+        state.serviceTab = (state.serviceTab + 1) % SERVICE_PAGES.length;
+        renderService();
+      }
       return;
     }
     openService();
@@ -1631,23 +1884,57 @@ function fireAction(action) {
   }
   if (action === "left") {
     if (state.view === "home") move(-1);
-    if (state.view === "games") jumpLetter(-1);
+    if (state.view === "games") useArcadebox() ? shiftBoxLetter(-1) : jumpLetter(-1);
   }
   if (action === "right") {
     if (state.view === "home") move(1);
-    if (state.view === "games") jumpLetter(1);
+    if (state.view === "games") useArcadebox() ? shiftBoxLetter(1) : jumpLetter(1);
   }
-  if (action === "up") move(state.view === "games" || state.view === "home" ? -1 : 0);
-  if (action === "down") move(state.view === "games" || state.view === "home" ? 1 : 0);
+  if (action === "up") {
+    if (state.view === "home" && useArcadebox()) move(-4);
+    else if (state.view === "games" || state.view === "home") move(-1);
+  }
+  if (action === "down") {
+    if (state.view === "home" && useArcadebox()) move(4);
+    else if (state.view === "games" || state.view === "home") move(1);
+  }
   if (action === "ok") confirm();
   if (action === "back") back();
-  if (action === "fav") toggleFavorite();
+  if (action === "fav") {
+    if (state.view === "home" && useArcadebox()) openService();
+    else toggleFavorite();
+  }
 }
 
 function handleService(action) {
   if (state.listening) return;
+  if (!state.serviceInside) {
+    if (action === "back") {
+      closeService();
+      return;
+    }
+    if (action === "left" || action === "up") {
+      sfx("move");
+      state.serviceTab = (state.serviceTab + SERVICE_PAGES.length - 1) % SERVICE_PAGES.length;
+      renderService();
+      return;
+    }
+    if (action === "right" || action === "down") {
+      sfx("move");
+      state.serviceTab = (state.serviceTab + 1) % SERVICE_PAGES.length;
+      renderService();
+      return;
+    }
+    if (action === "ok") enterServicePage();
+    return;
+  }
   if (action === "back") {
-    closeService();
+    leaveServicePage();
+    return;
+  }
+  if (state.serviceTab === 0) return;
+  if (state.serviceTab === 4) {
+    handleUsbService(action);
     return;
   }
   if (state.serviceTab === 3) {
@@ -1668,20 +1955,6 @@ function handleService(action) {
     }
     return;
   }
-  if (action === "left") {
-    sfx("move");
-    state.serviceTab = (state.serviceTab + 3) % 4;
-    state.serviceIndex = 0;
-    renderService();
-    return;
-  }
-  if (action === "right") {
-    sfx("move");
-    state.serviceTab = (state.serviceTab + 1) % 4;
-    state.serviceIndex = 0;
-    renderService();
-    return;
-  }
   const items = serviceItems();
   if (action === "up" && items.length) {
     sfx("move");
@@ -1698,7 +1971,136 @@ function handleService(action) {
   if (action === "ok") activateService();
 }
 
+function esc(text) {
+  return String(text || "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
+
+function renderUsbPanel() {
+  const usb = state.usb || {};
+  const items = usb.items || [];
+  const phase = usb.phase || "idle";
+  const hints = {
+    idle: "USB tak. Klasörler kabindekiyle aynı: nes · snes · megadrive · arcade · neogeo · atari2600 · psx",
+    scan: "USB taranıyor…",
+    ready: usb.message || "",
+    copy: usb.message || "Kopyalanıyor…",
+    done: usb.message || "Bitti.",
+    error: usb.message || "USB bulunamadı.",
+  };
+  const action = phase === "ready" && usb.newCount
+    ? "A  ·  YENİLERİ YÜKLE"
+    : (phase === "scan" || phase === "copy" ? "LÜTFEN BEKLE" : "A  ·  USB TARA");
+  const rows = items.map((item, index) => `
+    <div class="ab-usb-row ${index === state.serviceIndex ? "on" : ""} ${item.exists ? "have" : "fresh"}">
+      <strong>${esc(item.systemName)}</strong>
+      <span>${esc(item.title)}</span>
+      <em>${item.exists ? "VAR" : "YENİ"}</em>
+    </div>`).join("");
+  return `
+    <div class="ab-usb">
+      <p class="svc-lead">${esc(hints[phase] || usb.message)}</p>
+      <p class="ab-usb-act">${action}</p>
+      ${rows ? `<div class="ab-usb-list">${rows}</div>` : ""}
+    </div>`;
+}
+
+let usbTimer = 0;
+
+async function refreshUsbStatus() {
+  try {
+    const response = await fetch("/api/usb/status");
+    if (response.ok) state.usb = await response.json();
+  } catch (_error) {
+    /* keep last */
+  }
+  if (state.view === "service" && state.serviceInside && state.serviceTab === 4) renderService();
+  if (state.usb.busy) startUsbPoll();
+}
+
+function startUsbPoll() {
+  if (usbTimer) return;
+  usbTimer = window.setInterval(async () => {
+    try {
+      const response = await fetch("/api/usb/status");
+      if (response.ok) state.usb = await response.json();
+    } catch (_error) {
+      /* keep last */
+    }
+    if (state.view === "service" && state.serviceInside && state.serviceTab === 4) renderService();
+    if (!state.usb.busy) {
+      window.clearInterval(usbTimer);
+      usbTimer = 0;
+      if (state.usb.phase === "done" && state.usb.copied) {
+        loadCatalog().then(() => {
+          if (state.view === "home") renderHome();
+          if (state.view === "games") renderGames();
+        });
+      }
+    }
+  }, 400);
+}
+
+async function usbScan() {
+  if (state.usb.busy) return;
+  sfx("ok");
+  state.usb = { ...state.usb, phase: "scan", message: "USB taranıyor…", busy: true, items: [] };
+  renderService();
+  try {
+    const response = await fetch("/api/usb/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    state.usb = await response.json();
+  } catch (_error) {
+    state.usb = { phase: "error", message: "Tarama bağlanamadı.", items: [], busy: false };
+  }
+  renderService();
+  if (state.usb.busy) startUsbPoll();
+}
+
+async function usbImport() {
+  if (state.usb.busy || !state.usb.newCount) return;
+  sfx("ok");
+  try {
+    const response = await fetch("/api/usb/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    state.usb = await response.json();
+  } catch (_error) {
+    state.usb = { ...state.usb, phase: "error", message: "Yükleme bağlanamadı.", busy: false };
+  }
+  renderService();
+  startUsbPoll();
+}
+
+function handleUsbService(action) {
+  const items = state.usb.items || [];
+  if ((action === "up" || action === "down") && items.length) {
+    sfx("move");
+    state.serviceIndex = (state.serviceIndex + (action === "down" ? 1 : -1) + items.length) % items.length;
+    renderService();
+    return;
+  }
+  if (action === "ok") {
+    if (state.usb.phase === "ready" && state.usb.newCount) usbImport();
+    else if (state.usb.phase !== "scan" && state.usb.phase !== "copy") usbScan();
+  }
+}
+
 function activateService() {
+  if (state.serviceTab === 4) {
+    handleUsbService("ok");
+    return;
+  }
   if (state.serviceTab === 1) {
     state.listening = ACTIONS[state.serviceIndex].id;
     renderService();
@@ -1816,6 +2218,67 @@ function bindClicks() {
     renderHome();
     confirm();
   });
+  document.querySelectorAll(".ab-y-open").forEach((el) => {
+    el.addEventListener("click", openService);
+  });
+  $("ab-svc-tabs")?.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-tab]");
+    if (!tab) return;
+    enterServicePage(tab.dataset.tab);
+  });
+  $("ab-svc-body")?.addEventListener("click", (event) => {
+    const enter = event.target.closest("[data-enter]");
+    if (enter) {
+      enterServicePage(enter.dataset.enter);
+      return;
+    }
+    if (!state.serviceInside) return;
+    const crtBtn = event.target.closest("[data-crt]");
+    if (crtBtn) {
+      const parts = String(crtBtn.dataset.crt).split(",");
+      const fieldId = parts[0];
+      const idx = CRT_FIELDS.findIndex((item) => item.id === fieldId);
+      if (idx >= 0) state.serviceIndex = idx;
+      nudgeCrtField(fieldId, Number(parts[1]) || 0);
+      renderService();
+      return;
+    }
+    const nudge = event.target.closest("[data-nudge]");
+    if (nudge) {
+      if (nudge.dataset.nudge === "reset") {
+        resetCrtPan();
+        renderService();
+      }
+      return;
+    }
+    const row = event.target.closest("[data-index]");
+    if (!row) return;
+    state.serviceIndex = Number(row.dataset.index);
+    activateService();
+  });
+  $("ab-tiles")?.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-index]");
+    if (!card) return;
+    state.systemIndex = Number(card.dataset.index);
+    renderHome();
+    confirm();
+  });
+  $("ab-letters")?.addEventListener("click", (event) => {
+    const node = event.target.closest("[data-letter]");
+    if (!node) return;
+    state.letterFilter = node.dataset.letter;
+    state.gameIndex = 0;
+    renderGames();
+    sfx("move");
+  });
+  $("ab-list")?.addEventListener("click", (event) => {
+    const row = event.target.closest("[data-id]");
+    if (!row) return;
+    const index = listedGames().findIndex((game) => game.id === row.dataset.id);
+    if (index < 0) return;
+    state.gameIndex = index;
+    renderGames();
+  });
   $("back-home").addEventListener("click", back);
   $("open-service")?.addEventListener("click", openService);
   $("amiga-open-service")?.addEventListener("click", openService);
@@ -1843,12 +2306,15 @@ function bindClicks() {
   $("svc-tabs").addEventListener("click", (event) => {
     const tab = event.target.closest("button");
     if (!tab) return;
-    state.serviceTab = Number(tab.dataset.tab);
-    state.serviceIndex = 0;
-    state.listening = null;
-    renderService();
+    enterServicePage(tab.dataset.tab);
   });
   $("service-body").addEventListener("click", (event) => {
+    const enter = event.target.closest("[data-enter]");
+    if (enter) {
+      enterServicePage(enter.dataset.enter);
+      return;
+    }
+    if (!state.serviceInside) return;
     const crtBtn = event.target.closest("[data-crt]");
     if (crtBtn) {
       const parts = String(crtBtn.dataset.crt).split(",");

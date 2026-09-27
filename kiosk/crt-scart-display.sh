@@ -33,7 +33,7 @@ import json
 from pathlib import Path
 p = Path("$ROOT/config.json")
 cfg = json.loads(p.read_text(encoding="utf-8"))
-cfg["theme"] = "amiga-crt"
+cfg["theme"] = "arcadebox"
 cfg.setdefault("display", {})
 cfg["display"].update({
     "width": 720,
@@ -47,7 +47,7 @@ cfg["display"].update({
     "hpos": cfg.get("display", {}).get("hpos", 0),
 })
 p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-print("config.json theme=amiga-crt display=720x576 crt:true")
+print("config.json theme=arcadebox display=720x576 crt:true")
 PY
 
 echo "Yazildi: $RC"

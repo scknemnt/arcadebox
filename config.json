@@ -1,6 +1,6 @@
 {
   "port": 7842,
-  "theme": "amiga-crt",
+  "theme": "arcadebox",
   "kiosk": false,
   "fastBoot": true,
   "idleDemoSeconds": 40,
@@ -10,7 +10,11 @@
     "aspect": "4:3",
     "scale": "fill",
     "output": "vga",
-    "crt": false
+    "crt": false,
+    "panX": 0,
+    "panY": 0,
+    "zoomW": 100,
+    "zoomH": 100
   },
   "retroarch": {
     "exe": "emulators/retroarch/retroarch.exe",
@@ -59,12 +63,18 @@
     ],
     "exit": [
       "Gamepad10"
+    ],
+    "fav": [
+      "y",
+      "Y",
+      "Gamepad3"
     ]
   },
   "crtFx": {
-    "scanlines": 0.55,
-    "flicker": true,
+    "scanlines": 0,
+    "flicker": false,
     "rgb": false,
     "sound": true
-  }
+  },
+  "favorites": []
 }

@@ -1,0 +1,685 @@
+/* Arcade Box neon theme — 800×600, beside Amiga/Pandora */
+
+.theme-arcadebox .stars,
+.theme-arcadebox .pandora-bg-video,
+.theme-arcadebox .pandora-bg,
+.theme-arcadebox .home-layout,
+.theme-arcadebox .pandora-hud,
+.theme-arcadebox .pandora-hint,
+.theme-arcadebox #view-games .pandora-bg,
+.theme-arcadebox #view-games .pandora-logo-text,
+.theme-arcadebox #view-games .pandora-back,
+.theme-arcadebox #view-games .letter-rail,
+.theme-arcadebox #view-games .game-list,
+.theme-arcadebox #view-games .pandora-stage,
+.theme-arcadebox #view-games .pandora-fav-hint,
+.theme-arcadebox #amiga-shell {
+  display: none !important;
+}
+
+.theme-arcadebox #stage {
+  background: #05070c;
+}
+
+.theme-arcadebox #view-home,
+.theme-arcadebox #view-games {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.theme-arcadebox #view-games:not(.hidden),
+.theme-arcadebox #view-home:not(.hidden) {
+  display: block;
+}
+
+.ab-shell {
+  position: absolute;
+  inset: 0;
+  width: 800px;
+  height: 600px;
+  overflow: hidden;
+  z-index: 40;
+  color: #e8f4ff;
+  font-family: Tahoma, "Segoe UI", sans-serif;
+}
+
+html.vga-kiosk.crt-display .ab-shell,
+body.vga-kiosk.crt-display .ab-shell {
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ab-bg,
+.ab-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ab-bg { object-fit: fill; z-index: 0; }
+.ab-frame { z-index: 40; mix-blend-mode: screen; }
+.ab-view { position: absolute; inset: 0; z-index: 2; }
+.ab-view.hidden { display: none !important; }
+
+.ab-home-banner {
+  position: absolute;
+  left: 2%;
+  top: 1.3%;
+  width: 96%;
+  height: 27%;
+}
+.ab-home-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.ab-tiles {
+  position: absolute;
+  left: 3.5%;
+  top: 30.7%;
+  width: 93%;
+  height: 50.7%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 1% 1%;
+  overflow: hidden;
+}
+
+.ab-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ab-tile img {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.65));
+  transform-origin: center bottom;
+}
+
+.ab-tile.on img,
+.ab-tile:hover img {
+  animation: ab-tile-bob 1.7s ease-in-out infinite;
+}
+
+@keyframes ab-tile-bob {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.65)) brightness(1);
+  }
+  50% {
+    transform: translateY(-3px);
+    filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.4)) brightness(1.08);
+  }
+}
+
+.ab-tile .count {
+  flex: none;
+  width: 100%;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  color: #b8c4d4;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.ab-tile.on .count { color: #ffd24a; }
+.ab-tile.on::after {
+  content: "";
+  position: absolute;
+  inset: 0 6px 22px;
+  border: 2px solid #2ee9ff;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(46, 233, 255, 0.75);
+  pointer-events: none;
+}
+
+.ab-foot {
+  position: absolute;
+  left: 2.2%;
+  right: 2.2%;
+  bottom: 1.3%;
+  height: 14.7%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  z-index: 5;
+}
+
+.ab-keys {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+}
+
+.ab-keys img {
+  height: 54px;
+  width: auto;
+  max-width: 156px;
+  object-fit: contain;
+}
+
+.ab-legal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #8aa6bc;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  padding: 0 10px 2px;
+}
+
+.ab-freemod {
+  color: #ffd24a;
+  font-size: 16px;
+  letter-spacing: 0.16em;
+  animation: ab-freemod 1s step-end infinite;
+}
+
+@keyframes ab-freemod {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.12; }
+}
+
+.ab-banner {
+  position: absolute;
+  left: 2%;
+  top: 1.7%;
+  width: 96%;
+  height: 18%;
+}
+
+.ab-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.ab-count {
+  position: absolute;
+  right: 3.1%;
+  bottom: 5.5%;
+  width: 13%;
+  height: 18.5%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd24a;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 6px #000;
+  line-height: 1;
+}
+
+.ab-letters {
+  position: absolute;
+  left: 2.5%;
+  top: 20.3%;
+  width: 62.5%;
+  height: 4.7%;
+  background: url("../media/themes/arcadebox/menu_asset/siralama.png") center / 100% 100% no-repeat;
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 8px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #8fd4ff;
+  pointer-events: auto;
+}
+
+.ab-letters .all {
+  width: 42px;
+  text-align: center;
+  color: #e8f8ff;
+  flex: none;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 16px;
+}
+
+.ab-az {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 0 6px;
+}
+
+.ab-az span {
+  width: 12px;
+  text-align: center;
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 16px;
+}
+
+.ab-letters .on {
+  color: #fff;
+  background: rgba(46, 233, 255, 0.28);
+  box-shadow: 0 0 10px #2ee9ff, 0 0 18px rgba(46, 233, 255, 0.7), inset 0 0 0 1px #2ee9ff;
+  text-shadow: 0 0 8px #2ee9ff;
+  transform: scale(1.15);
+}
+
+.ab-list-box {
+  position: absolute;
+  left: 2.2%;
+  top: 25.3%;
+  width: 63%;
+  height: 62%;
+  background:
+    url("../media/themes/arcadebox/menu_asset/game-panel-frame.png") center / 100% 100% no-repeat,
+    rgba(2, 10, 20, 0.82);
+  border-radius: 14px;
+}
+
+.ab-list {
+  position: absolute;
+  left: 14px;
+  top: 10px;
+  right: 14px;
+  height: calc(100% - 20px);
+  overflow: hidden;
+}
+
+.ab-row {
+  height: 30px;
+  display: grid;
+  grid-template-columns: 60px 1fr 20px;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #c5e6ff;
+  font-family: Consolas, "Lucida Console", monospace;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ab-row .num { color: #5fd0ff; }
+.ab-row .star { color: #ffd24a; text-align: right; }
+.ab-row.on {
+  background: url("../media/themes/arcadebox/menu_asset/selection-glow.png") center / 100% 100% no-repeat;
+  color: #fff;
+}
+.ab-row.empty {
+  color: #6f8aa0;
+  grid-template-columns: 1fr;
+}
+
+.ab-cover,
+.ab-meta {
+  position: absolute;
+  right: 2.2%;
+  width: 31%;
+}
+
+.ab-cover {
+  top: 20.3%;
+  height: 39.3%;
+  background:
+    url("../media/themes/arcadebox/menu_asset/cover-frame.png") center / 100% 100% no-repeat,
+    rgba(2, 10, 20, 0.82);
+  border-radius: 14px;
+}
+
+.ab-cover img {
+  position: absolute;
+  left: 3.2%;
+  top: 3.4%;
+  width: 93.5%;
+  height: 93.2%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.ab-meta {
+  top: 60.7%;
+  height: 26.7%;
+  background:
+    url("../media/themes/arcadebox/menu_asset/metadata-frame.png") center / 100% 100% no-repeat,
+    rgba(2, 10, 20, 0.82);
+  border-radius: 14px;
+  padding: 14px 16px 10px;
+}
+
+.ab-meta h2 {
+  color: #ffd24a;
+  font-size: 14px;
+  margin: 0 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-meta table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-weight: 700;
+  color: #d7ecff;
+}
+
+.ab-meta td { padding: 3px 0; }
+.ab-meta td:first-child { color: #8fb4cc; width: 42%; }
+
+.ab-games-foot { height: 9.7%; }
+.ab-games-foot .ab-legal { display: none; }
+.ab-games-foot .ab-keys { height: 48px; }
+.ab-games-foot .ab-keys img { height: 46px; }
+
+.theme-arcadebox #view-service {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: transparent !important;
+  pointer-events: none;
+}
+
+.theme-arcadebox #view-service .svc-head,
+.theme-arcadebox #view-service .service-body,
+.theme-arcadebox #view-service .hintbar {
+  display: none !important;
+}
+
+.ab-opt-banner {
+  height: 22%;
+}
+.ab-opt-banner img {
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 0 10px rgba(46, 233, 255, 0.35));
+}
+
+.ab-svc-tabs {
+  position: absolute;
+  left: 3.5%;
+  top: 24.8%;
+  width: 93%;
+  height: 8.2%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1%;
+  z-index: 6;
+}
+
+.ab-svc-tab {
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(46, 233, 255, 0.4);
+  border-radius: 10px;
+  background: rgba(2, 10, 20, 0.78);
+  color: #8fd4ff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  pointer-events: auto;
+  text-shadow: 0 0 8px rgba(46, 233, 255, 0.35);
+}
+
+.ab-svc-tab.on {
+  color: #041018;
+  background: #2ee9ff;
+  border-color: #2ee9ff;
+  box-shadow: 0 0 16px rgba(46, 233, 255, 0.75);
+  text-shadow: none;
+}
+
+#ab-settings.ab-in .ab-svc-tab:not(.on) {
+  opacity: 0.42;
+}
+
+.ab-svc-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  justify-content: center;
+}
+
+.ab-svc-item {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #245066;
+  background: rgba(6, 16, 28, 0.88);
+  color: #8fd4ff;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ab-svc-item span {
+  color: #8aa6bc;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ab-svc-item.on {
+  color: #fff;
+  border-color: #2ee9ff;
+  background: url("../media/themes/arcadebox/menu_asset/selection-glow.png") center / 100% 100% no-repeat;
+  box-shadow: 0 0 12px rgba(46, 233, 255, 0.45), inset 4px 0 0 #2ee9ff;
+}
+
+.ab-svc-item.on span {
+  color: #ffd24a;
+}
+
+.ab-svc-panel {
+  position: absolute;
+  left: 3.5%;
+  top: 34.4%;
+  width: 93%;
+  height: 47%;
+  overflow: auto;
+  padding: 14px 18px 12px;
+  background:
+    url("../media/themes/arcadebox/menu_asset/game-panel-frame.png") center / 100% 100% no-repeat,
+    rgba(2, 10, 20, 0.86);
+  border-radius: 14px;
+  z-index: 6;
+  pointer-events: auto;
+  color: #d7ecff;
+  font-size: 16px;
+  scrollbar-width: none;
+}
+.ab-svc-panel::-webkit-scrollbar { display: none; }
+
+.ab-svc-panel .svc-panel,
+.ab-svc-panel .svc-test,
+.ab-svc-panel .bind-list,
+.ab-svc-panel .crt-opts,
+.ab-svc-panel .crt-shift,
+.ab-svc-panel .crt-shift-list {
+  width: 100%;
+  max-width: none;
+}
+
+.ab-svc-panel .svc-lead,
+.ab-svc-panel .crt-shift-note {
+  color: #8aa6bc;
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+
+.ab-svc-panel .svc-test {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 12px 18px;
+  align-items: center;
+}
+
+.ab-svc-panel .joy {
+  margin: 0;
+}
+
+.ab-svc-panel .joy i,
+.ab-svc-panel .hit {
+  min-height: 42px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border-color: #2a5a72;
+  background: #0a1622;
+  color: #8fd4ff;
+}
+
+.ab-svc-panel .joy i.hot,
+.ab-svc-panel .hit.hot {
+  background: #2ee9ff;
+  color: #041018;
+  border-color: #2ee9ff;
+}
+
+.ab-svc-panel .hit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ab-svc-panel .signal {
+  grid-column: 1 / -1;
+  color: #ffd24a;
+  font-size: 15px;
+  margin: 0;
+}
+
+.ab-svc-panel .bind-list,
+.ab-svc-panel .crt-opts,
+.ab-svc-panel .crt-shift-list {
+  gap: 6px;
+}
+
+.ab-svc-panel .bind-row,
+.ab-svc-panel .crt-opts button,
+.ab-svc-panel .crt-shift-row {
+  font-size: 16px;
+  padding: 7px 12px;
+  background: rgba(6, 16, 28, 0.88);
+  border: 1px solid #245066;
+  color: #d7ecff;
+}
+
+.ab-svc-panel .bind-row {
+  grid-template-columns: 150px 1fr;
+}
+
+.ab-svc-panel .bind-row.on,
+.ab-svc-panel .crt-opts button.sel,
+.ab-svc-panel .crt-shift-row.on {
+  border-color: #2ee9ff;
+  background: url("../media/themes/arcadebox/menu_asset/selection-glow.png") center / 100% 100% no-repeat;
+  box-shadow: 0 0 10px rgba(46, 233, 255, 0.4), inset 4px 0 0 #2ee9ff;
+  color: #fff;
+}
+
+.ab-svc-panel .bind-row.waiting {
+  color: #ffd24a;
+  border-color: #ffd24a;
+}
+
+.ab-svc-panel .crt-opts button.on {
+  color: #ffd24a;
+}
+
+.ab-svc-panel .crt-shift {
+  padding-top: 0;
+  align-items: stretch;
+}
+
+.ab-svc-panel .crt-shift-row {
+  grid-template-columns: 1fr 52px 88px 52px;
+}
+
+.ab-svc-panel .crt-shift-row button,
+.ab-svc-panel .crt-shift-reset {
+  border-color: #2ee9ff;
+  background: #0a1622;
+  color: #e8f4ff;
+}
+
+.ab-svc-panel .crt-shift-reset {
+  align-self: center;
+}
+
+.ab-y-open {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ab-usb {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.ab-usb-act {
+  margin: 0;
+  color: #ffd24a;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.ab-usb-list {
+  flex: 1;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.ab-usb-list::-webkit-scrollbar { display: none; }
+
+.ab-usb-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 52px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #245066;
+  background: rgba(6, 16, 28, 0.88);
+  color: #d7ecff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ab-usb-row.on {
+  border-color: #2ee9ff;
+  background: url("../media/themes/arcadebox/menu_asset/selection-glow.png") center / 100% 100% no-repeat;
+  box-shadow: inset 4px 0 0 #2ee9ff;
+}
+
+.ab-usb-row.have em { color: #8aa6bc; }
+.ab-usb-row.fresh em { color: #ffd24a; }
+.ab-usb-row strong { color: #5fd0ff; }
