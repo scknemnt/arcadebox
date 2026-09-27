@@ -72,20 +72,21 @@ body.vga-kiosk.crt-display .ab-shell {
   top: 1.3%;
   width: 96%;
   height: 27%;
+  z-index: 4;
 }
 .ab-home-banner img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center center;
 }
 
 .ab-tiles {
   position: absolute;
   left: 3.5%;
-  top: 30.7%;
+  top: 34.2%;
   width: 93%;
-  height: 50.7%;
+  height: 47.2%;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: 1fr 1fr;
