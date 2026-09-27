@@ -34,6 +34,7 @@ BIOS = ROOT / "bios"
 MUSIC = ROOT / "music"
 PANDORA_MUSIC = FRONTEND / "media" / "pandora" / "music"
 CONFIG_PATH = ROOT / "config.json"
+USER_SETTINGS_PATH = DATA / "user-settings.json"
 EMULATORS = ROOT / "emulators" / "retroarch"
 
 _STATE = {
@@ -76,6 +77,38 @@ def _memo_json(path: Path):
 
 def config() -> dict:
     return load_json(CONFIG_PATH)
+
+
+def user_settings() -> dict:
+    if not USER_SETTINGS_PATH.is_file():
+        return {}
+    try:
+        data = load_json(USER_SETTINGS_PATH)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_user_settings(patch: dict) -> None:
+    current = user_settings()
+    current.update(patch)
+    DATA.mkdir(parents=True, exist_ok=True)
+    tmp = USER_SETTINGS_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(current, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(USER_SETTINGS_PATH)
+
+
+def merged_config() -> dict:
+    cfg = dict(config())
+    extra = user_settings()
+    for key in ("menuLayout", "crtFx", "controls", "favorites"):
+        if key in extra:
+            cfg[key] = extra[key]
+    if isinstance(extra.get("display"), dict):
+        disp = dict(cfg.get("display") or {})
+        disp.update(extra["display"])
+        cfg["display"] = disp
+    return cfg
 
 
 def systems() -> list:
@@ -2077,6 +2110,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/catalog":
             kick_catalog_build()
             library = cached_catalog(wait=False)
+            cfg = merged_config()
             payload = {
                 "systems": systems(),
                 "games": library,
@@ -2086,13 +2120,14 @@ class Handler(SimpleHTTPRequestHandler):
                 "config": {
                     "pi": Path("/sys/firmware/devicetree/base/model").exists(),
                     "retroarchExists": retroarch_exe() is not None,
-                    "fastBoot": bool(config().get("fastBoot")),
-                    "idleDemoSeconds": config().get("idleDemoSeconds", 40),
-                    "theme": config().get("theme", "amiga-crt"),
-                    "display": config().get("display", {}),
-                    "controls": config().get("controls", {}),
-                    "crtFx": config().get("crtFx", {}),
-                    "favorites": config().get("favorites") or [],
+                    "fastBoot": bool(cfg.get("fastBoot")),
+                    "idleDemoSeconds": cfg.get("idleDemoSeconds", 40),
+                    "theme": cfg.get("theme", "amiga-crt"),
+                    "display": cfg.get("display", {}),
+                    "controls": cfg.get("controls", {}),
+                    "crtFx": cfg.get("crtFx", {}),
+                    "favorites": cfg.get("favorites") or [],
+                    "menuLayout": cfg.get("menuLayout") or {},
                 },
                 "music": music_tracks(),
             }
@@ -2200,10 +2235,28 @@ class Handler(SimpleHTTPRequestHandler):
                     if len(seen) >= 300:
                         break
                 current["favorites"] = seen
-            save_json(CONFIG_PATH, current)
+            persist = {
+                "menuLayout": current.get("menuLayout") or {},
+                "display": {
+                    k: current.get("display", {}).get(k)
+                    for k in ("panX", "panY", "zoomW", "zoomH")
+                    if current.get("display", {}).get(k) is not None
+                },
+                "crtFx": current.get("crtFx") or {},
+                "controls": current.get("controls") or {},
+                "favorites": current.get("favorites") or [],
+            }
+            try:
+                save_user_settings(persist)
+            except OSError as exc:
+                sys.stderr.write(f"ArcadeBox: user-settings yazilamadi: {exc}\n")
+            try:
+                save_json(CONFIG_PATH, current)
+            except OSError as exc:
+                sys.stderr.write(f"ArcadeBox: config.json yazilamadi: {exc}\n")
             if current.get("crtFx", {}).get("sound") is False:
                 stop_kiosk_bgm()
-            self._json({"ok": True, "config": current})
+            self._json({"ok": True, "config": merged_config()})
             return
         if parsed.path == "/api/audio":
             self._json(handle_audio_command(body))

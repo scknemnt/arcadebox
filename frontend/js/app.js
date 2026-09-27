@@ -1423,7 +1423,9 @@ async function loadCatalog() {
   applyDisplayProfile();
   if (useAmigaCrt()) await loadCrtLayout();
   state.music = data.music || [];
-  if (data.config.menuLayout) state.menuLayout = clampMenuLayout(data.config.menuLayout);
+  if (data.config.menuLayout && typeof data.config.menuLayout === "object") {
+    state.menuLayout = clampMenuLayout(data.config.menuLayout);
+  }
   applyCrt();
   applyCrtPan();
   applyMenuLayout();
@@ -1677,28 +1679,41 @@ function applyCrt() {
   if (scan) scan.style.display = state.crtFx.scanlines > 0 ? "" : "none";
 }
 
+function settingsPayload() {
+  return {
+    controls: state.controls,
+    crtFx: state.crtFx,
+    favorites: state.favorites,
+    display: {
+      ...(state.config.display || {}),
+      panX: Number(state.crtPan.x) || 0,
+      panY: Number(state.crtPan.y) || 0,
+      zoomW: Number(state.crtPan.w) || 100,
+      zoomH: Number(state.crtPan.h) || 100,
+    },
+    menuLayout: state.menuLayout,
+  };
+}
+
 async function saveSettings() {
   try {
-    await fetch("/api/config", {
+    const response = await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        controls: state.controls,
-        crtFx: state.crtFx,
-        favorites: state.favorites,
-        display: {
-          ...(state.config.display || {}),
-          panX: Number(state.crtPan.x) || 0,
-          panY: Number(state.crtPan.y) || 0,
-          zoomW: Number(state.crtPan.w) || 100,
-          zoomH: Number(state.crtPan.h) || 100,
-        },
-        menuLayout: state.menuLayout,
-      }),
+      body: JSON.stringify(settingsPayload()),
     });
+    if (!response.ok) throw new Error("config");
   } catch (_error) {
     toast("Ayar yazılamadı.");
   }
+}
+
+function flushSettings() {
+  if (savePanTimer) {
+    window.clearTimeout(savePanTimer);
+    savePanTimer = 0;
+  }
+  return saveSettings();
 }
 
 function toggleFavorite() {
@@ -1733,6 +1748,7 @@ function openService() {
 function closeService() {
   state.listening = null;
   state.serviceInside = false;
+  flushSettings();
   sfx("back");
   show("home");
   renderHome();
@@ -1752,6 +1768,7 @@ function leaveServicePage() {
   state.listening = null;
   state.serviceInside = false;
   state.serviceIndex = 0;
+  flushSettings();
   sfx("back");
   renderService();
 }
@@ -2571,6 +2588,18 @@ function boot() {
     });
 }
 
+window.addEventListener("pagehide", () => {
+  try {
+    fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settingsPayload()),
+      keepalive: true,
+    });
+  } catch (_error) {
+    /* reboot / kiosk kill */
+  }
+});
 window.addEventListener("resize", scaleStage);
 window.addEventListener("blur", () => stopHold(true));
 window.addEventListener("keydown", onKey);

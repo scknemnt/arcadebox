@@ -29,6 +29,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 data/fbneo-gamelist.txt
+data/user-settings.json
+data/user-settings.tmp
 frontend/_theme_inspect/
 
 # Referans tema arsivi (cabinet calismasi icin gerekmez)
