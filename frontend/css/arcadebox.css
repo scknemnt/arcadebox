@@ -69,14 +69,14 @@ body.vga-kiosk.crt-display .ab-shell {
 .ab-home-banner {
   position: absolute;
   left: 2%;
-  top: 1.3%;
+  top: 3%;
   width: 96%;
-  height: 27%;
+  height: 24.5%;
 }
 .ab-home-banner img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: fill;
   object-position: center center;
 }
 
