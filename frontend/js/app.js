@@ -14,8 +14,10 @@ const state = {
     down: ["ArrowDown", "StickDown"],
     left: ["ArrowLeft", "StickLeft"],
     right: ["ArrowRight", "StickRight"],
-    ok: ["Enter", " ", "1", "Gamepad0", "Gamepad9"],
+    ok: ["Enter", " ", "1", "Gamepad0"],
     back: ["Escape", "Backspace", "Gamepad1"],
+    x: ["Gamepad2"],
+    start: ["Gamepad9"],
     service: ["F2", "Tab", "9", "Gamepad8"],
     hotkey: ["Gamepad4"],
     exit: ["Gamepad10"],
@@ -49,13 +51,19 @@ const ACTIONS = [
   { id: "down", label: "AŞAĞI" },
   { id: "left", label: "SOL" },
   { id: "right", label: "SAĞ" },
-  { id: "ok", label: "START / A" },
-  { id: "back", label: "GERİ / B" },
-  { id: "service", label: "SERVİS" },
+  { id: "ok", label: "A / ATEŞ 1" },
+  { id: "back", label: "B / GERİ" },
+  { id: "x", label: "X" },
+  { id: "fav", label: "Y / FAVORİ" },
+  { id: "start", label: "START" },
+  { id: "service", label: "SELECT / SERVİS" },
   { id: "hotkey", label: "OYUN HOTKEY" },
   { id: "exit", label: "OYUNDAN ÇIKIŞ" },
-  { id: "fav", label: "FAVORİ" },
 ];
+
+function isConfirm(action) {
+  return action === "ok" || action === "start";
+}
 
 const SERVICE_PAGES = [
   { name: "TEST", blurb: "Kol ve tuş ışıkları" },
@@ -1403,7 +1411,14 @@ async function loadCatalog() {
   state.catalogReady = !!data.catalogReady;
   state.bios = data.bios;
   state.config = data.config;
-  if (data.config.controls) state.controls = { ...state.controls, ...data.config.controls };
+  if (data.config.controls) {
+    state.controls = { ...state.controls, ...data.config.controls };
+    const ok = state.controls.ok || [];
+    if (!data.config.controls.start && ok.includes("Gamepad9")) {
+      state.controls.ok = ok.filter((token) => token !== "Gamepad9");
+      state.controls.start = ["Gamepad9"];
+    }
+  }
   if (data.config.crtFx) state.crtFx = { ...state.crtFx, ...data.config.crtFx };
   const disp = data.config.display || {};
   state.crtPan = {
@@ -1785,6 +1800,13 @@ function serviceHost() {
   return (useArcadebox() && $("ab-svc-body")) || $("service-body");
 }
 
+function revealServiceRow() {
+  const host = serviceHost();
+  if (!host) return;
+  const row = host.querySelector(".bind-row.on, .crt-shift-row.on, .crt-opts button.sel, .ab-usb-row.on, .ab-svc-item.on");
+  row?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
 function renderService() {
   $("view-service")?.classList.toggle("crt-align", state.serviceInside && state.serviceTab === 3);
   $("ab-settings")?.classList.toggle("ab-in", state.serviceInside);
@@ -1806,7 +1828,7 @@ function renderService() {
     } else if (state.serviceTab === 3 || state.serviceTab === tabNamed("TEMA")) {
       hint.innerHTML = "<span>↑ ↓ SATIR</span><span>← → − / +</span><span>START SIFIRLA</span><span>B MENÜ</span>";
     } else {
-      hint.innerHTML = "<span>↑ ↓ SEÇ</span><span>A / START DEĞİŞTİR</span><span>B MENÜ</span>";
+      hint.innerHTML = "<span>↑ ↓ SEÇ</span><span>A / START</span><span>B MENÜ</span>";
     }
   }
   const footHint = $("ab-svc-hint");
@@ -1820,6 +1842,7 @@ function renderService() {
         <strong>${page.name}</strong>
         <span>${page.blurb}</span>
       </button>`).join("")}</div>`;
+    revealServiceRow();
     return;
   }
 
@@ -1836,14 +1859,19 @@ function renderService() {
             <i class="d" data-act="down">↓</i>
           </div>
           <div class="hit-row">
-            <i class="hit" data-act="ok">A / START</i>
-            <i class="hit" data-act="back">B / GERİ</i>
-            <i class="hit" data-act="service">SERVİS</i>
+            <i class="hit" data-act="ok">A</i>
+            <i class="hit" data-act="back">B</i>
+            <i class="hit" data-act="x">X</i>
+            <i class="hit" data-act="fav">Y</i>
+            <i class="hit" data-act="start">START</i>
+            <i class="hit" data-act="service">SELECT</i>
+            <i class="hit" data-act="hotkey">HOTKEY</i>
           </div>
           <p class="signal" id="signal-log">${state.lastSignal}</p>
         </div>
       </div>`;
     paintHeld();
+    revealServiceRow();
     return;
   }
 
@@ -1856,6 +1884,7 @@ function renderService() {
         <span>${waiting ? "TUŞA BAS…" : keys}</span>
       </div>`;
     }).join("")}</div>`;
+    revealServiceRow();
     return;
   }
 
@@ -1874,6 +1903,7 @@ function renderService() {
         <button type="button" class="crt-shift-reset" data-nudge="reset">SIFIRLA</button>
         <p class="crt-shift-note">Kaydırınca kenar açılırsa BOYUT W / H ile büyüt. Oyun ayrı kalır.</p>
       </div>`;
+    revealServiceRow();
     return;
   }
 
@@ -1892,12 +1922,13 @@ function renderService() {
         <button type="button" class="crt-shift-reset" data-nudge="menu-reset">SIFIRLA</button>
         <p class="crt-shift-note">LOGO H / W neon çerçeveyi sıkıştırır. İKON X Y konumu, İKON BOYUT ölçek.</p>
       </div>`;
+    revealServiceRow();
     return;
   }
 
   if (state.serviceTab === tabNamed("EKLE")) {
     serviceHost().innerHTML = renderUsbPanel();
-    serviceHost().querySelector(".ab-usb-row.on")?.scrollIntoView({ block: "nearest" });
+    revealServiceRow();
     return;
   }
 
@@ -1914,6 +1945,7 @@ function renderService() {
   serviceHost().innerHTML = `<div class="crt-opts">${rows
     .map((row, index) => `<button type="button" class="${index === state.serviceIndex ? "sel" : ""} ${row.on ? "on" : ""}" data-index="${index}">${row.label}</button>`)
     .join("")}</div>`;
+  revealServiceRow();
 }
 
 function paintHeld() {
@@ -1985,7 +2017,7 @@ function startHold(action) {
 
 function fireAction(action) {
   state.idle = 0;
-  if (["ok", "back", "service", "fav"].includes(action)) stopHold(false);
+  if (["ok", "start", "back", "service", "fav"].includes(action)) stopHold(false);
   if (state.view === "boot" || state.view === "launch") return;
   if (action === "service") {
     if (state.view === "service") {
@@ -2020,7 +2052,7 @@ function fireAction(action) {
     if (state.view === "home" && useArcadebox()) move(4);
     else if (state.view === "games" || state.view === "home") move(1);
   }
-  if (action === "ok") confirm();
+  if (isConfirm(action)) confirm();
   if (action === "back") back();
   if (action === "fav") {
     if (state.view === "home" && useArcadebox()) openService();
@@ -2047,7 +2079,7 @@ function handleService(action) {
       renderService();
       return;
     }
-    if (action === "ok") enterServicePage();
+    if (isConfirm(action)) enterServicePage();
     return;
   }
   if (action === "back") {
@@ -2108,7 +2140,7 @@ function handleService(action) {
     renderService();
     return;
   }
-  if (action === "ok") activateService();
+  if (isConfirm(action)) activateService();
 }
 
 function esc(text) {
@@ -2230,7 +2262,7 @@ function handleUsbService(action) {
     renderService();
     return;
   }
-  if (action === "ok") {
+  if (isConfirm(action)) {
     if (state.usb.phase === "ready" && state.usb.newCount) usbImport();
     else if (state.usb.phase !== "scan" && state.usb.phase !== "copy") usbScan();
   }

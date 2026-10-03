@@ -1621,6 +1621,11 @@ def _first_gamepad(tokens) -> str | None:
     return None
 
 
+def _ra_btn(controls: dict, action: str, default: str) -> str:
+    number = _first_gamepad(controls.get(action) or [])
+    return number if number is not None else default
+
+
 def linux_joypads() -> list[dict]:
     path = Path("/proc/bus/input/devices")
     if os.name == "nt" or not path.is_file():
@@ -1898,27 +1903,33 @@ def launch_game(game_id: str) -> dict:
                 f'input_player2_analog_dpad_mode = "{analog}"',
             ]
         )
-        if _is_ps_pad(pad) or not pad.get("name"):
-            lines.extend(
-                [
-                    'input_player1_b_btn = "0"',
-                    'input_player1_a_btn = "1"',
-                    'input_player1_x_btn = "2"',
-                    'input_player1_y_btn = "3"',
-                    'input_player1_l_btn = "4"',
-                    'input_player1_r_btn = "5"',
-                    'input_player1_select_btn = "8"',
-                    'input_player1_start_btn = "9"',
-                    'input_player1_up_btn = "13"',
-                    'input_player1_down_btn = "14"',
-                    'input_player1_left_btn = "15"',
-                    'input_player1_right_btn = "16"',
-                    'input_player1_l_x_plus_axis = "+0"',
-                    'input_player1_l_x_minus_axis = "-0"',
-                    'input_player1_l_y_plus_axis = "+1"',
-                    'input_player1_l_y_minus_axis = "-1"',
-                ]
-            )
+        controls = config().get("controls") or {}
+        fire = _ra_btn(controls, "ok", "0")
+        back = _ra_btn(controls, "back", "1")
+        extra = _ra_btn(controls, "x", "2")
+        fav = _ra_btn(controls, "fav", "3")
+        select = _ra_btn(controls, "service", "8")
+        start = _ra_btn(controls, "start", "9")
+        lines.extend(
+            [
+                f'input_player1_b_btn = "{fire}"',
+                f'input_player1_a_btn = "{back}"',
+                f'input_player1_x_btn = "{extra}"',
+                f'input_player1_y_btn = "{fav}"',
+                'input_player1_l_btn = "4"',
+                'input_player1_r_btn = "5"',
+                f'input_player1_select_btn = "{select}"',
+                f'input_player1_start_btn = "{start}"',
+                'input_player1_up_btn = "13"',
+                'input_player1_down_btn = "14"',
+                'input_player1_left_btn = "15"',
+                'input_player1_right_btn = "16"',
+                'input_player1_l_x_plus_axis = "+0"',
+                'input_player1_l_x_minus_axis = "-0"',
+                'input_player1_l_y_plus_axis = "+1"',
+                'input_player1_l_y_minus_axis = "-1"',
+            ]
+        )
     lines.extend(retroarch_exit_lines())
     if _crt_cabinet():
         disp = config().get("display") or {}

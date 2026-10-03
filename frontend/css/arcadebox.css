@@ -545,7 +545,9 @@ body.vga-kiosk.crt-display .ab-shell {
   top: 39.2%;
   width: 93%;
   height: 42.2%;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 14px 18px 12px;
   background:
     url("../media/themes/arcadebox/menu_asset/game-panel-frame.png") center / 100% 100% no-repeat,
@@ -557,16 +559,37 @@ body.vga-kiosk.crt-display .ab-shell {
   font-size: 16px;
   scrollbar-width: none;
 }
-.ab-svc-panel::-webkit-scrollbar { display: none; }
+.ab-svc-panel::-webkit-scrollbar,
+.ab-svc-panel .bind-list::-webkit-scrollbar,
+.ab-svc-panel .crt-opts::-webkit-scrollbar,
+.ab-svc-panel .crt-shift-list::-webkit-scrollbar,
+.ab-svc-panel .svc-panel::-webkit-scrollbar,
+.ab-svc-panel .ab-svc-menu::-webkit-scrollbar {
+  display: none;
+}
 
 .ab-svc-panel .svc-panel,
 .ab-svc-panel .svc-test,
 .ab-svc-panel .bind-list,
 .ab-svc-panel .crt-opts,
 .ab-svc-panel .crt-shift,
-.ab-svc-panel .crt-shift-list {
+.ab-svc-panel .crt-shift-list,
+.ab-svc-panel .ab-svc-menu {
   width: 100%;
   max-width: none;
+}
+
+.ab-svc-panel > .bind-list,
+.ab-svc-panel > .crt-opts,
+.ab-svc-panel > .crt-shift,
+.ab-svc-panel > .svc-panel,
+.ab-svc-panel > .ab-usb,
+.ab-svc-panel > .ab-svc-menu {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .ab-svc-panel .svc-lead,
@@ -657,8 +680,18 @@ body.vga-kiosk.crt-display .ab-shell {
 }
 
 .ab-svc-panel .crt-shift {
+  display: flex;
+  flex-direction: column;
   padding-top: 0;
   align-items: stretch;
+}
+
+.ab-svc-panel .crt-shift-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .ab-svc-panel .crt-shift-row {
