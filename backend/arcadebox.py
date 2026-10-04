@@ -1687,10 +1687,10 @@ def _player1_bind_lines(profile: dict) -> list[str]:
         "input_a_btn": _ra_btn(controls, "back", "1"),
         "input_x_btn": _ra_btn(controls, "x", "2"),
         "input_y_btn": _ra_btn(controls, "fav", "3"),
-        "input_l_btn": _ra_btn(controls, "hotkey", "4"),
-        "input_r_btn": _ra_btn(controls, "r", "5"),
-        "input_l2_btn": _ra_btn(controls, "l2", "6"),
-        "input_r2_btn": _ra_btn(controls, "r2", "7"),
+        "input_l_btn": _ra_btn(controls, "r", "4"),
+        "input_r_btn": _ra_btn(controls, "r2", "5"),
+        "input_l2_btn": "6",
+        "input_r2_btn": "7",
         "input_select_btn": _ra_btn(controls, "service", "8"),
         "input_start_btn": _ra_btn(controls, "start", "9"),
         "input_up_btn": "13",
@@ -1711,24 +1711,28 @@ def _player1_bind_lines(profile: dict) -> list[str]:
 
 
 def retroarch_exit_lines(profile: dict | None = None) -> list[str]:
-    # Cikis her zaman iki tus: L1 basili tut + START.
+    # Cikis: SELECT basili + START. SELECT ayni zamanda hotkey.
     controls = merged_config().get("controls") or {}
     profile = profile or {}
-    hold = profile.get("input_l_btn") or _first_gamepad(controls.get("hotkey") or ["Gamepad4"])
-    exit_btn = profile.get("input_start_btn") or _first_gamepad(
-        controls.get("start") or controls.get("exit") or ["Gamepad9"]
-    )
+    hold = profile.get("input_select_btn") or _first_gamepad(controls.get("service") or ["Gamepad8"])
+    exit_btn = profile.get("input_start_btn") or _first_gamepad(controls.get("start") or ["Gamepad9"])
+    save_btn = profile.get("input_y_btn") or _ra_btn(controls, "fav", "3")
+    load_btn = profile.get("input_x_btn") or _ra_btn(controls, "x", "2")
     if not hold:
-        hold = "4"
+        hold = "8"
     if not exit_btn:
         exit_btn = "9"
     if hold == exit_btn:
-        exit_btn = "9" if hold != "9" else "8"
+        exit_btn = "9" if hold != "9" else "0"
     return [
         'input_exit_emulator = "nul"',
         'input_enable_hotkey = "nul"',
         f'input_enable_hotkey_btn = "{hold}"',
         f'input_exit_emulator_btn = "{exit_btn}"',
+        f'input_save_state_btn = "{save_btn}"',
+        f'input_load_state_btn = "{load_btn}"',
+        'input_save_state = "nul"',
+        'input_load_state = "nul"',
         'input_bind_hold = "300"',
     ]
 

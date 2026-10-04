@@ -54,17 +54,15 @@ const ACTIONS = [
   { id: "down", label: "AŞAĞI" },
   { id: "left", label: "SOL" },
   { id: "right", label: "SAĞ" },
-  { id: "ok", label: "A / ATEŞ 1" },
-  { id: "back", label: "B / GERİ" },
-  { id: "x", label: "X" },
-  { id: "fav", label: "Y / FAVORİ" },
-  { id: "start", label: "START" },
-  { id: "service", label: "SELECT / SERVİS" },
-  { id: "hotkey", label: "L1 / HOTKEY" },
-  { id: "r", label: "R1" },
-  { id: "l2", label: "L2" },
-  { id: "r2", label: "R2" },
-  { id: "exit", label: "ÇIKIŞ (L1 İLE)" },
+  { id: "ok", label: "LK / CROSS  (K4)" },
+  { id: "back", label: "MK / CIRCLE  (L1)" },
+  { id: "x", label: "MP / TRIANGLE  (K2)" },
+  { id: "fav", label: "LP / SQUARE  (K1)" },
+  { id: "r", label: "HP / L1  (K3)" },
+  { id: "r2", label: "HK / R1  (L2)" },
+  { id: "start", label: "START  (ST)" },
+  { id: "service", label: "SELECT  (SE)" },
+  { id: "exit", label: "ÇIKIŞ  (SE+ST)" },
 ];
 
 function isConfirm(action) {
@@ -1865,13 +1863,14 @@ function renderService() {
             <i class="d" data-act="down">↓</i>
           </div>
           <div class="hit-row">
-            <i class="hit" data-act="ok">A</i>
-            <i class="hit" data-act="back">B</i>
-            <i class="hit" data-act="x">X</i>
-            <i class="hit" data-act="fav">Y</i>
+            <i class="hit" data-act="fav">LP K1</i>
+            <i class="hit" data-act="x">MP K2</i>
+            <i class="hit" data-act="r">HP K3</i>
+            <i class="hit" data-act="ok">LK K4</i>
+            <i class="hit" data-act="back">MK L1</i>
+            <i class="hit" data-act="r2">HK L2</i>
             <i class="hit" data-act="start">START</i>
             <i class="hit" data-act="service">SELECT</i>
-            <i class="hit" data-act="hotkey">HOTKEY</i>
           </div>
           <p class="signal" id="signal-log">${state.lastSignal}</p>
         </div>
@@ -1883,7 +1882,7 @@ function renderService() {
 
   if (state.serviceTab === 1) {
     serviceHost().innerHTML = `
-      <p class="svc-lead">Oyundan çıkış = L1 basılı tut + START. Tek tuşla çıkmaz.</p>
+      <p class="svc-lead">SELECT ve START üstte ayrı. Çıkış = SELECT basılı + START.</p>
       <div class="bind-list">${ACTIONS.map((item, index) => {
       const waiting = state.listening === item.id;
       const keys = (state.controls[item.id] || []).map(prettyToken).join("  +  ");
@@ -2060,11 +2059,10 @@ function fireAction(action) {
     if (state.view === "home" && useArcadebox()) move(4);
     else if (state.view === "games" || state.view === "home") move(1);
   }
-  if (isConfirm(action)) confirm();
+  if (action === "start") confirm();
   if (action === "back") back();
   if (action === "fav") {
-    if (state.view === "home" && useArcadebox()) openService();
-    else toggleFavorite();
+    if (state.view === "games") toggleFavorite();
   }
 }
 
