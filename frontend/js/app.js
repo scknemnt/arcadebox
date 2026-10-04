@@ -1882,7 +1882,9 @@ function renderService() {
   }
 
   if (state.serviceTab === 1) {
-    serviceHost().innerHTML = `<div class="bind-list">${ACTIONS.map((item, index) => {
+    serviceHost().innerHTML = `
+      <p class="svc-lead">Oyundan çıkış = HOTKEY basılı tut + ÇIKIŞ tuşu. İkisini ayrı satıra ata.</p>
+      <div class="bind-list">${ACTIONS.map((item, index) => {
       const waiting = state.listening === item.id;
       const keys = (state.controls[item.id] || []).map(prettyToken).join("  +  ");
       return `<div class="bind-row ${index === state.serviceIndex ? "on" : ""} ${waiting ? "waiting" : ""}" data-index="${index}">

@@ -487,7 +487,7 @@ def _bgm_supervisor() -> None:
 def start_kiosk_bgm(name: str = "") -> bool:
     if os.name == "nt":
         return False
-    if config().get("crtFx", {}).get("sound") is False:
+    if merged_config().get("crtFx", {}).get("sound") is False:
         stop_kiosk_bgm()
         return False
     path = default_bgm_path(name)
@@ -508,7 +508,7 @@ def start_kiosk_bgm(name: str = "") -> bool:
 def play_kiosk_sfx(kind: str) -> None:
     if os.name == "nt":
         return
-    if config().get("crtFx", {}).get("sound") is False:
+    if merged_config().get("crtFx", {}).get("sound") is False:
         return
     data = _sfx_wav(kind)
     threading.Thread(target=_play_wav_bytes, args=(data,), daemon=True).start()
@@ -1580,7 +1580,7 @@ def rom_inventory() -> dict[str, bool]:
 
 
 def _crt_cabinet() -> bool:
-    disp = config().get("display") or {}
+    disp = merged_config().get("display") or {}
     if disp.get("crt"):
         return True
     return str(disp.get("output", "")).lower() in {"crt", "vga"}
@@ -1593,7 +1593,7 @@ def _crt_output() -> bool:
 def _aspect_ratio_index() -> str:
     if _crt_cabinet():
         return "23"
-    aspect = str((config().get("display") or {}).get("aspect") or "16:9").lower().replace(" ", "")
+    aspect = str((merged_config().get("display") or {}).get("aspect") or "16:9").lower().replace(" ", "")
     if aspect in {"4:3", "4/3"}:
         return "0"
     if aspect in {"full", "stretch"}:
@@ -1677,13 +1677,9 @@ def pick_player1_pad() -> dict:
 
 
 def retroarch_exit_lines() -> list[str]:
-    controls = config().get("controls") or {}
+    controls = merged_config().get("controls") or {}
     hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad4"])
     exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad10"])
-    if hotkey == "9":
-        hotkey = "10"
-    if exit_btn == "9":
-        exit_btn = "10"
     hold = hotkey or "nul"
     if hotkey and exit_btn and hotkey == exit_btn:
         hold = "nul"
@@ -1903,7 +1899,7 @@ def launch_game(game_id: str) -> dict:
                 f'input_player2_analog_dpad_mode = "{analog}"',
             ]
         )
-        controls = config().get("controls") or {}
+        controls = merged_config().get("controls") or {}
         fire = _ra_btn(controls, "ok", "0")
         back = _ra_btn(controls, "back", "1")
         extra = _ra_btn(controls, "x", "2")
@@ -1938,7 +1934,7 @@ def launch_game(game_id: str) -> dict:
         )
     lines.extend(retroarch_exit_lines())
     if _crt_cabinet():
-        disp = config().get("display") or {}
+        disp = merged_config().get("display") or {}
         vw = int(disp.get("hdisplay") or disp.get("width") or 1240)
         vh = int(disp.get("height") or 576)
         soft = disp.get("crtSoft") is not False
@@ -2204,7 +2200,7 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(result, 200 if result.get("ok") else 400)
             return
         if parsed.path == "/api/config":
-            current = config()
+            current = merged_config()
             if "exe" in body:
                 current["retroarch"]["exe"] = body["exe"]
                 current["retroarch"]["cores"] = str(Path(body["exe"]).parent / "cores")
@@ -2267,10 +2263,13 @@ class Handler(SimpleHTTPRequestHandler):
                 save_user_settings(persist)
             except OSError as exc:
                 sys.stderr.write(f"ArcadeBox: user-settings yazilamadi: {exc}\n")
-            try:
-                save_json(CONFIG_PATH, current)
-            except OSError as exc:
-                sys.stderr.write(f"ArcadeBox: config.json yazilamadi: {exc}\n")
+            # Ayarlar user-settings.json'da durur; config.json'a sadece emulator yolu yazilir
+            # ki kabinde "git pull" catismasin.
+            if "exe" in body:
+                try:
+                    save_json(CONFIG_PATH, current)
+                except OSError as exc:
+                    sys.stderr.write(f"ArcadeBox: config.json yazilamadi: {exc}\n")
             if current.get("crtFx", {}).get("sound") is False:
                 stop_kiosk_bgm()
             self._json({"ok": True, "config": merged_config()})
