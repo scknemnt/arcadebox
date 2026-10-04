@@ -23,7 +23,7 @@ const state = {
     r: ["Gamepad5"],
     l2: ["Gamepad6"],
     r2: ["Gamepad7"],
-    exit: ["Gamepad10"],
+    exit: ["Gamepad9"],
     fav: ["y", "Y", "Gamepad3"],
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
@@ -64,7 +64,7 @@ const ACTIONS = [
   { id: "r", label: "R1" },
   { id: "l2", label: "L2" },
   { id: "r2", label: "R2" },
-  { id: "exit", label: "OYUNDAN ÇIKIŞ" },
+  { id: "exit", label: "ÇIKIŞ (L1 İLE)" },
 ];
 
 function isConfirm(action) {
@@ -1883,7 +1883,7 @@ function renderService() {
 
   if (state.serviceTab === 1) {
     serviceHost().innerHTML = `
-      <p class="svc-lead">Oyundan çıkış = HOTKEY basılı tut + ÇIKIŞ tuşu. İkisini ayrı satıra ata.</p>
+      <p class="svc-lead">Oyundan çıkış = L1 basılı tut + START. Tek tuşla çıkmaz.</p>
       <div class="bind-list">${ACTIONS.map((item, index) => {
       const waiting = state.listening === item.id;
       const keys = (state.controls[item.id] || []).map(prettyToken).join("  +  ");

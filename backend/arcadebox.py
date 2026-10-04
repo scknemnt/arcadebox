@@ -1676,18 +1676,25 @@ def pick_player1_pad() -> dict:
     return pads[0] if pads else {"name": "", "js": 0, "vendor": ""}
 
 
-def retroarch_exit_lines() -> list[str]:
+def retroarch_exit_lines(profile: dict | None = None) -> list[str]:
+    # Cikis her zaman iki tus: L1 basili tut + START. Kolun kendi profili varsa
+    # numaralari oradan al, yoksa menudeki atamaya dus.
     controls = merged_config().get("controls") or {}
-    hotkey = _first_gamepad(controls.get("hotkey") or ["Gamepad4"])
-    exit_btn = _first_gamepad(controls.get("exit") or ["Gamepad10"])
-    hold = hotkey or "nul"
-    if hotkey and exit_btn and hotkey == exit_btn:
-        hold = "nul"
+    profile = profile or {}
+    hold = profile.get("input_l_btn") or _first_gamepad(controls.get("hotkey") or ["Gamepad4"])
+    exit_btn = profile.get("input_start_btn") or _first_gamepad(controls.get("exit") or ["Gamepad9"])
+    if not hold or hold == exit_btn:
+        # Tek tusla kazara cikmasin.
+        return [
+            'input_exit_emulator = "nul"',
+            'input_enable_hotkey = "nul"',
+            'input_exit_emulator_btn = "nul"',
+        ]
     return [
         'input_exit_emulator = "nul"',
         'input_enable_hotkey = "nul"',
         f'input_enable_hotkey_btn = "{hold}"',
-        f'input_exit_emulator_btn = "{exit_btn or "nul"}"',
+        f'input_exit_emulator_btn = "{exit_btn}"',
         'input_bind_hold = "300"',
     ]
 
@@ -1766,19 +1773,25 @@ def install_joypad_profiles() -> Path:
     return dest_root
 
 
-def _has_autoconfig(pads_dir: Path, driver: str, pad: dict) -> bool:
+def pad_profile(pads_dir: Path, driver: str, pad: dict) -> dict:
+    """Kolun RetroArch autoconfig profilindeki tus numaralari."""
     name = str(pad.get("name") or "").strip()
     folder = pads_dir / driver
     if not name or not folder.is_dir():
-        return False
+        return {}
     needle = f'input_device = "{name}"'
     for src in folder.glob("*.cfg"):
         try:
-            if needle in src.read_text(encoding="utf-8", errors="replace"):
-                return True
+            text = src.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-    return False
+        if needle not in text:
+            continue
+        return {
+            key: value
+            for key, value in re.findall(r'^\s*(input_\w+)\s*=\s*"([^"]*)"', text, re.MULTILINE)
+        }
+    return {}
 
 
 def _shader_file() -> Path | None:
@@ -1924,10 +1937,11 @@ def launch_game(game_id: str) -> dict:
         f'system_directory = "{sysdir}"',
         f'rgui_browser_directory = "{sysdir}"',
     ]
+    pad_cfg: dict = {}
     if os.name != "nt":
         pads = install_joypad_profiles()
-        analog = "0" if system["id"] == "psx" else "1"
         pad = pick_player1_pad()
+        pad_cfg = pad_profile(pads, "linuxraw", pad)
         lines.extend(
             [
                 'input_driver = "x"',
@@ -1937,14 +1951,15 @@ def launch_game(game_id: str) -> dict:
                 'input_max_users = "2"',
                 f'input_player1_joypad_index = "{pad.get("js", 0)}"',
                 'input_player1_start = "enter"',
-                f'input_player1_analog_dpad_mode = "{analog}"',
-                f'input_player2_analog_dpad_mode = "{analog}"',
+                # Arcade kolu analog eksende gelebilir; PSX dahil hep D-pad'e cevir.
+                'input_player1_analog_dpad_mode = "1"',
+                'input_player2_analog_dpad_mode = "1"',
             ]
         )
         # Profili olan kol RetroArch'in kendi eslemesiyle dogru calisir; tarayicinin
         # Gamepad numaralari linuxraw ile ayni olmayabilir. Profil yoksa acik bind sart,
         # yoksa oyunda hicbir tus calismaz.
-        if _is_ps_pad(pad) or not _has_autoconfig(pads, "linuxraw", pad):
+        if _is_ps_pad(pad) or not pad_cfg:
             controls = merged_config().get("controls") or {}
             fire = _ra_btn(controls, "ok", "0")
             back = _ra_btn(controls, "back", "1")
@@ -1978,7 +1993,7 @@ def launch_game(game_id: str) -> dict:
                     'input_player1_l_y_minus_axis = "-1"',
                 ]
             )
-    lines.extend(retroarch_exit_lines())
+    lines.extend(retroarch_exit_lines(pad_cfg))
     if _crt_cabinet():
         disp = merged_config().get("display") or {}
         vw = int(disp.get("hdisplay") or disp.get("width") or 1240)
