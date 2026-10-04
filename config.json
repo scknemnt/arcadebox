@@ -66,6 +66,15 @@
     "hotkey": [
       "Gamepad4"
     ],
+    "r": [
+      "Gamepad5"
+    ],
+    "l2": [
+      "Gamepad6"
+    ],
+    "r2": [
+      "Gamepad7"
+    ],
     "exit": [
       "Gamepad10"
     ],

@@ -1908,6 +1908,10 @@ def launch_game(game_id: str) -> dict:
         back = _ra_btn(controls, "back", "1")
         extra = _ra_btn(controls, "x", "2")
         fav = _ra_btn(controls, "fav", "3")
+        shoulder_l = _ra_btn(controls, "hotkey", "4")
+        shoulder_r = _ra_btn(controls, "r", "5")
+        trigger_l = _ra_btn(controls, "l2", "6")
+        trigger_r = _ra_btn(controls, "r2", "7")
         select = _ra_btn(controls, "service", "8")
         start = _ra_btn(controls, "start", "9")
         lines.extend(
@@ -1916,8 +1920,10 @@ def launch_game(game_id: str) -> dict:
                 f'input_player1_a_btn = "{back}"',
                 f'input_player1_x_btn = "{extra}"',
                 f'input_player1_y_btn = "{fav}"',
-                'input_player1_l_btn = "4"',
-                'input_player1_r_btn = "5"',
+                f'input_player1_l_btn = "{shoulder_l}"',
+                f'input_player1_r_btn = "{shoulder_r}"',
+                f'input_player1_l2_btn = "{trigger_l}"',
+                f'input_player1_r2_btn = "{trigger_r}"',
                 f'input_player1_select_btn = "{select}"',
                 f'input_player1_start_btn = "{start}"',
                 'input_player1_up_btn = "13"',

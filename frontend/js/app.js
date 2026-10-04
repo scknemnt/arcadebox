@@ -20,6 +20,9 @@ const state = {
     start: ["Gamepad9"],
     service: ["F2", "Tab", "9", "Gamepad8"],
     hotkey: ["Gamepad4"],
+    r: ["Gamepad5"],
+    l2: ["Gamepad6"],
+    r2: ["Gamepad7"],
     exit: ["Gamepad10"],
     fav: ["y", "Y", "Gamepad3"],
   },
@@ -57,7 +60,10 @@ const ACTIONS = [
   { id: "fav", label: "Y / FAVORİ" },
   { id: "start", label: "START" },
   { id: "service", label: "SELECT / SERVİS" },
-  { id: "hotkey", label: "OYUN HOTKEY" },
+  { id: "hotkey", label: "L1 / HOTKEY" },
+  { id: "r", label: "R1" },
+  { id: "l2", label: "L2" },
+  { id: "r2", label: "R2" },
   { id: "exit", label: "OYUNDAN ÇIKIŞ" },
 ];
 
@@ -2296,6 +2302,27 @@ function activateService() {
   }
 }
 
+function isPadToken(token) {
+  const text = String(token);
+  return text.startsWith("Gamepad") || text.startsWith("Stick");
+}
+
+// OYUNDAN ÇIKIŞ sadece kombinasyonda kullanılır, başka bir tuşla aynı olabilir.
+const BIND_SHAREABLE = ["exit"];
+
+function bindToken(action, token) {
+  const pad = isPadToken(token);
+  if (!BIND_SHAREABLE.includes(action)) {
+    ACTIONS.forEach((item) => {
+      if (item.id === action || BIND_SHAREABLE.includes(item.id)) return;
+      const list = state.controls[item.id] || [];
+      if (list.includes(token)) state.controls[item.id] = list.filter((entry) => entry !== token);
+    });
+  }
+  const keep = (state.controls[action] || []).filter((entry) => isPadToken(entry) !== pad);
+  state.controls[action] = [token, ...keep];
+}
+
 function ingest(token, down) {
   unlockAudio().then(() => {
     if (down) {
@@ -2305,9 +2332,7 @@ function ingest(token, down) {
   });
   state.lastSignal = prettyToken(token);
   if (state.listening && down) {
-    const action = state.listening;
-    state.controls[action] = [token];
-    if (action === "ok" && token !== "Enter") state.controls.ok = [token, "Enter"];
+    bindToken(state.listening, token);
     state.listening = null;
     saveSettings();
     renderService();
