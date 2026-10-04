@@ -1615,7 +1615,7 @@ def _crt_cabinet() -> bool:
     return str(disp.get("output", "")).lower() in {"crt", "vga"}
 
 
-def _xrandr_size() -> tuple[int, int] | None:
+def _xrandr_current() -> tuple[int, int, float] | None:
     if os.name == "nt":
         return None
     try:
@@ -1626,8 +1626,23 @@ def _xrandr_size() -> tuple[int, int] | None:
         if "*" not in line:
             continue
         match = re.search(r"(\d{3,4})x(\d{3,4})", line)
-        if match:
-            return int(match.group(1)), int(match.group(2))
+        if not match:
+            continue
+        rate = re.search(r"([\d.]+)\*", line)
+        hz = float(rate.group(1)) if rate else 0.0
+        return int(match.group(1)), int(match.group(2)), hz
+    return None
+
+
+def _xrandr_size() -> tuple[int, int] | None:
+    live = _xrandr_current()
+    return (live[0], live[1]) if live else None
+
+
+def _xrandr_refresh() -> float | None:
+    live = _xrandr_current()
+    if live and live[2] >= 20:
+        return live[2]
     return None
 
 
@@ -1666,8 +1681,11 @@ def _aspect_ratio_index() -> str:
 
 
 def _game_refresh_rate(system: dict) -> str:
-    # Neo Geo / CPS / most 90s boards are ~59.18–60 Hz. Forcing 50 Hz on a 60 Hz VGA
-    # panel makes vsync miss; FBNeo then runs Metal Slug and friends uncapped.
+    # CRT'de vsync, canli VGA Hz ile ayni olmali. 50 Hz tube 59.94 zorlamak kasma yapar.
+    if _crt_cabinet():
+        hz = _xrandr_refresh()
+        if hz:
+            return f"{hz:.5f}".rstrip("0").rstrip(".")
     if system["id"] == "neogeo":
         return "59.185606"
     if system["id"] in {"arcade", "megadrive", "snes", "psx"}:
@@ -1932,16 +1950,16 @@ def _core_option_lines(system: dict, core: Path) -> list[str]:
     if system["id"] == "psx":
         lines.extend(
             [
-                'pcsx_rearmed_neon_enhancement_enable = "enabled"',
+                'pcsx_rearmed_neon_enhancement_enable = "disabled"',
                 'pcsx_rearmed_neon_enhancement_no_main = "disabled"',
-                'pcsx_rearmed_dithering = "enabled"',
+                'pcsx_rearmed_dithering = "disabled"',
                 'pcsx_rearmed_frameskip = "0"',
                 'pcsx_rearmed_pad1type = "standard"',
                 'swanstation_GPU_Renderer = "Software"',
-                'swanstation_GPU_ResolutionScale = "2"',
+                'swanstation_GPU_ResolutionScale = "1"',
                 'swanstation_Controller1.Type = "DigitalController"',
                 'duckstation_GPU.Renderer = "Software"',
-                'duckstation_GPU.ResolutionScale = "2"',
+                'duckstation_GPU.ResolutionScale = "1"',
                 'duckstation_Controller1.Type = "DigitalController"',
                 'beetle_psx_controller1 = "standard"',
             ]
@@ -2033,7 +2051,7 @@ def launch_game(game_id: str) -> dict:
         'pause_nonactive = "false"',
         'video_vsync = "true"',
         'video_hard_sync = "false"',
-        'video_threaded = "false"',
+        'video_threaded = "true"',
         'video_swap_interval = "1"',
         f'video_refresh_rate = "{_game_refresh_rate(system)}"',
         'video_autoswitch_refresh_rate = "0"',
@@ -2132,7 +2150,9 @@ def launch_game(game_id: str) -> dict:
 
     launch_cwd = str(rom.parent) if system["id"] in {"arcade", "neogeo"} else str(ROOT)
     rom_arg = rom.name if system["id"] in {"arcade", "neogeo"} else str(rom)
-    args = [str(exe), "--verbose", "-L", str(core), "-f", "--appendconfig", str(override), rom_arg]
+    args = [str(exe), "-L", str(core), "-f", "--appendconfig", str(override), rom_arg]
+    if os.environ.get("ARCADEBOX_RA_VERBOSE"):
+        args.insert(1, "--verbose")
     creationflags = 0
     popen_env = os.environ.copy()
     popen_env["vblank_mode"] = "1"
@@ -2150,6 +2170,8 @@ def launch_game(game_id: str) -> dict:
     except OSError:
         log_handle = subprocess.DEVNULL
 
+    if os.name != "nt":
+        pause_kiosk_browser(True)
     try:
         process = subprocess.Popen(
             args,
@@ -2166,18 +2188,13 @@ def launch_game(game_id: str) -> dict:
             _STATE["busy"] = False
             _STATE["gameId"] = None
             _STATE["lastError"] = str(exc)
+        pause_kiosk_browser(False)
         start_kiosk_bgm()
         return {"ok": False, "error": f"Emülatör başlatılamadı: {exc}"}
 
     with _LOCK:
         _STATE["process"] = process
 
-    def _pause_later() -> None:
-        time.sleep(4)
-        if process.poll() is None:
-            pause_kiosk_browser(True)
-
-    threading.Thread(target=_pause_later, daemon=True).start()
     started = time.time()
 
     def watch() -> None:
