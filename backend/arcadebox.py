@@ -89,6 +89,26 @@ def user_settings() -> dict:
         return {}
 
 
+# ARC-968 DragonRise: K1=0 K2=1 K3=2 K4=3 L1=4 L2=6 SE=8 ST=9
+CONTROLS_PRESET = "arc968-6"
+ARC968_CONTROLS = {
+    "up": ["ArrowUp", "StickUp"],
+    "down": ["ArrowDown", "StickDown"],
+    "left": ["ArrowLeft", "StickLeft"],
+    "right": ["ArrowRight", "StickRight"],
+    "ok": ["Enter", " ", "Gamepad3"],
+    "back": ["Escape", "Gamepad4"],
+    "x": ["Gamepad1"],
+    "fav": ["Gamepad0"],
+    "r": ["Gamepad2"],
+    "r2": ["Gamepad6"],
+    "start": ["Gamepad9"],
+    "service": ["F2", "Gamepad8"],
+    "hotkey": ["Gamepad8"],
+    "exit": ["Gamepad9"],
+}
+
+
 def save_user_settings(patch: dict) -> None:
     current = user_settings()
     current.update(patch)
@@ -101,9 +121,18 @@ def save_user_settings(patch: dict) -> None:
 def merged_config() -> dict:
     cfg = dict(config())
     extra = user_settings()
-    for key in ("menuLayout", "crtFx", "controls", "favorites"):
+    if extra.get("controlsPreset") != CONTROLS_PRESET:
+        extra["controls"] = dict(ARC968_CONTROLS)
+        extra["controlsPreset"] = CONTROLS_PRESET
+        try:
+            save_user_settings({"controls": extra["controls"], "controlsPreset": CONTROLS_PRESET})
+        except OSError:
+            pass
+    for key in ("menuLayout", "crtFx", "controls", "favorites", "controlsPreset"):
         if key in extra:
             cfg[key] = extra[key]
+    if "controls" not in cfg:
+        cfg["controls"] = dict(ARC968_CONTROLS)
     if isinstance(extra.get("display"), dict):
         disp = dict(cfg.get("display") or {})
         disp.update(extra["display"])
@@ -1715,48 +1744,44 @@ def pick_player1_pad() -> dict:
 
 
 def _player1_bind_lines(profile: dict) -> list[str]:
-    """Kol profili + analog eksen. Arcade cubugu linuxraw'da hat degil eksen gelir."""
+    """TUŞLAR ayari once; profil sadece eksen / eksik hat doldurur."""
     controls = merged_config().get("controls") or {}
-    fallback = {
-        "input_b_btn": _ra_btn(controls, "ok", "0"),
-        "input_a_btn": _ra_btn(controls, "back", "1"),
-        "input_x_btn": _ra_btn(controls, "x", "2"),
-        "input_y_btn": _ra_btn(controls, "fav", "3"),
-        "input_l_btn": _ra_btn(controls, "r", "4"),
-        "input_r_btn": _ra_btn(controls, "r2", "5"),
-        "input_l2_btn": "6",
-        "input_r2_btn": "7",
-        "input_select_btn": _ra_btn(controls, "service", "8"),
-        "input_start_btn": _ra_btn(controls, "start", "9"),
-        "input_up_btn": "13",
-        "input_down_btn": "14",
-        "input_left_btn": "15",
-        "input_right_btn": "16",
-        "input_l_x_plus_axis": "+0",
-        "input_l_x_minus_axis": "-0",
-        "input_l_y_plus_axis": "+1",
-        "input_l_y_minus_axis": "-1",
+    profile = profile or {}
+
+    def pick(action: str, profile_key: str, default: str) -> str:
+        return _ra_btn(controls, action, None) or profile.get(profile_key) or default
+
+    chosen = {
+        "input_b_btn": pick("ok", "input_b_btn", "3"),
+        "input_a_btn": pick("back", "input_a_btn", "4"),
+        "input_x_btn": pick("x", "input_x_btn", "1"),
+        "input_y_btn": pick("fav", "input_y_btn", "0"),
+        "input_l_btn": pick("r", "input_l_btn", "2"),
+        "input_r_btn": pick("r2", "input_r_btn", "6"),
+        "input_l2_btn": profile.get("input_l2_btn") or "6",
+        "input_r2_btn": profile.get("input_r2_btn") or "7",
+        "input_select_btn": pick("service", "input_select_btn", "8"),
+        "input_start_btn": pick("start", "input_start_btn", "9"),
+        "input_up_btn": profile.get("input_up_btn") or "13",
+        "input_down_btn": profile.get("input_down_btn") or "14",
+        "input_left_btn": profile.get("input_left_btn") or "15",
+        "input_right_btn": profile.get("input_right_btn") or "16",
+        "input_l_x_plus_axis": profile.get("input_l_x_plus_axis") or "+0",
+        "input_l_x_minus_axis": profile.get("input_l_x_minus_axis") or "-0",
+        "input_l_y_plus_axis": profile.get("input_l_y_plus_axis") or "+1",
+        "input_l_y_minus_axis": profile.get("input_l_y_minus_axis") or "-1",
     }
-    keys = list(fallback)
-    lines = []
-    for key in keys:
-        value = (profile or {}).get(key) or fallback[key]
-        lines.append(f'input_player1_{key[6:]} = "{value}"')
-    return lines
+    return [f'input_player1_{key[6:]} = "{value}"' for key, value in chosen.items()]
 
 
 def retroarch_exit_lines(profile: dict | None = None) -> list[str]:
     # Cikis: SELECT basili + START. SELECT ayni zamanda hotkey.
     controls = merged_config().get("controls") or {}
     profile = profile or {}
-    hold = profile.get("input_select_btn") or _first_gamepad(controls.get("service") or ["Gamepad8"])
-    exit_btn = profile.get("input_start_btn") or _first_gamepad(controls.get("start") or ["Gamepad9"])
-    save_btn = profile.get("input_y_btn") or _ra_btn(controls, "fav", "3")
-    load_btn = profile.get("input_x_btn") or _ra_btn(controls, "x", "2")
-    if not hold:
-        hold = "8"
-    if not exit_btn:
-        exit_btn = "9"
+    hold = _first_gamepad(controls.get("service") or ["Gamepad8"]) or profile.get("input_select_btn") or "8"
+    exit_btn = _first_gamepad(controls.get("start") or ["Gamepad9"]) or profile.get("input_start_btn") or "9"
+    save_btn = _ra_btn(controls, "fav", None) or profile.get("input_y_btn") or "0"
+    load_btn = _ra_btn(controls, "x", None) or profile.get("input_x_btn") or "1"
     if hold == exit_btn:
         exit_btn = "9" if hold != "9" else "0"
     return [
@@ -1846,6 +1871,17 @@ def install_joypad_profiles() -> Path:
     return dest_root
 
 
+def _parse_pad_cfg(path: Path) -> dict:
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {}
+    return {
+        key: value
+        for key, value in re.findall(r'^\s*(input_\w+)\s*=\s*"([^"]*)"', text, re.MULTILINE)
+    }
+
+
 def pad_profile(pads_dir: Path, driver: str, pad: dict) -> dict:
     """Kolun RetroArch autoconfig profilindeki tus numaralari."""
     name = str(pad.get("name") or "").strip()
@@ -1860,10 +1896,13 @@ def pad_profile(pads_dir: Path, driver: str, pad: dict) -> dict:
             continue
         if needle not in text:
             continue
-        return {
-            key: value
-            for key, value in re.findall(r'^\s*(input_\w+)\s*=\s*"([^"]*)"', text, re.MULTILINE)
-        }
+        return _parse_pad_cfg(src)
+    blob = name.lower()
+    if any(word in blob for word in ("dragonrise", "usb gamepad", "generic usb joystick", "usb joystick")):
+        for src in list(folder.glob("DragonRise*.cfg")) + list(folder.glob("USB-Gamepad*.cfg")):
+            parsed = _parse_pad_cfg(src)
+            if parsed:
+                return parsed
     return {}
 
 
@@ -2309,6 +2348,8 @@ class Handler(SimpleHTTPRequestHandler):
                 current["retroarch"]["cores"] = str(Path(body["exe"]).parent / "cores")
             if "controls" in body and isinstance(body["controls"], dict):
                 current["controls"] = body["controls"]
+            if body.get("controlsPreset"):
+                current["controlsPreset"] = str(body["controlsPreset"])
             if "display" in body and isinstance(body["display"], dict):
                 disp = current.setdefault("display", {})
                 for key, val in body["display"].items():
@@ -2360,6 +2401,7 @@ class Handler(SimpleHTTPRequestHandler):
                 },
                 "crtFx": current.get("crtFx") or {},
                 "controls": current.get("controls") or {},
+                "controlsPreset": body.get("controlsPreset") or current.get("controlsPreset") or CONTROLS_PRESET,
                 "favorites": current.get("favorites") or [],
             }
             try:

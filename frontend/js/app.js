@@ -9,22 +9,22 @@ const state = {
   gameIndex: 0,
   idle: 0,
   launching: false,
+  controlsPreset: "arc968-6",
   controls: {
     up: ["ArrowUp", "StickUp"],
     down: ["ArrowDown", "StickDown"],
     left: ["ArrowLeft", "StickLeft"],
     right: ["ArrowRight", "StickRight"],
-    ok: ["Enter", " ", "1", "Gamepad0"],
-    back: ["Escape", "Backspace", "Gamepad1"],
-    x: ["Gamepad2"],
+    ok: ["Enter", " ", "Gamepad3"],
+    back: ["Escape", "Gamepad4"],
+    x: ["Gamepad1"],
+    fav: ["Gamepad0"],
+    r: ["Gamepad2"],
+    r2: ["Gamepad6"],
     start: ["Gamepad9"],
-    service: ["F2", "Tab", "9", "Gamepad8"],
-    hotkey: ["Gamepad4"],
-    r: ["Gamepad5"],
-    l2: ["Gamepad6"],
-    r2: ["Gamepad7"],
+    service: ["F2", "Gamepad8"],
+    hotkey: ["Gamepad8"],
     exit: ["Gamepad9"],
-    fav: ["y", "Y", "Gamepad3"],
   },
   crtFx: { scanlines: 0, flicker: false, rgb: false, sound: true },
   crtPan: { x: 0, y: 0, w: 100, h: 100 },
@@ -37,6 +37,7 @@ const state = {
   serviceIndex: 0,
   serviceInside: false,
   listening: null,
+  listenArmed: false,
   held: {},
   lastPad: {},
   padName: "",
@@ -1417,12 +1418,8 @@ async function loadCatalog() {
   state.config = data.config;
   if (data.config.controls) {
     state.controls = { ...state.controls, ...data.config.controls };
-    const ok = state.controls.ok || [];
-    if (!data.config.controls.start && ok.includes("Gamepad9")) {
-      state.controls.ok = ok.filter((token) => token !== "Gamepad9");
-      state.controls.start = ["Gamepad9"];
-    }
   }
+  if (data.config.controlsPreset) state.controlsPreset = data.config.controlsPreset;
   if (data.config.crtFx) state.crtFx = { ...state.crtFx, ...data.config.crtFx };
   const disp = data.config.display || {};
   state.crtPan = {
@@ -1701,6 +1698,7 @@ function applyCrt() {
 function settingsPayload() {
   return {
     controls: state.controls,
+    controlsPreset: state.controlsPreset || "arc968-6",
     crtFx: state.crtFx,
     favorites: state.favorites,
     display: {
@@ -1757,6 +1755,7 @@ function toggleFavorite() {
 function openService() {
   if (state.view === "launch" || state.view === "boot" || state.launching) return;
   state.listening = null;
+  state.listenArmed = false;
   state.serviceTab = 0;
   state.serviceIndex = 0;
   state.serviceInside = false;
@@ -1766,6 +1765,7 @@ function openService() {
 
 function closeService() {
   state.listening = null;
+  state.listenArmed = false;
   state.serviceInside = false;
   flushSettings();
   sfx("back");
@@ -1778,6 +1778,7 @@ function enterServicePage(tab) {
   state.serviceInside = true;
   state.serviceIndex = 0;
   state.listening = null;
+  state.listenArmed = false;
   sfx("ok");
   renderService();
   if (state.serviceTab === tabNamed("EKLE")) refreshUsbStatus();
@@ -1785,6 +1786,7 @@ function enterServicePage(tab) {
 
 function leaveServicePage() {
   state.listening = null;
+  state.listenArmed = false;
   state.serviceInside = false;
   state.serviceIndex = 0;
   flushSettings();
@@ -2274,13 +2276,14 @@ function handleUsbService(action) {
   }
 }
 
-function activateService() {
+function activateService(fromClick) {
   if (state.serviceTab === tabNamed("EKLE")) {
     handleUsbService("ok");
     return;
   }
   if (state.serviceTab === 1) {
     state.listening = ACTIONS[state.serviceIndex].id;
+    state.listenArmed = !!fromClick;
     renderService();
     return;
   }
@@ -2331,9 +2334,15 @@ function ingest(token, down) {
     }
   });
   state.lastSignal = prettyToken(token);
-  if (state.listening && down) {
+  if (state.listening) {
+    if (!down) {
+      state.listenArmed = true;
+      return;
+    }
+    if (!state.listenArmed) return;
     bindToken(state.listening, token);
     state.listening = null;
+    state.listenArmed = false;
     saveSettings();
     renderService();
     return;
@@ -2474,7 +2483,7 @@ function bindClicks() {
     const row = event.target.closest("[data-index]");
     if (!row) return;
     state.serviceIndex = Number(row.dataset.index);
-    activateService();
+    activateService(true);
   });
   $("ab-tiles")?.addEventListener("click", (event) => {
     const card = event.target.closest("[data-index]");
@@ -2565,7 +2574,7 @@ function bindClicks() {
     const row = event.target.closest("[data-index]");
     if (!row) return;
     state.serviceIndex = Number(row.dataset.index);
-    activateService();
+    activateService(true);
   });
 }
 
