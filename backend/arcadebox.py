@@ -1724,19 +1724,61 @@ def joypad_autoconfig_dir() -> Path:
     return Path.home() / ".config" / "retroarch" / "autoconfig"
 
 
+SYSTEM_AUTOCONFIG_DIRS = (
+    Path("/usr/share/libretro/autoconfig"),
+    Path("/usr/share/retroarch/autoconfig"),
+)
+
+
 def install_joypad_profiles() -> Path:
     dest_root = joypad_autoconfig_dir()
     bundled = ROOT / "kiosk" / "autoconfig"
-    if os.name == "nt" or not bundled.is_dir():
+    if os.name == "nt":
         return dest_root
     for driver in ("udev", "linuxraw"):
         folder = dest_root / driver
         folder.mkdir(parents=True, exist_ok=True)
-        for src in bundled.glob("*.cfg"):
-            text = src.read_text(encoding="utf-8", errors="replace")
-            text = text.replace('input_driver = "udev"', f'input_driver = "{driver}"')
-            (folder / src.name).write_text(text, encoding="utf-8")
+        # RetroArch sadece bu klasore bakar. Sistem profilleri de gelmezse arcade
+        # encoder'lari tanimsiz kalir ve oyunda hicbir tus calismaz.
+        if len(list(folder.glob("*.cfg"))) < 50:
+            for system_root in SYSTEM_AUTOCONFIG_DIRS:
+                for name in (driver, "udev"):
+                    src_dir = system_root / name
+                    if not src_dir.is_dir():
+                        continue
+                    for src in src_dir.glob("*.cfg"):
+                        dest = folder / src.name
+                        if dest.exists():
+                            continue
+                        try:
+                            text = src.read_text(encoding="utf-8", errors="replace")
+                            dest.write_text(
+                                re.sub(r'input_driver\s*=\s*"[^"]*"', f'input_driver = "{driver}"', text),
+                                encoding="utf-8",
+                            )
+                        except OSError:
+                            continue
+        if bundled.is_dir():
+            for src in bundled.glob("*.cfg"):
+                text = src.read_text(encoding="utf-8", errors="replace")
+                text = text.replace('input_driver = "udev"', f'input_driver = "{driver}"')
+                (folder / src.name).write_text(text, encoding="utf-8")
     return dest_root
+
+
+def _has_autoconfig(pads_dir: Path, driver: str, pad: dict) -> bool:
+    name = str(pad.get("name") or "").strip()
+    folder = pads_dir / driver
+    if not name or not folder.is_dir():
+        return False
+    needle = f'input_device = "{name}"'
+    for src in folder.glob("*.cfg"):
+        try:
+            if needle in src.read_text(encoding="utf-8", errors="replace"):
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def _shader_file() -> Path | None:
@@ -1899,39 +1941,43 @@ def launch_game(game_id: str) -> dict:
                 f'input_player2_analog_dpad_mode = "{analog}"',
             ]
         )
-        controls = merged_config().get("controls") or {}
-        fire = _ra_btn(controls, "ok", "0")
-        back = _ra_btn(controls, "back", "1")
-        extra = _ra_btn(controls, "x", "2")
-        fav = _ra_btn(controls, "fav", "3")
-        shoulder_l = _ra_btn(controls, "hotkey", "4")
-        shoulder_r = _ra_btn(controls, "r", "5")
-        trigger_l = _ra_btn(controls, "l2", "6")
-        trigger_r = _ra_btn(controls, "r2", "7")
-        select = _ra_btn(controls, "service", "8")
-        start = _ra_btn(controls, "start", "9")
-        lines.extend(
-            [
-                f'input_player1_b_btn = "{fire}"',
-                f'input_player1_a_btn = "{back}"',
-                f'input_player1_x_btn = "{extra}"',
-                f'input_player1_y_btn = "{fav}"',
-                f'input_player1_l_btn = "{shoulder_l}"',
-                f'input_player1_r_btn = "{shoulder_r}"',
-                f'input_player1_l2_btn = "{trigger_l}"',
-                f'input_player1_r2_btn = "{trigger_r}"',
-                f'input_player1_select_btn = "{select}"',
-                f'input_player1_start_btn = "{start}"',
-                'input_player1_up_btn = "13"',
-                'input_player1_down_btn = "14"',
-                'input_player1_left_btn = "15"',
-                'input_player1_right_btn = "16"',
-                'input_player1_l_x_plus_axis = "+0"',
-                'input_player1_l_x_minus_axis = "-0"',
-                'input_player1_l_y_plus_axis = "+1"',
-                'input_player1_l_y_minus_axis = "-1"',
-            ]
-        )
+        # Profili olan kol RetroArch'in kendi eslemesiyle dogru calisir; tarayicinin
+        # Gamepad numaralari linuxraw ile ayni olmayabilir. Profil yoksa acik bind sart,
+        # yoksa oyunda hicbir tus calismaz.
+        if _is_ps_pad(pad) or not _has_autoconfig(pads, "linuxraw", pad):
+            controls = merged_config().get("controls") or {}
+            fire = _ra_btn(controls, "ok", "0")
+            back = _ra_btn(controls, "back", "1")
+            extra = _ra_btn(controls, "x", "2")
+            fav = _ra_btn(controls, "fav", "3")
+            shoulder_l = _ra_btn(controls, "hotkey", "4")
+            shoulder_r = _ra_btn(controls, "r", "5")
+            trigger_l = _ra_btn(controls, "l2", "6")
+            trigger_r = _ra_btn(controls, "r2", "7")
+            select = _ra_btn(controls, "service", "8")
+            start = _ra_btn(controls, "start", "9")
+            lines.extend(
+                [
+                    f'input_player1_b_btn = "{fire}"',
+                    f'input_player1_a_btn = "{back}"',
+                    f'input_player1_x_btn = "{extra}"',
+                    f'input_player1_y_btn = "{fav}"',
+                    f'input_player1_l_btn = "{shoulder_l}"',
+                    f'input_player1_r_btn = "{shoulder_r}"',
+                    f'input_player1_l2_btn = "{trigger_l}"',
+                    f'input_player1_r2_btn = "{trigger_r}"',
+                    f'input_player1_select_btn = "{select}"',
+                    f'input_player1_start_btn = "{start}"',
+                    'input_player1_up_btn = "13"',
+                    'input_player1_down_btn = "14"',
+                    'input_player1_left_btn = "15"',
+                    'input_player1_right_btn = "16"',
+                    'input_player1_l_x_plus_axis = "+0"',
+                    'input_player1_l_x_minus_axis = "-0"',
+                    'input_player1_l_y_plus_axis = "+1"',
+                    'input_player1_l_y_minus_axis = "-1"',
+                ]
+            )
     lines.extend(retroarch_exit_lines())
     if _crt_cabinet():
         disp = merged_config().get("display") or {}
