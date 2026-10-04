@@ -1586,6 +1586,41 @@ def _crt_cabinet() -> bool:
     return str(disp.get("output", "")).lower() in {"crt", "vga"}
 
 
+def _xrandr_size() -> tuple[int, int] | None:
+    if os.name == "nt":
+        return None
+    try:
+        text = subprocess.check_output(["xrandr", "--current"], text=True, timeout=2, stderr=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in text.splitlines():
+        if "*" not in line:
+            continue
+        match = re.search(r"(\d{3,4})x(\d{3,4})", line)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+    return None
+
+
+def _crt_game_size() -> tuple[int, int]:
+    """Oyun alani = canli VGA modu. Menunun 800x600 degeri kullanilmaz."""
+    disp = merged_config().get("display") or {}
+    live = _xrandr_size()
+    if live:
+        return live
+    try:
+        wide = int(disp.get("hdisplay") or 0)
+    except (TypeError, ValueError):
+        wide = 0
+    try:
+        tall = int(disp.get("height") or 0)
+    except (TypeError, ValueError):
+        tall = 0
+    if wide >= 900:
+        return wide, tall or 576
+    return 1240, 576
+
+
 def _crt_output() -> bool:
     return _crt_cabinet()
 
@@ -2002,8 +2037,7 @@ def launch_game(game_id: str) -> dict:
     lines.extend(retroarch_exit_lines(pad_cfg))
     if _crt_cabinet():
         disp = merged_config().get("display") or {}
-        vw = int(disp.get("hdisplay") or disp.get("width") or 1240)
-        vh = int(disp.get("height") or 576)
+        vw, vh = _crt_game_size()
         soft = disp.get("crtSoft") is not False
         shader = _crt_pixel_shader() if soft else None
         lines.extend(
@@ -2011,6 +2045,8 @@ def launch_game(game_id: str) -> dict:
                 'video_scale_integer = "false"',
                 'video_force_aspect = "false"',
                 'aspect_ratio_index = "23"',
+                'custom_viewport_x = "0"',
+                'custom_viewport_y = "0"',
                 f'custom_viewport_width = "{vw}"',
                 f'custom_viewport_height = "{vh}"',
                 f'video_fullscreen_x = "{vw}"',
